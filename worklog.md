@@ -314,3 +314,46 @@ Unresolved / Next-phase recommendations:
 - NG+ could unlock a 4th secret boss at tier 3+.
 - Campaign log filter could support multi-select (currently single-toggle, but Set supports it — UI just needs shift-click).
 - Audio: add a unique boss-enrage stinger (rising dissonant chord) when a boss crosses the enrage threshold.
+
+---
+Task ID: 8
+Agent: main (Z.ai Code) — cron webDevReview round 8
+Task: QA the existing console, then implement the next-phase recommendations from Task 7 (bestiary fight button, per-ally DPS, NG+ secret boss, enrage stinger, multi-select filter).
+
+Work Log:
+- Reviewed worklog (Tasks 1–7 complete: 29 feature systems). QA via agent-browser: boot completes, 8 menu items, 8 NPCs, 2 locked, bestiary tag "0/4", zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+- Extended `/home/z/my-project/public/dnd-console.html` (~2980 lines) with 5 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+
+New features added:
+1. **Bestiary "fight this boss" button** — each visible boss card now has an `> ENGAGE <NAME>` button. Clicking calls `selectFoe(fkey)`, sets the encounter menu item active, and navigates to the ENCOUNTER_SIM panel via `startPanel("encounter")`. Verified: clicked ENGAGE CINDER → navigated to encounter with Cinder-King (200 HP).
+2. **Per-ally DPS breakdown** — `DpsTrack.perAlly` object tracks damage per ally key (veylan/mirewen/aldric/thistle). All damage-dealing branches in `allyAttack` + `allyAbility` (SMITE/ELDRITCH/SA) increment the per-ally counter. A new `.dps-ally-row` renders below the main DPS meter with 4 `.dps-ally` entries, each showing ally first-name + a proportional green bar + raw damage value. Reset in `resetEnc`. Verified: after combat, DEALT 127 = Sir 49 + Mirewen 18 + Brother 21 + Thistle 39. VLM confirmed 4 ally bars.
+3. **NG+ tier 3+ secret boss** — added a 4th FOE: "Ymr-Soth, the Unmade" (key `ymrsoth`, 400 HP, AC 22, ATK 9, enrage 60%, ability UNMAKING, role DEAD GOD, `secret:true`, `minNgPlus:3`). The bestiary filters secret bosses by `minNgPlus` — shows a dashed `.locked-secret` card with "[ ??? ]" + "reach NG+ tier 3 to reveal" when NG+ < 3, and the full card with [SECRET] badge when NG+ >= 3. The foe-select dropdown also filters by minNgPlus. New `UNMAKING` boss-ability case: hits ALL allies for 18-28 + BURN×2, with a dissonant chord stinger. Unique 7-note cosmic fanfare on defeat. Lore "The Unmaking" added to BOSS_LORE. Verified: at NG+3, secret card appears, fight button works, UNMAKING hits all allies + BURN.
+4. **Boss-enrage stinger** — new `Audio.chord(freqs, dur, vol)` method plays multiple detuned sawtooth/square oscillators for a dissonant cluster. `enrageStingerPlayed` guard in `allyAttack` detects the enrage threshold crossing (foeEnraged() becoming true) and fires `Audio.chord([110,116,155],0.6,0.16)` once + logs "ENRAGES — the seal strains". Reset in `resetEnc`. Verified: foe crossed 50% HP → enraged class + stinger fired.
+5. **Campaign log multi-select filter** — fixed the filter chip "active" class logic (was incorrectly marking all chips active when size===0). Now: empty set = all chips active (show all); selecting chips toggles them individually (multi-select); CLEAR resets to empty. The `clogFilter` Set already supported multi-select — only the render logic needed fixing.
+
+Styling detail pass:
+- `.dps-ally-row` 2-col grid; `.dps-ally` 3-col (name/bar/value); `.da-bar` green gradient with width transition.
+- `.best-fight` full-width engage button; `.best-card.secret` amber border + glow; `.best-card.locked-secret` dashed + dimmed; `.best-locked-hint` italic centered.
+- All existing visuals + responsive breakpoints preserved.
+
+Verification (agent-browser + VLM + node --check):
+- Boot: `boot gone` / `stage live`, 8 menu items, bestTag "0/4". Standalone + iframe both verified. Zero console errors.
+- Bestiary fight button: 3 visible + 1 locked-secret at NG+0; clicked ENGAGE CINDER → encounter with Cinder-King. VLM confirmed ENGAGE buttons on all cards.
+- Per-ally DPS: 4 bars (Sir/Mirewen/Brother/Thistle) with proportional green bars + values (49/18/21/39 = 127 total). VLM confirmed.
+- Secret boss: at NG+3, "Ymr-Soth, the Unmade [SECRET]" appears, 0 locked cards, 4 fight buttons; UNMAKING hits all 4 allies for ~20 each + BURN×2.
+- Enrage stinger: foe crossed enrage threshold → `enraged` class + chord fired.
+- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors.
+- Mobile 390px: DPS ally row → 2 columns, bestiary accessible.
+
+Stage Summary:
+- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2980 lines, single self-contained file. All Task 1–7 visuals + features preserved; 5 new systems layered on top (bestiary fight button, per-ally DPS, secret boss, enrage stinger, multi-select filter).
+- The console now has clickable boss navigation from the bestiary, per-combatant damage analytics, a NG+-gated secret final boss with unique mechanics, dissonant audio stingers on enrage, and a proper multi-select chronicle filter.
+- Preview: live at `/` via iframe; all new features work in the preview.
+- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+
+Unresolved / Next-phase recommendations:
+- Encounter could show a "threat assessment" tooltip on hover over each boss in the foe-select.
+- Per-ally DPS could track damage-taken too (who tanked the most).
+- Secret boss defeat could trigger a unique ending overlay (different from the standard victory lap).
+- Audio: the UNMAKING ability could play a reversed-whisper layer for extra unease.
+- Bestiary could show a "recommended strategy" hint per boss (e.g. "bring shields for ASH DECREE").

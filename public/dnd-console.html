@@ -707,6 +707,14 @@
   .dps-val.dealt{color:var(--green);text-shadow:0 0 6px rgba(74,246,38,.5)}
   .dps-val.taken{color:var(--red);text-shadow:0 0 6px rgba(255,36,36,.5)}
 
+  /* per-ally DPS breakdown bars */
+  .dps-ally-row{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:6px;padding:6px 12px}
+  .dps-ally{display:grid;grid-template-columns:70px 1fr 34px;gap:8px;align-items:center;font-family:'VT323',monospace;font-size:12px}
+  .da-name{color:var(--text-dim);letter-spacing:1px}
+  .da-bar{height:6px;background:#0c140c;border:1px solid #1a201a;overflow:hidden}
+  .da-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--green-dim),var(--green));transition:width .3s}
+  .da-val{color:var(--green);text-align:right}
+
   /* ---------- Bestiary ---------- */
   .bestiary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
   .best-card{border:1px solid #2a2017;background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));padding:14px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
@@ -726,6 +734,10 @@
   .best-lore h4{font-family:'MedievalSharp',serif;font-size:15px;color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.4);margin-bottom:4px}
   .best-lore p{font-size:13px;line-height:1.5;color:var(--text)}
   .best-lore-locked{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;border-top:1px dashed #1a201a;padding-top:8px;margin-top:6px;font-style:italic}
+  .best-fight{margin-top:10px;width:100%;padding:6px;font-size:13px;letter-spacing:1px}
+  .best-card.secret{border-color:var(--amber);box-shadow:0 0 16px rgba(232,161,58,.15)}
+  .best-card.locked-secret{opacity:.5;border-style:dashed}
+  .best-locked-hint{font-size:13px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;padding:20px 10px;text-align:center;font-style:italic}
 
   /* ---------- Campaign log filter chips ---------- */
   .clog-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
@@ -1305,9 +1317,23 @@
         master.gain.linearRampToValueAtTime(0.0,ctx.currentTime+0.3);
       }
     }
+    // dissonant chord stinger (for boss enrage) — multiple detuned oscillators
+    function chord(freqs, dur, vol){
+      if(!ctx||muted) return;
+      freqs.forEach((fr,idx)=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type= idx%2===0 ? "sawtooth" : "square";
+        o.frequency.value=fr;
+        o.detune.value=(idx-1)*12; // detune for dissonance
+        g.gain.setValueAtTime(0,ctx.currentTime);
+        g.gain.linearRampToValueAtTime(vol/freqs.length,ctx.currentTime+0.04);
+        g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+        o.connect(g);g.connect(master);o.start();o.stop(ctx.currentTime+dur+0.02);
+      });
+    }
     return {
       init, setMuted, isMuted(){return muted;}, isStarted(){return started;},
-      blip, beep, glitch, thud, whisper, setActive,
+      blip, beep, glitch, thud, whisper, setActive, chord,
       ensure(){ if(!started) init(); if(ctx&&ctx.state==="suspended") ctx.resume(); }
     };
   })();
@@ -1397,7 +1423,9 @@
     ngPlus:     _saved?.ngPlus || 0,              // New Game+ tier (0=normal, 1+=harder)
   };
   // DPS tracking for the current encounter round
-  const DpsTrack={ roundDmgDealt:0, roundDmgTaken:0, totalDealt:0, totalTaken:0, rounds:0 };
+  const DpsTrack={ roundDmgDealt:0, roundDmgTaken:0, totalDealt:0, totalTaken:0, rounds:0, perAlly:{veylan:0,mirewen:0,aldric:0,thistle:0} };
+  // enrage stinger guard — only fire once per enrage transition
+  let enrageStingerPlayed=false;
   function logEvent(event, detail){
     const entry={ time:new Date().toLocaleTimeString("en-GB",{hour12:false}), event, detail:detail||"" };
     State.campaignLog.push(entry);
@@ -1735,6 +1763,8 @@
     {key:"kaelen", name:"Kaelen Ashbringer", max:142, hp:142, ac:19, atk:6, enrageAt:0.4, bossAbility:"EMBER_NOVA", role:"UNDEAD BOSS"},
     {key:"cinder", name:"The Cinder-King", max:200, hp:200, ac:20, atk:7, enrageAt:0.5, bossAbility:"ASH DECREE", role:"UNDEAD RULER"},
     {key:"vasska", name:"Vasska, the Coiled Word", max:175, hp:175, ac:17, atk:5, enrageAt:0.45, bossAbility:"BINDING OATH", role:"ABERRATION"},
+    // secret 4th boss — only available at NG+ tier 3+
+    {key:"ymrsoth", name:"Ymr-Soth, the Unmade", max:400, hp:400, ac:22, atk:9, enrageAt:0.6, bossAbility:"UNMAKING", role:"DEAD GOD", secret:true, minNgPlus:3},
   ];
   const FOE=FOES[0]; // default for any legacy references
   // lore fragments dropped by each boss on first defeat
@@ -1742,6 +1772,7 @@
     kaelen:{ title:"The Smothering", body:"When Kaelen Ashbringer fell, the Ember Vow did not break — it smothered. The coal behind his ribs is the last lit thing in a faith that once warmed a kingdom. Every year it dims a little more. When it goes out, the Vow inverts: the dead it once protected will rise against the living it failed to save. The party carries the only thing that can relight it — Ysolde's twin coal — and does not yet know it." },
     cinder:{ title:"The Court of Ash", body:"The Cinder-King's court is not empty. He rules a thousand ash-silhouettes, each a subject who stayed loyal past death. They cannot speak or act, but they remember. When the party entered his throne room, every silhouette turned its head. When the King fell, every silhouette sighed — and the sigh was the names of the party, spoken in the King's voice, which they will hear again, in dreams, for the rest of their lives. He was polite about it. He is always polite about it." },
     vasska:{ title:"The Oath That Was Never Made", body:"Vasska's riddle — 'What is the oath the dead cannot break?' — has a second answer no one has given: 'the oath that was never made.' Vasska itself is that oath. It was promised a death by the god who buried Ymr-Soth, and the god died before keeping its word. So Vasska waits, coiled, undying, because a god's unkept promise cannot be broken either. When Vasska fell, it did not die. It simply stopped waiting. It is, somewhere, relieved." },
+    ymrsoth:{ title:"The Unmaking", body:"Ymr-Soth was never killed. It was unfinished. When the party finally struck it down, they did not destroy it — they completed it. The god that was half-real for millennia is now fully real, and fully dead, which is a thing that should not be possible. The Mire exhales. The corruption drains from the seal in a single, long sigh. The Wardens close this console's ledger and open the next. Somewhere, a god that should not have been is grateful, briefly, for having been." },
   };
   // restore from store if present
   const EncState={
@@ -1840,9 +1871,10 @@
       kaelen:[523,659,784,1047],   // C-E-G-C triumphant
       cinder:[440,554,659,880],    // A-C#-E-A darker
       vasska:[392,466,587,784],    // G-Bb-D-G minor
+      ymrsoth:[261,329,392,523,659,784,1047], // C-E-G-C-E-G-C ascending cosmic
     };
     const notes=fanfares[fkey]||fanfares.kaelen;
-    notes.forEach((n,i)=>setTimeout(()=>Audio.beep(n,0.2,0.15),i*120));
+    notes.forEach((n,i)=>setTimeout(()=>Audio.beep(n,0.25,0.16),i*140));
   }
   function renderEncounter(){
     const f=EncState.foe;
@@ -1867,7 +1899,7 @@
     const aliveCount=aliveAllies().length;
     const bossBtn = !f.bossUsed && f.hp>0 && !EncState.over
       ? `<button class="enc-btn foe ability" id="encBoss" style="padding:5px 10px;font-size:12px">${f.bossAbility} (once)</button>` : "";
-    const foeOpts=FOES.map(fo=>`<option value="${fo.key}"${fo.key===EncState.foeKey?" selected":""}>${fo.name}</option>`).join("");
+    const foeOpts=FOES.filter(fo=>!fo.minNgPlus || State.ngPlus>=fo.minNgPlus).map(fo=>`<option value="${fo.key}"${fo.key===EncState.foeKey?" selected":""}>${fo.name}</option>`).join("");
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> ENCOUNTER_SIM <span class="g">::</span> LIVE</h2>
         <div class="sub">round ${EncState.round} // ${aliveCount} allies standing // threat ${f.name}${en?" [ENRAGED]":""}</div>
@@ -1893,6 +1925,13 @@
         <div class="dps-stat"><span class="dps-lbl">TAKEN</span><span class="dps-val taken">${DpsTrack.totalTaken}</span></div>
         <div class="dps-stat"><span class="dps-lbl">NET</span><span class="dps-val ${DpsTrack.totalDealt-DpsTrack.totalTaken>=0?"dealt":"taken"}">${DpsTrack.totalDealt-DpsTrack.totalTaken>=0?"+":""}${DpsTrack.totalDealt-DpsTrack.totalTaken}</span></div>
         <div class="dps-stat"><span class="dps-lbl">ROUNDS</span><span class="dps-val">${EncState.round}</span></div>
+      </div>
+      <div class="dps-ally-row">
+        ${EncState.party.map(p=>{
+          const d=DpsTrack.perAlly[p.key]||0;
+          const pct=DpsTrack.totalDealt>0?Math.round(d/DpsTrack.totalDealt*100):0;
+          return `<div class="dps-ally"><span class="da-name">${p.name.split(' ')[0]}</span><div class="da-bar"><i style="width:${pct}%"></i></div><span class="da-val">${d}</span></div>`;
+        }).join("")}
       </div>
       <div class="enc-ctrl">
         <button class="enc-btn" id="encRound" ${EncState.over?"disabled":""}>${EncState.over?"CONCLUDED":"NEXT TURN"}</button>
@@ -1931,16 +1970,22 @@
     const btn=$(`[data-ab="${i}"]`)||$("#encRound");
     if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
     if(crit){
-      const dmg=dice(8,12)*2; f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg;
+      const dmg=dice(8,12)*2; f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg; if(DpsTrack.perAlly[p.key]!=null)DpsTrack.perAlly[p.key]+=dmg;
       encLog(`> ${p.name} rolls ${roll} — CRITICAL! smites ${f.name} for ${dmg}.`,"crit");
       Audio.thud(0.18);
     }else if(miss){
       encLog(`> ${p.name} rolls ${roll} (${hit} vs AC ${f.ac}) — deflected.`,"miss");
       Audio.blip(180,0.08,0.08);
     }else{
-      const dmg=dice(6,11); f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg;
+      const dmg=dice(6,11); f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg; if(DpsTrack.perAlly[p.key]!=null)DpsTrack.perAlly[p.key]+=dmg;
       encLog(`> ${p.name} rolls ${roll} (${hit} vs AC ${f.ac}) — hits for ${dmg}.`,"atk");
       Audio.thud(0.14);
+    }
+    // enrage stinger: if foe just crossed the enrage threshold, play dissonant chord once
+    if(!enrageStingerPlayed && foeEnraged()){
+      enrageStingerPlayed=true;
+      Audio.chord([110,116,155],0.6,0.16);
+      encLog(`>> ${f.name} ENRAGES — the seal strains.`,  "crit");
     }
     if(f.hp<=0){
       encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,"die");
@@ -1966,13 +2011,13 @@
     if(btn){ const r=btn.getBoundingClientRect(); popDice(p.ability+"!",true,false,r.left+40,r.top-6); }
     switch(p.ability){
       case "SMITE":{
-        const dmg=dice(12,18); f.hp=Math.max(0,f.hp-dmg);
+        const dmg=dice(12,18); f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg; if(DpsTrack.perAlly[p.key]!=null)DpsTrack.perAlly[p.key]+=dmg;
         encLog(`>> ${p.name} unleashes SMITE — divine force for ${dmg}!`,"crit");
         Audio.thud(0.22);
         break;
       }
       case "ELDRITCH":{
-        const dmg=dice(10,16); f.hp=Math.max(0,f.hp-dmg);
+        const dmg=dice(10,16); f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg; if(DpsTrack.perAlly[p.key]!=null)DpsTrack.perAlly[p.key]+=dmg;
         encLog(`>> ${p.name} invokes ELDRITCH BOLT — auto-hit force for ${dmg}.`,"crit");
         Audio.thud(0.2);
         break;
@@ -1984,7 +2029,7 @@
         break;
       }
       case "SA":{
-        const dmg=dice(6,9)*3; f.hp=Math.max(0,f.hp-dmg);
+        const dmg=dice(6,9)*3; f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg; if(DpsTrack.perAlly[p.key]!=null)DpsTrack.perAlly[p.key]+=dmg;
         encLog(`>> ${p.name} strikes from shadow — SNEAK ATTACK for ${dmg}!`,"crit");
         Audio.thud(0.22);
         break;
@@ -2104,6 +2149,19 @@
         });
         break;
       }
+      case "UNMAKING":{
+        encLog(`>> ${f.name} begins to UNMAKE the party — reality frays!`,"crit");
+        Audio.chord([55,58,62,65],0.8,0.2); setTimeout(()=>Audio.glitch(0.2),200);
+        EncState.party.forEach(p=>{
+          if(p.hp>0){
+            const dmg=dice(18,28); applyDamage(p,dmg);
+            p.statuses=(p.statuses||[]).concat([{type:"BURN",turns:2}]);
+            encLog(`   ${p.name} takes ${dmg} unmaking + BURN ×2. (now ${p.hp}/${p.max})`,"fatk");
+            if(p.hp<=0) killed++;
+          }
+        });
+        break;
+      }
     }
     if(killed>0){ encLog(`>> ${killed} ally(ies) fell to ${f.bossAbility}.`,"die"); Audio.glitch(0.25); }
     if(aliveAllies().length===0){
@@ -2171,7 +2229,8 @@
     const ngMul=1+State.ngPlus*0.5;
     EncState.foe={...base, hp:Math.round(base.max*ngMul), max:Math.round(base.max*ngMul), atk:base.atk+State.ngPlus, enrageAt:Math.min(0.7,base.enrageAt+State.ngPlus*0.05), bossUsed:false, statuses:[]};
     EncState.round=0; EncState.over=false; EncState.log=[]; EncState.initiative=0;
-    DpsTrack.roundDmgDealt=0; DpsTrack.roundDmgTaken=0; DpsTrack.totalDealt=0; DpsTrack.totalTaken=0; DpsTrack.rounds=0;
+    DpsTrack.roundDmgDealt=0; DpsTrack.roundDmgTaken=0; DpsTrack.totalDealt=0; DpsTrack.totalTaken=0; DpsTrack.rounds=0; DpsTrack.perAlly={veylan:0,mirewen:0,aldric:0,thistle:0};
+    enrageStingerPlayed=false;
     encLog(">> encounter sim re-initialized. party at full strength vs "+EncState.foe.name+(State.ngPlus>0?" [NG+"+State.ngPlus+"]":"")+".","sys");
     encRefresh();
     Audio.blip(660,0.08,0.1);
@@ -2437,15 +2496,18 @@
     const t=$("#bestTag"); if(t) t.textContent=State.defeated.size+"/"+FOES.length;
   }
   function renderBestiary(){
-    const cards=FOES.map(f=>{
+    // secret bosses only show if NG+ tier meets minNgPlus
+    const visibleFoes=FOES.filter(f=>!f.minNgPlus || State.ngPlus>=f.minNgPlus);
+    const cards=visibleFoes.map(f=>{
       const defeated=State.defeated.has(f.key);
       const hasLore=State.bossLore.has(f.key);
       const ngMul=1+State.ngPlus*0.5;
       const hp=Math.round(f.max*ngMul);
+      const isSecret=f.secret||false;
       const loreHtml=hasLore?`<div class="best-lore"><h4>${BOSS_LORE[f.key].title}</h4><p>${BOSS_LORE[f.key].body}</p></div>`:`<div class="best-lore-locked">// defeat ${f.name} to recover lore fragment</div>`;
-      return `<div class="best-card${defeated?" defeated":""}">
+      return `<div class="best-card${defeated?" defeated":""}${isSecret?" secret":""}">
         <div class="best-head">
-          <div class="best-name">${f.name}</div>
+          <div class="best-name">${f.name}${isSecret?" <small style='color:var(--amber)'>[SECRET]</small>":""}</div>
           <div class="best-status ${defeated?"def":"alive"}">${defeated?"DEFEATED":"ACTIVE"}</div>
         </div>
         <div class="best-stats">
@@ -2458,13 +2520,17 @@
         </div>
         <div class="best-role">// ${f.role}</div>
         ${loreHtml}
+        <button class="enc-btn best-fight" data-fight="${f.key}">&gt; ENGAGE ${f.name.split(' ')[0].toUpperCase()}</button>
       </div>`;
     }).join("");
+    const lockedHtml = FOES.filter(f=>f.minNgPlus && State.ngPlus<f.minNgPlus).map(f=>
+      `<div class="best-card locked-secret"><div class="best-head"><div class="best-name">[ ??? ]</div><div class="best-status alive">LOCKED</div></div><div class="best-locked-hint">// reach NG+ tier ${f.minNgPlus} to reveal this threat</div></div>`
+    ).join("");
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> BESTIARY <span class="g">::</span> THREAT REGISTRY</h2>
-        <div class="sub">${State.defeated.size}/${FOES.length} defeated // ${State.bossLore.size}/${FOES.length} lore recovered${State.ngPlus>0?" // NG+ tier "+State.ngPlus:""}</div>
+        <div class="sub">${State.defeated.size}/${visibleFoes.length} defeated // ${State.bossLore.size}/${visibleFoes.length} lore recovered${State.ngPlus>0?" // NG+ tier "+State.ngPlus:""}</div>
       </div>
-      <div class="bestiary-grid">${cards}</div>`;
+      <div class="bestiary-grid">${cards}${lockedHtml}</div>`;
   }
 
   // update the campaign-log menu tag count
@@ -2484,9 +2550,10 @@
         </div>
         <div class="campaign-empty">// the chronicle is blank. the console has not yet witnessed anything worth remembering.<br>// extract rumors, cleanse records, or fight the boss to populate this log.</div>`;
     }
-    // build filter chips from all event types present
+    // build filter chips from all event types present (multi-select: empty set = all active)
     const allTypes=[...new Set(State.campaignLog.map(e=>e.event))];
-    const filterChips=allTypes.map(t=>`<button class="clog-filter${clogFilter.has(t)?" active":""}${clogFilter.size===0?" active":""}" data-filter="${t}" style="color:${eventColor[t]||"var(--text)"};border-color:${eventColor[t]||"var(--text-dim)"}">${t}</button>`).join("");
+    const allActive=clogFilter.size===0;
+    const filterChips=allTypes.map(t=>`<button class="clog-filter${(allActive||clogFilter.has(t))?" active":""}" data-filter="${t}" style="color:${eventColor[t]||"var(--text)"};border-color:${eventColor[t]||"var(--text-dim)"}">${t}</button>`).join("");
     const html=entries.map(e=>`<div class="clog-entry">
         <div class="clog-time">${e.time}</div>
         <div class="clog-event" style="color:${eventColor[e.event]||"var(--text)"}">${e.event}</div>
@@ -2589,6 +2656,19 @@
       const rb=$("#rumorBtn"); if(rb) rb.addEventListener("click",()=>collectRumor(rb.dataset.npc));
     }
     if(name==="encounter"){ wireEncounter(); }
+    if(name==="bestiary"){
+      $$(".best-fight").forEach(b=>b.addEventListener("click",()=>{
+        const fkey=b.dataset.fight;
+        selectFoe(fkey);
+        // navigate to encounter panel
+        $$("#menu .menu-item").forEach((m,i)=>{
+          m.classList.remove("active");
+          if(m.dataset.panel==="encounter") m.classList.add("active");
+        });
+        startPanel("encounter");
+        Audio.blip(520,0.06,0.1);
+      }));
+    }
     if(name==="campaign"){
       const ex=$("#clogExport"); if(ex) ex.addEventListener("click",exportChronicle);
       $$(".clog-filter").forEach(b=>b.addEventListener("click",()=>{
