@@ -357,3 +357,65 @@ Unresolved / Next-phase recommendations:
 - Secret boss defeat could trigger a unique ending overlay (different from the standard victory lap).
 - Audio: the UNMAKING ability could play a reversed-whisper layer for extra unease.
 - Bestiary could show a "recommended strategy" hint per boss (e.g. "bring shields for ASH DECREE").
+
+---
+Task ID: 9
+Agent: main (Z.ai Code) — cron webDevReview round 9
+Task: QA the existing console, then implement the next-phase recommendations from Task 8 (threat tooltip, per-ally dmg-taken, strategy hints, secret boss ending, encounter recap).
+
+Work Log:
+- Reviewed worklog (Tasks 1–8 complete: 34 feature systems). QA via agent-browser: boot completes, 8 menu items (with lock hints visible), 8 NPCs, 2 locked, bestiary tag "0/4", zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+- Fixed bug: `forgetAll()` now dismisses all overlays (victory/secret/recap/alert/unlock) when clearing state.
+- Updated version to v3.8-pact across title, boot log, title bar.
+- Extended `/home/z/my-project/public/dnd-console.html` (~3246 lines) with 7 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+
+New features added:
+1. **Lock feedback tooltip** — locked menu items (SUMMON_RITUAL_NET, DECRYPT_DEAD_GOD) now show a `.lock-hint` tooltip on hover saying "type WARDEN to unlock". Tooltip is positioned to the right of the menu item, with red border and dim text. Verified: hover shows tooltip.
+2. **Threat assessment tooltip** — new "⬆ THREAT" label next to the foe-select dropdown in the encounter panel. Hover/click reveals a `.threat-tip` popup showing the current boss's HP, AC, ATK, ENRAGE%, and ABILITY. Tooltip has an arrow pointing down, red border. Verified: tooltip shows Kaelen's stats (HP 142, AC 19, ATK +6, ENRAGE 40%, EMBER_NOVA).
+3. **Per-ally damage-taken tracking** — `DpsTrack.perAllyTaken` object tracks damage received per ally. All foe-damage branches (doFoeStrike, EMBER_NOVA, ASH DECREE, BINDING OATH, UNMAKING) increment the per-ally-taken counter. The `.dps-ally` row now has 5 columns: name, green dealt bar, dealt value, red taken bar, taken value. Verified: after combat, per-ally shows Sir 41/39, Mirewen 42/49, Brother 45/62, Thistle 23/50.
+4. **Bestiary strategy hints** — new `BOSS_STRATEGY` data object with per-boss recommended approach text and strategy tags. Each bestiary card now renders a `.best-strategy` section below lore with "RECOMMENDED APPROACH" header, colored strategy tags (e.g. SMITE, SHIELD, DPS), and tactical text. Verified: 4 strategy sections visible with tags.
+5. **Encounter death/victory recap overlay** — new `#recapOverlay` with `.recap-box`. `showRecap(isVictory, foeName)` fires on victory (green border/head) or wipe (red border/head). Shows: rounds, foe name, damage dealt/taken, net damage, survivors count, and per-ally breakdown with DEALT/TAKEN/STATUS columns. DISMISS button closes. Verified: after defeating Kaelen, recap shows "ENCOUNTER COMPLETE — VICTORY" with 14 rounds, 151 dealt, 200 taken, -49 net, 1/4 survivors, per-ally breakdown.
+6. **Secret boss unique ending overlay** — new `#secretOverlay` with `.secret-box`. When Ymr-Soth is defeated, a unique red-themed ending appears with "THE UNMAKING IS COMPLETE" header, corrupted glyph ☽̷̧̛, and lore text about the god being "finished, not killed." Plays a 7-note dissonant cosmic chord. "CLOSE THE LEDGER" button dismisses the ending, then shows the standard recap. Verified: ending overlay in DOM, wired.
+7. **Ambient particle system** — new `#ambientParticles` div with 18 `.p` elements that drift upward with varying speeds, sizes, and delays. Green dots with fade-in/fade-out animation. Subtle atmospheric layer behind the console. Verified: particles in DOM.
+8. **Bug fix: forgetAll() overlay dismissal** — `forgetAll()` now explicitly dismisses all 5 overlay types (victory/secret/recap/alert/unlock) by removing the "show" class. Previously, overlays could persist after FORGET.
+
+Styling detail pass:
+- `.lock-hint` tooltip on locked menu items (absolute positioned, red border, fade transition).
+- `.threat-tip` popup with arrow, red border, stat rows.
+- `.recap-overlay` / `.recap-box` with green (victory) / red (wipe) variants, `recapIn` animation, per-ally grid.
+- `.secret-overlay` / `.secret-box` with corrupted glyph, `secretPulse` animation, `secretIn` entrance.
+- `.ambient-particles` / `.p` with `particleDrift` keyframes.
+- `.content.show` now has `contentFadeIn` animation for smoother panel transitions.
+- `.enc-btn` now has a radial gradient glow `::after` pseudo-element on hover.
+- `.dps-ally` expanded to 5-column grid with red damage-taken bar.
+- `.best-strategy` / `.strat-tag` with cyan-dim accents.
+- Responsive additions: lock hints and threat tips hidden on mobile, DPS ally row collapses to 3 columns.
+- All existing visuals + responsive breakpoints preserved.
+
+Verification (agent-browser + node --check + lint):
+- Boot: `boot gone` / `stage live`, 8 menu items, lock hints visible on locked items, bestiary tag "0/4". Standalone + iframe both verified. Zero console errors.
+- Lock hints: hover on SUMMON_RITUAL_NET shows "type WARDEN to unlock" tooltip. VLM confirmed tooltip visible.
+- Threat tooltip: "⬆ THREAT" label present, tooltip shows Kaelen stats (HP 142, AC 19, ATK +6, ENRAGE 40%, EMBER_NOVA).
+- Per-ally DPS with taken: 4 ally rows with green dealt bar + red taken bar + values (Sir 41/39, Mirewen 42/49, Brother 45/62, Thistle 23/50).
+- Bestiary strategy: "RECOMMENDED APPROACH" headings with SMITE/SHIELD/DPS/RESIST tags and tactical text on all 4 boss cards.
+- Encounter recap: after victory, "ENCOUNTER COMPLETE — VICTORY" recap shows with 14 rounds, 151 dealt, 200 taken, -49 net, 1/4 survivors, per-ally DEALT/TAKEN/STATUS breakdown.
+- Ambient particles: 18 particle divs in DOM with drift animation.
+- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors.
+- iframe route: console loads correctly in iframe.
+- `forgetAll()` now properly dismisses all overlays.
+
+Stage Summary:
+- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~3246 lines, single self-contained file. All Task 1–8 visuals + features preserved; 8 new systems/fixes layered on top (lock hints, threat tooltip, per-ally taken, strategy hints, encounter recap, secret ending, ambient particles, forgetAll fix).
+- The console now has full combat analytics (dealt + taken per ally), boss strategy guidance, threat assessment tooltips, a detailed post-combat recap, a unique ending for the secret boss, lock feedback for sealed commands, and ambient atmospheric particles.
+- Preview: live at `/` via iframe; all new features work in the preview.
+- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+
+Unresolved / Next-phase recommendations:
+- Threat tooltip could update dynamically when foe is changed via dropdown.
+- Per-ally DPS bars could show numeric percentages alongside the bars.
+- Strategy hints could adapt based on NG+ tier (harder difficulty → adjusted tips).
+- Encounter recap could include a "fight again" button that resets and keeps the same foe.
+- Ambient particles could change color/behavior based on corruption level (red particles at high corruption).
+- NPC cards could be expanded on click to show a larger detail view (instead of the list+card split).
+- Bestiary could track per-boss defeat count and fastest kill time across NG+ tiers.
+- Campaign log could support a full-text search filter.

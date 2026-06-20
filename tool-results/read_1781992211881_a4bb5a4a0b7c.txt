@@ -1,0 +1,202 @@
+     1→     1→# ASHEN CODEX — D&D Campaign Console — Worklog
+     2→     2→
+     3→     3→---
+     4→     4→Task ID: 1
+     5→     5→Agent: main (Z.ai Code)
+     6→     6→Task: Create a pure HTML/CSS/Vanilla-JS Dark Fantasy D&D campaign console ("ASHEN CODEX") as a single standalone file, embedded into the Next.js preview.
+     7→     7→
+     8→     8→Work Log:
+     9→     9→- Read existing project state (Next.js 16 app, dev server running on :3000, no prior worklog).
+    10→    10→- Authored standalone `/home/z/my-project/public/dnd-console.html` (~1100 lines) with full inline `<style>` and `<script>`:
+    11→    11→  - CRT overlays: scanlines, vignette, animated film noise (SVG turbulence), brightness flicker.
+    12→    12→  - Boot sequence: white flash + horizontal sweep line + typed BIOS log (11 lines) + striped progress bar, then interface fades in.
+    13→    13→  - Console frame: scratched-metal / cracked-glass look via layered CSS gradients, inset shadows, repeating scratch gradients, diagonal glass-crack hints.
+    14→    14→  - Title bar with LEDs, MedievalSharp title, sector/pact meta.
+    15→    15→  - Left sidebar menu: `QUERY_NPC_ARCHIVE`, `SCAN_PLAYER_UNITS`, `ACCESS_WORLD_LORE` + two LOCKED items (`SUMMON_RITUAL_NET`, `DECRYPT_DEAD_GOD`). Hover triggers RGB-split glitch + neon glow. Locked items shake + red screen-flash on click (no panel switch).
+    16→    16→  - Typewriter loader: each menu click types system logs with [OK]/[WARN]/[FAIL] tags and an animated striped progress bar, then reveals the panel.
+    17→    17→  - NPC ARCHIVE panel: two cards side by side.
+    18→    18→    - Open NPC "Kaelen Ashbringer, the Fallen Paladin": MedievalSharp name, lore text, CR/type chips, HP/AC/STR/DEX/INT/WIS attrs, and a 3D hologram (inline SVG skull sigil, cyan-green tint, rotateY + sway animation, moving scan line, concentric rings, crosshair, 4 corner brackets, glow floor, tag label).
+    19→    19→    - Corrupted NPC "[DATA CORRUPTED]": red glitch-animated name cycling through corrupted variants, censored black bars over lore, █▓▒░ garble blocks refreshing via JS, red garbled stat values, and a red error-symbol hologram with heavy static noise + fast jitter spin.
+    20→    20→  - PLAYER_UNITS panel: 5 party unit cards (4 alive + 1 KIA) with HP bars, conditions, last-seen.
+    21→    21→  - WORLD_LORE panel: 6 lore fragments (2 sealed/corrupted with glitch titles + censored text + garble).
+    22→    22→  - Status bar: live clock, MEM/PACT/BREACH/WARN metrics, user warden_07.
+    23→    23→  - Sidebar meters (SOUL_RESERVE / CORRUPTION / SIGNAL) drift over time; live clock in crumbs + status bar.
+    24→    24→  - Google Fonts: VT323 + Share Tech Mono (system text), MedievalSharp (names).
+    25→    25→  - Responsive: ≤900px collapses sidebar to horizontal wrap + cards to single column; ≤560px stacks card body.
+    26→    26→- Wired `src/app/page.tsx` to render the console via a full-bleed `<iframe src="/dnd-console.html">` so the preview panel at `/` shows it.
+    27→    27→- Ran `bun run lint` (clean) and checked `/home/z/my-project/dev.log` (only benign cross-origin preview warning, GET / 200).
+    28→    28→
+    29→    29→Verification (agent-browser + VLM):
+    30→    30→- Opened `http://localhost:3000/dnd-console.html` standalone and `http://localhost:3000/` (iframe) — both boot correctly (`#boot` → `boot gone`, `#stage` → `stage live`, 11 boot-log lines, content rendered, 2 NPC cards present).
+    31→    31→- VLM screenshot analysis confirmed: title bar "ASHEN CODEX // CAMPAIGN CONSOLE v3.7-pact", sidebar with all 3 commands + 2 locked, two NPC cards (Kaelen Ashbringer decrypted with green skull hologram + corner brackets + scan lines; [DATA CORRUPTED] red glitch with error-symbol hologram + static), green-on-black palette, scanlines, status bar with live clock.
+    32→    32→- Interactions verified: clicking SCAN_PLAYER_UNITS → crumb becomes PLAYER_UNITS, 5 units render; ACCESS_WORLD_LORE → crumb WORLD_LORE, 6 entries (2 locked); locked menu click → red flash + shake, panel unchanged; returning to archive → 2 cards + 2 hologram SVGs render, corrupted name cycles glitch variants.
+    33→    33→- Fixed one JS syntax error found via `node --check` (unescaped quotes in the `corruptNames` array) — root cause of the initial "black screen" (IIFE aborted before boot could run).
+    34→    34→
+    35→    35→Stage Summary:
+    36→    36→- Deliverable: `/home/z/my-project/public/dnd-console.html` — a single self-contained file the user can copy, save as `.html`, and open in any browser to see the full atmosphere. No React/DB/Supabase.
+    37→    37→- Preview: live at the `/` route via iframe.
+    38→    38→- Scheduled task created: `webDevReview` every 15 minutes (fixed_rate 900s, tz Asia/Shanghai, job_id 220566) to continue QA + feature expansion autonomously.
+    39→    39→- All required elements from the brief are present and browser-verified.
+    40→    40→
+    41→    41→Unresolved / Next-phase recommendations:
+    42→    42→- Mobile viewport could not be resized via agent-browser in this session; responsive CSS is defined but not browser-verified at 390px — next phase should confirm with `agent-browser ... device`/viewport emulation.
+    43→    43→- Add audio (ambient hum + boot beep + glitch bursts) behind a mute toggle — would massively boost atmosphere.
+    44→    44→- Add a 4th interactive command (e.g. `RUN_ENCOUNTER_SIM`) with a turn-based mini log, and make the locked items unlockable via a hidden code typed on the keyboard.
+    45→    45→- Add more NPCs to the archive (scrollable list + detail view) and per-NPC hologram variants (different SVG sigils).
+    46→    46→- Persist the "corruption" meter and let high corruption visually degrade the whole console (more glitch, red bleed).
+    47→    47→
+    48→    48→---
+    49→    49→Task ID: 2
+    50→    50→Agent: main (Z.ai Code) — cron webDevReview round 2
+    51→    51→Task: QA the existing console, then expand with new features + styling detail per mandatory requirements (audio, encounter sim, unlock-by-code, more NPCs, corruption degradation).
+    52→    52→
+    53→    53→Work Log:
+    54→    54→- Reviewed worklog (Task ID 1 complete; previous round's planned feature expansion was NOT saved before interruption).
+    55→    55→- QA re-confirm via agent-browser: boot completes (`boot gone` / `stage live`), 5 menu items, 2 NPC cards, zero console errors, lint clean. Mobile (390×844) verified: sidebar/menu/npc-list wrap horizontal, cards single-column, no overflow.
+    56→    56→- Rewrote `/home/z/my-project/public/dnd-console.html` (~1400 lines) preserving all Task-1 visuals and adding 5 major feature systems + a styling detail pass. Verified JS with `node --check` (clean) and `bun run lint` (clean).
+    57→    57→
+    58→    58→New features added:
+    59→    59→1. **Web Audio system (synthesized, no files)** — `Audio` IIFE module using Web Audio API: ambient drone (two detuned 55Hz sines + 110Hz triangle + lowpass-filtered noise bed), `beep()` for boot/UI, `glitch()` sawtooth bandpass burst, `thud()` for damage hits. AudioContext lazily inits on first user gesture (autoplay-policy safe). Mute toggle button in titlebar (`SOUND:OFF`/`SOUND:ON`, key `M`). Default muted. Boot lines, menu clicks, loader steps, damage, and corruption events all emit sounds.
+    60→    60→2. **Data-driven NPC archive (8 NPCs)** — replaced the static 2-card layout with a list+detail split: left scrollable NPC list (8 entries: Kaelen Ashbringer, Mourven the Hollow, Sister Ysolde, Vasska the Coiled Word, the Cinder-King, the Hour-Keeper, + 2 corrupted), right detail card. Clicking a list row swaps the detail + hologram. 6 new inline-SVG hologram sigils (`i-eye`, `i-serpent`, `i-crown`, `i-flame`, `i-hourglass`, `i-ritual`, `i-god`) so each NPC gets a unique rotating hologram. Corrupted NPCs keep the red error sigil + censors + garble.
+    61→    61→3. **RUN_ENCOUNTER_SIM (4th command)** — turn-based combat: ally (Sir Veylan, HP 50/AC 18) vs foe (Kaelen Ashbringer, HP 142/AC 19). `RUN ROUND` button does d20+mod vs AC, crit on nat 20 (×2 damage), fumble on nat 1, with animated dice-roll popup, HP bars that transition, color-coded log lines (atk green / fatk red / crit amber / die red). Foe retaliates after 550ms delay. `RESET` button. Destroying the foe reduces corruption −8; ally falling adds +10.
+    62→    62→4. **Unlockable locked items (type WARDEN)** — keyboard buffer captures alpha keys; typing "WARDEN" (case-insensitive) triggers `unlockAll()`: removes `.locked`, adds `.unlocked` pulse animation on the two sealed commands, shows a golden "ACCESS GRANTED" overlay, plays a 3-note ascending arpeggio, +3 corruption cost. A live key-buffer hint appears bottom-left while typing. Once unlocked, SUMMON_RITUAL_NET renders an animated 12-rune summoning circle with a `BIND ENTITY (+5 CORR)` button; DECRYPT_DEAD_GOD renders a heresy reveal ("YMR-SOTH, THE UNMADE") with an `ACCEPT THE KNOWLEDGE (+12 CORR)` button.
+    63→    63→5. **Corruption-driven global degradation** — a `State` object tracks corruption (0–100, starts 27). `applyCorruption()` sets `body.className` to `corr-low`/`corr-med`/`corr-high`/`corr-extreme`. Each tier progressively intensifies scanline opacity, CRT noise opacity, and red vignette bleed; `high` adds whole-body micro-jitter; `extreme` adds `consoleGlitch` (hue-rotate + translate). Corruption drifts +1 every ~3s (the seal fails over time) and spikes from in-app actions (unlock +3, ritual bind +5, god-accept +12, ally death +10; foe kill −8). Status bar shows live `CORR %` and `BREACH` (derived from corruption).
+    64→    64→
+    65→    65→Styling detail pass:
+    66→    66→- Added `.curvature` (radial inner shadow) + `.phosphor` (green phosphor afterglow) layers inside the console frame for CRT depth.
+    67→    67→- Titlebar now has metallic rivets (`.titlebar::before/::after` radial-gradient bolts) at left/right edges; border-radius bumped to 10px.
+    68→    68→- Boot progress bar uses a real `<i>` fill child (was a broken `::after` CSS-var hack) that animates width cleanly.
+    69→    69→- Encounter/ritual/god panels use consistent clipped-corner `clip-path` geometry + amber/red accent variants.
+    70→    70→- Scrollbars styled green; NPC-list horizontal scroll on mobile; richer hologram (rings + crosshair + floor glow + tag) reused across all sigils.
+    71→    71→- Added `dice-pop` floating animation for combat rolls, `unlockPulse` ring, `godPulse` glyph glow.
+    72→    72→- Status bar gained live CORR + BREACH + WARN metrics wired to corruption tier.
+    73→    73→
+    74→    74→Verification (agent-browser + VLM + node --check):
+    75→    75→- Boot: `boot gone` / `stage live`, 11 boot-log lines, audio button present, body `corr-low`. Standalone (`/dnd-console.html`) AND iframe (`/`) both verified — 6 menu items, 8 NPCs in list, detail card renders.
+    76→    76→- NPC selection: clicking list row index 2 → detail swaps to "Sister Ysolde"; clicking index 3 → "Vasska, the Coiled Word" with serpent hologram (VLM confirmed serpent sigil + brackets + scan lines + rings + green-on-black).
+    77→    77→- Encounter sim: `RUN ROUND` → "══ ROUND 1 ══", nat-20 crit logged ("CRITICAL! smites... for 18"), foe retaliates ("strikes for 11"), HP updates (ally 50→39, foe 142→124). VLM confirmed both combatant fields + log + buttons.
+    78→    78→- Unlock: dispatching keydown W-A-R-D-E-N → locked count drops 2→0, "ACCESS GRANTED" overlay fires, ritual + deadgod panels become clickable and render (ritual circle + BIND button; deadgod "YMR-SOTH, THE UNMADE" + ACCEPT button).
+    79→    79→- Corruption: accepting dead-god knowledge → corruption 46→58, body class flips `corr-low`→`corr-high` (global glitch/red-bleed intensifies).
+    80→    80→- Mobile 390×844: sidebar/menu/npc-list all `flex-direction:row`, archive single-column, no overflow (VLM: "no overflow/cutoff issues").
+    81→    81→- `node --check` on extracted JS: clean. `bun run lint`: clean. Browser console: zero errors/warnings (only React DevTools + HMR from the Next wrapper).
+    82→    82→
+    83→    83→Stage Summary:
+    84→    84→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` now ~1400 lines, still a single self-contained file (no external deps beyond Google Fonts). All Task-1 visuals preserved; 5 new interactive systems layered on top.
+    85→    85→- Preview: live at `/` via iframe; all new features work in the preview.
+    86→    86→- Cron job `webDevReview` (job_id 220566, every 15 min) continues to drive autonomous QA + expansion.
+    87→    87→
+    88→    88→Unresolved / Next-phase recommendations:
+    89→    89→- The audio ambient drone could use a slow LFO on the filter cutoff for a more "breathing" feel; currently static.
+    90→    90→- Corruption currently only drifts up passively + via explicit actions; could add random "seal stress" events that spike it with a red alert overlay.
+    91→    91→- Encounter sim is a single 1v1; could expand to full party (4 allies) vs a boss with initiative ordering and spell/ability buttons.
+    92→    92→- More NPC sigils (beholder, lich-phylactery, kraken) and a "corrupted→decrypted" path where typing a second code (e.g. "PURGE") cleans one corrupted NPC.
+    93→    93→- Persist state (corruption, unlocked set, encounter HP) to localStorage so refreshes don't reset progress.
+    94→    94→- Consider a subtle screen-power-off animation when the user navigates away / tab hides.
+    95→    95→
+    96→    96→---
+    97→    97→Task ID: 3
+    98→    98→Agent: main (Z.ai Code) — cron webDevReview round 3
+    99→    99→Task: QA the existing console, then implement the next-phase recommendations from Task 2 (localStorage persistence, breathing audio LFO + seal-stress events, PURGE cleanse code, party-based encounter with abilities).
+   100→   100→
+   101→   101→Work Log:
+   102→   102→- Reviewed worklog (Tasks 1 & 2 complete: 5 feature systems — audio, data-driven archive, encounter sim, WARDEN unlock, corruption degradation).
+   103→   103→- QA via agent-browser: boot completes, 6 menu items, 8 NPCs, zero console errors, `node --check` clean, `bun run lint` clean, iframe route works, mobile 390px responsive confirmed. No bugs found → proceeded to feature expansion.
+   104→   104→- Extended `/home/z/my-project/public/dnd-console.html` (~2170 lines) with 5 new systems. All edits surgical (no full rewrite). JS re-verified with `node --check` + `bun run lint` (both clean) after each feature batch.
+   105→   105→
+   106→   106→New features added:
+   107→   107→1. **localStorage persistence** — `STORE_KEY="ashen_codex_v1"`; `loadStore()`/`saveStore()` serialize corruption, soul, signal, unlocked set, cleansed set, selected NPC, encounter HP/round/over, audio mute. `saveStore()` guards `typeof EncState!=="undefined"` so early-init calls don't throw. State restores on reload: corrupted NPCs stay cleansed, locked items stay unlocked (WARDEN), encounter HP persists. Verified: PURGE → reload → cleansed NPC still cleansed; WARDEN → reload → items still unlocked.
+   108→   108→2. **Breathing audio LFO** — two slow sine LFOs added to the `Audio.init()` drone: one (0.08Hz) modulates the noise lowpass filter cutoff (±90Hz) for a "breathing" tonal shift; another (0.05Hz) modulates the hum gain (±0.04) for slow swell. Makes the ambient drone feel alive instead of static.
+   109→   109→3. **Random seal-stress events** — `sealStress()` fires from the 3s drift interval; chance scales with corruption (0.12 + corr/100×0.25). On trigger: spikes corruption 2–(3+corr/20), fires a red pulsing `#alertOverlay` with scrolling striped border ("SEAL STRESS / corruption spike +N% / seal integrity M%"), plays a descending 2-tone warning, and a glitch burst. At high corruption these become near-constant, reinforcing the degradation loop.
+   110→   110→4. **PURGE second code** — typing "PURGE" (case-insensitive, anywhere) triggers `purgeOne()`: finds the first corrupted-and-not-yet-cleansed NPC, adds its id to `State.cleansed`, reduces corruption −6%, fires a green 4-note ascending arpeggio + "RECORD CLEANSED" alert, and re-renders the archive. Each corrupted NPC now carries a hidden `cleanse` block with full reveal data (name, title, class, sigil, CR, chips, desc, attrs, tag). Cleansed NPCs render as amber-accented "CLEANSED" cards with their true hologram sigil (e.g. corrupted NPC-07-??? → "Velkin the Unmourned" with amber eye sigil; NPC-07-?!7 → "The Sallow Regent" with amber crown sigil). The archive list row tag flips from "CORRUPT" to "CLEANSED".
+   111→   111→5. **Party-based encounter with abilities** — replaced the 1v1 encounter with a 4-ally party (Sir Veylan/Paladin, Mirewen/Warlock, Brother Aldric/Cleric, Thistle/Rogue) vs Kaelen Ashbringer. Each ally has HP/AC/atk + a unique once-per-round ability: SMITE (big dmg), ELDRITCH (auto-hit force), HEAL (+18 to all living allies), SNEAK ATTACK (3×dmg). `NEXT TURN` advances initiative through living allies (auto basic-attack), wrapping starts a new round and refreshes abilities. `FOE STRIKE` makes the foe attack a random living ally. Active ally glows amber (`activePulse` animation); fallen allies desaturate. Victory → "VICTORY" alert + corruption −8; party wipe → "PARTY WIPED" alert + corruption +10.
+   112→   112→
+   113→   113→Styling detail pass:
+   114→   114→- New `.alert-overlay` / `.alert-box` with red 2px border, pulsing box-shadow, scrolling striped top border (`stripeScroll`), `alertIn` + `alertPulse` keyframes.
+   115→   115→- Encounter grid changed to `1.4fr 1fr` with `.enc-party` 2-col sub-grid; `.enc-field.ally.active` amber glow pulse; `.enc-field.down` grayscale+opacity; `.enc-btn.ability` amber full-width buttons.
+   116→   116→- Responsive: `.enc-party` → 2-col at 900px, → 1-col at 560px.
+   117→   117→- Boot/loader/menus unchanged (preserved from Tasks 1–2).
+   118→   118→
+   119→   119→Verification (agent-browser + VLM + node --check):
+   120→   120→- Boot: `boot gone` / `stage live`, 6 menu items, 8 NPCs, 2 locked (fresh state), alert overlay present in DOM. Standalone + iframe both verified.
+   121→   121→- Encounter: 4 ally fields + 1 foe field + 4 ability buttons (SMITE/ELDRITCH/HEAL/SNEAK ATTACK) + NEXT TURN/FOE STRIKE/RESET. NEXT TURN advanced initiative to Mirewen, auto-attacked ("Mirewen rolls 8 (14 vs AC 19) — deflected"). HEAL ability consumed + logged ("Brother Aldric channels HEAL — party +18 HP each"). FOE STRIKE works. VLM confirmed all elements + amber active-turn glow on Sir Veylan.
+   122→   122→- PURGE: typing P-U-R-G-E → "RECORD CLEANSED" alert fired, corrupted 2→1, cleansed tag 0→1, detail card shows "Velkin the Unmourned" with amber eye sigil (`#i-eye`) + "CLEANSED" status. VLM confirmed the red alert overlay text.
+   123→   123→- Persistence: after reload, cleansed NPC stays cleansed (1 cleansed, 1 corrupt); after WARDEN+reload, lockedCount=0 with store showing `["ritual","deadgod"]` unlocked.
+   124→   124→- Mobile 390px: encounter party + encounter both single-column, no overflow.
+   125→   125→- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors/warnings across all tests.
+   126→   126→
+   127→   127→Stage Summary:
+   128→   128→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2170 lines, single self-contained file. All Task 1–2 visuals + features preserved; 5 new systems layered on top (persistence, breathing LFO, seal-stress alerts, PURGE cleanse, party encounter).
+   129→   129→- Preview: live at `/` via iframe; all new features work in the preview.
+   130→   130→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   131→   131→
+   132→   132→Unresolved / Next-phase recommendations:
+   133→   133→- Encounter could use a "foe enrage" phase at <40% HP (extra attack per round) and a boss-ability button for asymmetry.
+   134→   134→- The 6 decrypted NPCs could each get a unique "rumor" hook that, when clicked, adds a lore fragment to the WORLD_LORE panel — cross-panel content threading.
+   135→   135→- Add a top-right "WIPE SAVE" hidden button (or type "FORGET") to clear localStorage for demo/reset purposes.
+   136→   136→- Audio: add a rare random "whisper" layer (filtered reversed noise burst) at high corruption for extra unease.
+   137→   137→- Consider a subtle power-down animation on `visibilitychange` (tab hide) — fade CRT + cut audio.
+   138→   138→
+   139→   139→---
+   140→   140→Task ID: 4
+   141→   141→Agent: main (Z.ai Code) — cron webDevReview round 4
+   142→   142→Task: QA the existing console, then implement the next-phase recommendations from Task 3 (FORGET wipe code, foe enrage + boss ability, NPC rumor hooks → WORLD_LORE, whisper audio layer, visibilitychange power-down).
+   143→   143→
+   144→   144→Work Log:
+   145→   145→- Reviewed worklog (Tasks 1–3 complete: 10 feature systems — audio, data-driven archive, encounter sim, WARDEN unlock, corruption degradation, localStorage, breathing LFO, seal-stress alerts, PURGE cleanse, party encounter with abilities).
+   146→   146→- QA via agent-browser: boot completes, 6 menu items, 8 NPCs, 2 locked (fresh state), zero console errors, `node --check` clean, `bun run lint` clean, iframe route works, mobile responsive. No bugs found → proceeded to feature expansion.
+   147→   147→- Extended `/home/z/my-project/public/dnd-console.html` (~2390 lines) with 5 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+   148→   148→
+   149→   149→New features added:
+   150→   150→1. **FORGET wipe code** — typing "FORGET" triggers `forgetAll()`: removes localStorage key, resets State (corruption→27, soul→61, signal→88, unlocked/cleansed/rumors→empty Sets), resets encounter (full HP, round 0), re-locks the two sealed menu items, shows "MEMORY PURGED" overlay with double-glitch burst, and re-renders the current panel. Verified: rumors array empties, corruption resets to 27, locked count returns to 2.
+   151→   151→2. **Foe enrage phase + boss ability** — FOE now has `enrageAt:0.4` + `bossAbility:"EMBER_NOVA"`. When foe HP drops below 40%, `foeEnraged()` returns true → foe field gets `.enraged` class (red pulsing `foeEnrage` animation), condition shows "ENRAGED (extra strike)", FOE STRIKE button reads "FOE STRIKE ×2", and `foeStrike()` calls `doFoeStrike(2)` which strikes twice with 650ms delay. New `bossAbility()` function: EMBER NOVA hits ALL living allies for 12–20 fire each (once per fight), with "NOVA!" dice popup, log lines per ally, and party-wipe check. Boss button is a red `.enc-btn.foe.ability` that disappears after use. Verified: foe at 55/142 (39%) → enraged=true, FOE STRIKE ×2, EMBER NOVA consumed + dealt fire to all 4 allies.
+   152→   152→3. **NPC rumor hooks → WORLD_LORE** — each of the 6 decrypted NPCs now carries a `rumor:{title,body}` field with unique lore (e.g. "The Coal Kaelen Keeps", "The Third Answer", "Vasska's Riddle"). Decrypted NPC detail cards render a cyan `> EXTRACT RUMOR` button (or "rumor archived to WORLD_LORE" if already collected). `collectRumor(npcId)` adds the id to `State.rumors`, saves to localStorage, fires a "RUMOR ARCHIVED" alert with the rumor title, plays a 3-note ascending arpeggio. Converted `LORE_HTML` const → `renderLore()` function so `${rumorEntriesHtml()}` evaluates fresh each render; collected rumors appear at the bottom of WORLD_LORE under a "// ARCHIVED RUMORS — extracted from NPC_ARCHIVE" separator as cyan-accented `.entry.rumor` blocks. Verified: extract rumor → alert fires → WORLD_LORE shows the rumor entry at the bottom.
+   153→   153→4. **Rare whisper audio layer** — new `Audio.whisper(vol)` method: generates a 1.4s reversed-noise buffer, bandpass filter sweeping 2400→400Hz, slow gain ramp. Triggered from `drift()` when corruption≥55 with 12% chance (vol scales with corruption). Adds an eerie "dead god stirs" unease layer at high corruption.
+   154→   154→5. **visibilitychange power-down** — new `Audio.setActive(active)` ramps master gain to silence (0.3s) on hide and restores (0.6s) on return. `visibilitychange` listener: on tab hide, fades `.console` to brightness(0.15)+opacity(0.5); on return, flashes brightness(2.2)→(1.3)→normal over 350ms with a 2-tone power-up beep. Simulates a CRT powering down/up when the user switches tabs.
+   155→   155→
+   156→   156→Styling detail pass:
+   157→   157→- `.enc-field.foe.enraged` red pulsing border + inset glow (`foeEnrage` keyframes).
+   158→   158→- `.enc-btn.foe.ability` red boss button variant.
+   159→   159→- `.rumor-btn` cyan ability-style button with clipped corners + glow hover; `.rumor-collected` dim confirmation text.
+   160→   160→- `.lore-sep` cyan separator label; `.entry.rumor` cyan-bordered lore entry with cyan title/meta.
+   161→   161→- All existing visuals + responsive breakpoints preserved.
+   162→   162→
+   163→   163→Verification (agent-browser + VLM + node --check):
+   164→   164→- Boot: `boot gone` / `stage live`, 6 menu items, 8 NPCs, 2 locked (fresh). Standalone + iframe both verified. Zero console errors across all tests.
+   165→   165→- Rumor: EXTRACT RUMOR button on Kaelen → "RUMOR ARCHIVED" alert → button replaced with "rumor archived to WORLD_LORE" → WORLD_LORE panel shows "The Coal Kaelen Keeps" entry at bottom under "ARCHIVED RUMORS" separator (VLM confirmed after scroll).
+   166→   166→- FORGET: typing F-O-R-G-E-T → "MEMORY PURGED" overlay, locked count→2, store rumors=[] , corruption→27.
+   167→   167→- Enrage: damaged foe to 55/142 (39%) → `enraged` class=true, condition "ENRAGED (extra strike)", FOE STRIKE ×2 button.
+   168→   168→- Boss ability: EMBER NOVA click → button consumed, "nova spent" in condition, log shows all 4 allies taking fire damage.
+   169→   169→- VLM confirmed encounter: 4-ally grid + foe + 4 ability buttons + red EMBER NOVA boss button + NEXT TURN/FOE STRIKE/RESET + combat log + active-turn highlight.
+   170→   170→- Mobile 390px: encounter party grid → single column.
+   171→   171→- `node --check`: clean. `bun run lint`: clean.
+   172→   172→
+   173→   173→Stage Summary:
+   174→   174→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2390 lines, single self-contained file. All Task 1–3 visuals + features preserved; 5 new systems layered on top (FORGET wipe, foe enrage + EMBER NOVA, NPC rumors → WORLD_LORE, whisper audio, visibilitychange power-down).
+   175→   175→- The console now has 3 hidden keyboard codes (WARDEN unlock, PURGE cleanse, FORGET wipe), cross-panel content threading (NPC rumors populate the lore vault), and a full boss-mechanics encounter (enrage + nova).
+   176→   176→- Preview: live at `/` via iframe; all new features work in the preview.
+   177→   177→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   178→   178→
+   179→   179→Unresolved / Next-phase recommendations:
+   180→   180→- Encounter could add status effects (poison/stun) with persistent condition tags on combatants.
+   181→   181→- Rumors could unlock new encounter abilities or trigger world events (e.g. collecting all 6 rumors reveals a secret 7th NPC).
+   182→   182→- Add a "campaign log" panel that timestamps major events (unlock, purge, victory, wipe) for a running narrative.
+   183→   183→- Audio: the whisper could occasionally use a phoneme-like filtered impulse to sound like a word rather than pure noise.
+   184→   184→- Consider a boss-select dropdown so the party can fight different foes (Cinder-King, Vasska) with unique enrage thresholds + abilities.
+   185→   185→
+   186→   186→---
+   187→   187→Task ID: 5
+   188→   188→Agent: main (Z.ai Code) — cron webDevReview round 5
+   189→   189→Task: QA the existing console, then implement the next-phase recommendations from Task 4 (boss-select dropdown, status effects, campaign log panel, collect-all-rumors secret NPC).
+   190→   190→
+   191→   191→Work Log:
+   192→   192→- Reviewed worklog (Tasks 1–4 complete: 15 feature systems). QA via agent-browser: boot completes, 6 menu items (now 7 after adding campaign), 8 NPCs, 2 locked, zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+   193→   193→- Extended `/home/z/my-project/public/dnd-console.html` (~2600 lines) with 4 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+   194→   194→
+   195→   195→New features added:
+   196→   196→1. **Boss-select dropdown** — replaced the single `FOE` const with a `FOES` array of 3 bosses, each with unique stats + enrage thresholds + boss abilities: Kaelen Ashbringer (142hp, 40% enrage, EMBER_NOVA aoe fire), The Cinder-King (200hp, 50% enrage, ASH DECREE aoe dmg+stun), Vasska the Coiled Word (175hp, 45% enrage, BINDING_OATH 2-target dmg+poison×3). A green `.foe-select` dropdown at the top of the encounter panel lets the user switch foes; `selectFoe(key)` resets the field. `bossAbility()` now switches on `f.bossAbility` to apply the correct effect. A "defeated: N/3" counter tracks unique wins via `State.defeated`. Verified: switched to Cinder-King → 200 HP, ASH DECREE button.
+   197→   197→2. **Status effects** — combatants (allies + foe) now carry a `statuses[]` array. New helpers: `statusChips()` renders colored `.status-chip` tags (POISON green, STUN amber, BLEED/BURN red) with turn counters; `tickStatuses()` applies per-round damage (poison 3-6, bleed 2-5, burn 4-8) and decrements turns; `isStunned()` checks stun. `nextTurn()` ticks statuses at the start of each new round + skips stunned allies' attacks ("STUNNED and skips their turn"). ASH DECREE applies STUN, BINDING_OATH applies POISON×3. Stunned allies get a desaturated `.stunned` visual state. Status deaths log "succumbed to afflictions". Verified: status chips render, stun skips turns.
+   198→   198→3. **Campaign log panel** — new `READ_CAMPAIGN_LOG` menu item (7th). `State.campaignLog` array (max 60) + `logEvent(event, detail)` timestamps major events. `renderCampaignLog()` renders entries newest-first as `.clog-entry` rows (time | colored event | detail) in a scrollable `.campaign-log`. Events logged: UNLOCK (WARDEN), PURGE (cleanse), RUMOR (extract), VICTORY (foe kill), WIPE (party death), SECRET (Zeroth Warden). The menu tag (`#logTag`) shows the live event count, updated on every `logEvent()` + on boot. Empty state shows a "chronicle is blank" hint. Verified: extracted 6 rumors → 7 entries (6 RUMOR + 1 SECRET) with timestamps, VLM confirmed header "CAMPAIGN_LOG :: CHRONICLE" + entries.
+   199→   199→4. **Secret 7th NPC (collect-all-rumors reward)** — `checkAllRumorsCollected()` fires after each rumor extraction; when all 6 decrypted-NPC rumors are gathered, it splices "The Zeroth Warden" (NPC-07-000, CELESTIAL, ∞ HP, eye sigil) into the NPCS array at index 6, fires a "SECRET REVEALED" alert + 4-note ascending arpeggio, logs a SECRET campaign event, and re-renders the archive if open. The Zeroth Warden has unique lore tying it to the console itself. FORGET removes it. Verified: after 6th rumor, NPC count 8→9, "The Zeroth Warden" appears with eye hologram, campaign log shows SECRET event.
+   200→   200→
+
+[showing lines 1-200 of 360; use offset=201 with limit to continue reading]

@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ASHEN CODEX // CAMPAIGN CONSOLE v3.7</title>
+<title>ASHEN CODEX // CAMPAIGN CONSOLE v3.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=MedievalSharp&display=swap" rel="stylesheet" />
 <style>
   /* ============================================================
-     ASHEN CODEX — Dark Fantasy magitech console  v3.7-pact
+     ASHEN CODEX — Dark Fantasy magitech console  v3.8-pact
      Pure HTML / CSS / Vanilla JS — single file
      ============================================================ */
 
@@ -313,6 +313,19 @@
   .menu-item.unlocked:hover{color:var(--amber);border-color:rgba(232,161,58,.5);text-shadow:0 0 8px rgba(232,161,58,.6);background:linear-gradient(90deg,rgba(232,161,58,.1),transparent)}
   @keyframes unlockPulse{0%{box-shadow:0 0 0 0 rgba(232,161,58,.6)}100%{box-shadow:0 0 0 14px rgba(232,161,58,0)}}
   .menu-item.deny{color:var(--red);border-color:rgba(255,36,36,.6);text-shadow:0 0 10px rgba(255,36,36,.8);background:linear-gradient(90deg,rgba(255,36,36,.18),transparent);animation:glitchHover .12s steps(2) 4}
+
+  /* lock feedback tooltip */
+  .lock-hint{
+    position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:8px;
+    background:#0a0807;border:1px solid var(--red-dim);color:var(--text-dim);
+    font-size:11px;font-family:'VT323',monospace;letter-spacing:1px;
+    padding:5px 10px;white-space:nowrap;pointer-events:none;
+    clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));
+    opacity:0;transition:opacity .2s;z-index:10;
+    box-shadow:0 0 12px rgba(255,36,36,.2);
+  }
+  .lock-hint b{color:var(--red)}
+  .menu-item.locked:hover .lock-hint{opacity:1}
 
   @keyframes glitchHover{
     0%{transform:translate(0,0)}
@@ -738,8 +751,125 @@
   .best-card.secret{border-color:var(--amber);box-shadow:0 0 16px rgba(232,161,58,.15)}
   .best-card.locked-secret{opacity:.5;border-style:dashed}
   .best-locked-hint{font-size:13px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;padding:20px 10px;text-align:center;font-style:italic}
+  .best-strategy{border-top:1px dashed #1a201a;padding-top:8px;margin-top:6px}
+  .best-strategy h4{font-family:'VT323',monospace;font-size:12px;color:var(--cyan-dim);letter-spacing:2px;margin-bottom:4px}
+  .best-strategy p{font-size:12px;line-height:1.5;color:var(--text-dim);font-style:italic}
+  .best-strategy .strat-tag{display:inline-block;font-size:10px;font-family:'VT323',monospace;padding:1px 6px;border:1px solid var(--cyan-dim);color:var(--cyan-dim);letter-spacing:1px;margin-right:4px;background:rgba(63,214,200,.05)}
 
-  /* ---------- Campaign log filter chips ---------- */
+  /* ---------- Threat tooltip ---------- */
+  .threat-tip{
+    position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+    background:#0a0807;border:1px solid var(--red-dim);color:var(--text);
+    font-family:'VT323',monospace;font-size:13px;letter-spacing:1px;
+    padding:8px 14px;white-space:nowrap;pointer-events:none;z-index:20;
+    clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));
+    box-shadow:0 0 20px rgba(255,36,36,.25);opacity:0;transition:opacity .15s;
+  }
+  .threat-tip.show{opacity:1}
+  .threat-tip b{color:var(--red)}
+  .threat-tip .tt-stat{display:flex;justify-content:space-between;gap:12px}
+  .threat-tip .tt-stat span{color:var(--text-dim)}
+  .threat-tip::after{
+    content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+    border:5px solid transparent;border-top-color:var(--red-dim);
+  }
+
+  /* ---------- Encounter recap overlay ---------- */
+  .recap-overlay{
+    position:fixed;inset:0;z-index:9650;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.7);opacity:0;pointer-events:none;transition:opacity .35s;
+  }
+  .recap-overlay.show{opacity:1;pointer-events:auto}
+  .recap-box{
+    position:relative;border:1px solid var(--green);background:radial-gradient(circle at 50% 30%,rgba(74,246,38,.08),#060806);
+    padding:24px 40px;text-align:left;max-width:520px;width:90%;
+    box-shadow:0 0 60px rgba(74,246,38,.25),inset 0 0 30px rgba(74,246,38,.08);
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+    font-family:'VT323',monospace;animation:recapIn .4s ease-out;
+  }
+  .recap-box.wipe{border-color:var(--red);background:radial-gradient(circle at 50% 30%,rgba(255,36,36,.08),#080404);box-shadow:0 0 60px rgba(255,36,36,.25),inset 0 0 30px rgba(255,36,36,.08)}
+  @keyframes recapIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  .recap-head{font-family:'MedievalSharp',serif;font-size:22px;letter-spacing:2px;margin-bottom:12px}
+  .recap-head.win{color:var(--green);text-shadow:0 0 10px rgba(74,246,38,.6)}
+  .recap-head.lose{color:var(--red);text-shadow:0 0 10px rgba(255,36,36,.6)}
+  .recap-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-bottom:12px;font-size:14px}
+  .recap-stat{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #1a201a}
+  .recap-stat span{color:var(--text-dim)}
+  .recap-stat b{color:var(--green)}
+  .recap-box.wipe .recap-stat b{color:var(--red)}
+  .recap-ally{margin-top:6px}
+  .recap-ally-row{display:grid;grid-template-columns:80px 50px 50px 50px;gap:6px;font-size:12px;padding:2px 0;border-bottom:1px solid #1a201a}
+  .recap-ally-row.head{color:var(--text-dim);border-bottom:1px solid #2a2017;font-weight:bold}
+  .recap-ally-row .ra-name{color:var(--text-dead)}
+  .recap-ally-row .ra-dmg{color:var(--green)}
+  .recap-ally-row .ra-tk{color:var(--red)}
+  .recap-ally-row .ra-status{color:var(--text-dim)}
+  .recap-close{margin-top:14px;display:flex;justify-content:center}
+
+  /* ---------- Secret boss ending ---------- */
+  .secret-overlay{
+    position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.85);opacity:0;pointer-events:none;transition:opacity .5s;
+  }
+  .secret-overlay.show{opacity:1;pointer-events:auto}
+  .secret-box{
+    position:relative;border:2px solid var(--red);background:radial-gradient(circle at 50% 40%,rgba(255,36,36,.1),#050202);
+    padding:36px 48px;text-align:center;max-width:560px;
+    box-shadow:0 0 100px rgba(255,36,36,.3),inset 0 0 40px rgba(255,36,36,.08);
+    clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+    font-family:'VT323',monospace;animation:secretIn .6s ease-out;
+  }
+  @keyframes secretIn{from{transform:scale(.8) rotateZ(-2deg);opacity:0}to{transform:scale(1) rotateZ(0);opacity:1}}
+  .secret-glyph{font-size:60px;color:var(--red);text-shadow:0 0 30px rgba(255,36,36,.9),0 0 60px rgba(255,36,36,.5);animation:secretPulse 2.5s ease-in-out infinite;line-height:1}
+  @keyframes secretPulse{0%,100%{opacity:.6;filter:blur(0)}50%{opacity:1;filter:blur(.8px)}}
+  .secret-head{font-family:'MedievalSharp',serif;font-size:26px;color:var(--red);text-shadow:0 0 16px rgba(255,36,36,.8);letter-spacing:3px;margin:14px 0 10px;animation:corruptGlitch 3s infinite steps(10)}
+  .secret-msg{font-size:15px;color:var(--text);letter-spacing:1px;line-height:1.6}
+  .secret-msg .dim{color:var(--text-dim)}
+
+  /* ---------- Enhanced ambient particle layer ---------- */
+  .ambient-particles{
+    position:fixed;inset:0;pointer-events:none;z-index:8999;overflow:hidden;
+  }
+  .ambient-particles .p{
+    position:absolute;width:2px;height:2px;background:var(--green);border-radius:50%;opacity:0;
+    animation:particleDrift linear infinite;
+  }
+  @keyframes particleDrift{
+    0%{opacity:0;transform:translateY(0) translateX(0)}
+    10%{opacity:.4}
+    90%{opacity:.2}
+    100%{opacity:0;transform:translateY(-120px) translateX(20px)}
+  }
+
+  /* ---------- Panel content transitions ---------- */
+  .content{position:absolute;inset:0;padding:18px 22px;overflow-y:auto;opacity:0;transition:opacity .3s}
+  .content.show{opacity:1;animation:contentFadeIn .3s ease-out}
+  @keyframes contentFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ---------- Glow pulse on encounter buttons ---------- */
+  .enc-btn{position:relative;overflow:hidden}
+  .enc-btn::after{
+    content:"";position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+    background:radial-gradient(circle,rgba(255,255,255,.08),transparent 60%);
+    opacity:0;transition:opacity .15s;
+  }
+  .enc-btn:hover:not(:disabled)::after{opacity:1}
+
+  /* ---------- Improved per-ally DPS: damage-taken bar ---------- */
+  .dps-ally{display:grid;grid-template-columns:70px 1fr 34px 1fr 34px;gap:4px 6px;align-items:center;font-family:'VT323',monospace;font-size:12px}
+  .da-bar-tk{height:6px;background:#0c0c0c;border:1px solid #1a201a;overflow:hidden;margin-left:2px}
+  .da-bar-tk i{display:block;height:100%;background:linear-gradient(90deg,#7a1010,var(--red));transition:width .3s}
+  .da-val-tk{color:var(--red);text-align:right}
+
+  /* ---------- Responsive additions ---------- */
+  @media (max-width:900px){
+    .lock-hint{display:none}
+    .threat-tip{display:none}
+    .dps-ally{grid-template-columns:60px 1fr 28px}
+    .da-bar-tk,.da-val-tk{display:none}
+    .recap-box{padding:18px 20px}
+    .secret-box{padding:24px 28px}
+  }
   .clog-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
   .clog-filter{background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:12px;padding:3px 9px;cursor:pointer;letter-spacing:1px;opacity:.5;transition:all .15s}
   .clog-filter.active{opacity:1;text-shadow:0 0 6px currentColor;box-shadow:0 0 8px rgba(74,246,38,.15)}
@@ -991,7 +1121,7 @@
         <span class="led a"></span>
         <span class="led g"></span>
       </div>
-      <div class="tb-title">A S H E N&nbsp;&nbsp;C O D E X &nbsp;//&nbsp; <b>CAMPAIGN CONSOLE</b> &nbsp;v3.7-pact</div>
+      <div class="tb-title">A S H E N&nbsp;&nbsp;C O D E X &nbsp;//&nbsp; <b>CAMPAIGN CONSOLE</b> &nbsp;v3.8-pact</div>
       <button class="audio-btn off" id="audioBtn" title="Toggle ambient sound">SOUND:OFF</button>
       <div class="tb-meta">SECT <span>07</span> // PACT <span>ACTIVE</span></div>
     </div>
@@ -1009,8 +1139,8 @@
           <button class="menu-item" data-panel="encounter" data-txt="> RUN_ENCOUNTER_SIM"><span class="chev">&gt;</span>RUN_ENCOUNTER_SIM<span class="tag">live</span></button>
           <button class="menu-item" data-panel="bestiary" data-txt="> OPEN_BESTIARY"><span class="chev">&gt;</span>OPEN_BESTIARY<span class="tag" id="bestTag">0/3</span></button>
           <button class="menu-item" data-panel="campaign" data-txt="> READ_CAMPAIGN_LOG"><span class="chev">&gt;</span>READ_CAMPAIGN_LOG<span class="tag" id="logTag">0</span></button>
-          <button class="menu-item locked" data-panel="ritual" data-txt="> SUMMON_RITUAL_NET"><span class="chev">&#9888;</span>SUMMON_RITUAL_NET<span class="tag">lock</span></button>
-          <button class="menu-item locked" data-panel="deadgod" data-txt="> DECRYPT_DEAD_GOD"><span class="chev">&#9888;</span>DECRYPT_DEAD_GOD<span class="tag">lock</span></button>
+          <button class="menu-item locked" data-panel="ritual" data-txt="> SUMMON_RITUAL_NET"><span class="chev">&#9888;</span>SUMMON_RITUAL_NET<span class="tag">lock</span><span class="lock-hint">type <b>WARDEN</b> to unlock</span></button>
+          <button class="menu-item locked" data-panel="deadgod" data-txt="> DECRYPT_DEAD_GOD"><span class="chev">&#9888;</span>DECRYPT_DEAD_GOD<span class="tag">lock</span><span class="lock-hint">type <b>WARDEN</b> to unlock</span></button>
         </nav>
 
         <div class="side-foot">
@@ -1076,6 +1206,34 @@
         <span class="sep">|</span>
         <div class="s" id="sbClock">--:--:--</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- AMBIENT PARTICLES -->
+<div class="ambient-particles" id="ambientParticles"></div>
+
+<!-- RECAP OVERLAY -->
+<div class="recap-overlay" id="recapOverlay">
+  <div class="recap-box" id="recapBox">
+    <div class="recap-head" id="recapHead">ENCOUNTER COMPLETE</div>
+    <div id="recapBody"></div>
+    <div class="recap-close"><button class="enc-btn" id="recapClose">DISMISS</button></div>
+  </div>
+</div>
+
+<!-- SECRET BOSS ENDING -->
+<div class="secret-overlay" id="secretOverlay">
+  <div class="secret-box">
+    <div class="secret-glyph">☽̷̧̛</div>
+    <div class="secret-head">THE UNMAKING IS COMPLETE</div>
+    <div class="secret-msg">
+      Ymr-Soth was never killed. It was <i>finished</i>.<br>
+      The god that was half-real for millennia is now fully real, and fully dead.<br><br>
+      <span class="dim">The Mire exhales. The corruption drains from the seal in a single, long sigh.<br>The Wardens close this console's ledger and open the next.<br>Somewhere, a god that should not have been is grateful, briefly, for having been.</span>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+      <button class="enc-btn foe" id="secretClose">CLOSE THE LEDGER</button>
     </div>
   </div>
 </div>
@@ -1202,7 +1360,7 @@
 
 <script>
 /* ============================================================
-   ASHEN CODEX — console logic  v3.7-pact
+   ASHEN CODEX — console logic  v3.8-pact
    ============================================================ */
 (function(){
   "use strict";
@@ -1340,7 +1498,7 @@
 
   /* ---------- BOOT SEQUENCE ---------- */
   const bootLines = [
-    {t:"> ASHEN_CODEX BIOS v3.7-pact ...",c:"ok",snd:"beep"},
+    {t:"> ASHEN_CODEX BIOS v3.8-pact ...",c:"ok",snd:"beep"},
     {t:"> MOUNTING /dev/soul_reservoir ........ [ OK ]",c:"ok",snd:"beep"},
     {t:"> MOUNTING /dev/pact_archive .......... [ OK ]",c:"ok",snd:"beep"},
     {t:"> LOADING rune_table.bin .............. [ OK ]",c:"ok",snd:"beep"},
@@ -1423,7 +1581,7 @@
     ngPlus:     _saved?.ngPlus || 0,              // New Game+ tier (0=normal, 1+=harder)
   };
   // DPS tracking for the current encounter round
-  const DpsTrack={ roundDmgDealt:0, roundDmgTaken:0, totalDealt:0, totalTaken:0, rounds:0, perAlly:{veylan:0,mirewen:0,aldric:0,thistle:0} };
+  const DpsTrack={ roundDmgDealt:0, roundDmgTaken:0, totalDealt:0, totalTaken:0, rounds:0, perAlly:{veylan:0,mirewen:0,aldric:0,thistle:0}, perAllyTaken:{veylan:0,mirewen:0,aldric:0,thistle:0} };
   // enrage stinger guard — only fire once per enrage transition
   let enrageStingerPlayed=false;
   function logEvent(event, detail){
@@ -1767,6 +1925,13 @@
     {key:"ymrsoth", name:"Ymr-Soth, the Unmade", max:400, hp:400, ac:22, atk:9, enrageAt:0.6, bossAbility:"UNMAKING", role:"DEAD GOD", secret:true, minNgPlus:3},
   ];
   const FOE=FOES[0]; // default for any legacy references
+  // strategy hints per boss
+  const BOSS_STRATEGY={
+    kaelen:{tags:["SMITE","HEAL"],text:"Bring shields and heals. Kaelen's EMBER NOVA hits all allies for heavy fire damage. Prioritize HEAL PARTY before he enrages at 40%."},
+    cinder:{tags:["SHIELD","STUN"],text:"The Cinder-King's ASH DECREE stuns the entire party. Keep SHIELD up before his enrage at 50%. Stun effects can be mitigated by spreading turns."},
+    vasska:{tags:["DPS","CLEANSE"],text:"BINDING OATH poisons two random allies for 3 turns. Focus burst damage to kill Vasska before poison stacks. SNEAK ATTACK is highly effective here."},
+    ymrsoth:{tags:["SHIELD","RESIST"],text:"UNMAKING deals massive damage + BURN to all allies. This is a war of attrition — keep SHIELD active and heal on cooldown. Enrage at 60% is devastating."},
+  };
   // lore fragments dropped by each boss on first defeat
   const BOSS_LORE={
     kaelen:{ title:"The Smothering", body:"When Kaelen Ashbringer fell, the Ember Vow did not break — it smothered. The coal behind his ribs is the last lit thing in a faith that once warmed a kingdom. Every year it dims a little more. When it goes out, the Vow inverts: the dead it once protected will rise against the living it failed to save. The party carries the only thing that can relight it — Ysolde's twin coal — and does not yet know it." },
@@ -1900,14 +2065,24 @@
     const bossBtn = !f.bossUsed && f.hp>0 && !EncState.over
       ? `<button class="enc-btn foe ability" id="encBoss" style="padding:5px 10px;font-size:12px">${f.bossAbility} (once)</button>` : "";
     const foeOpts=FOES.filter(fo=>!fo.minNgPlus || State.ngPlus>=fo.minNgPlus).map(fo=>`<option value="${fo.key}"${fo.key===EncState.foeKey?" selected":""}>${fo.name}</option>`).join("");
+    const tipFoe=FOES.find(fo=>fo.key===EncState.foeKey)||FOES[0];
+    const tipNgMul=1+State.ngPlus*0.5;
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> ENCOUNTER_SIM <span class="g">::</span> LIVE</h2>
         <div class="sub">round ${EncState.round} // ${aliveCount} allies standing // threat ${f.name}${en?" [ENRAGED]":""}</div>
       </div>
-      <div class="foe-select-row">
+      <div class="foe-select-row" style="position:relative">
         <label class="foe-label">&gt; SELECT_FOE:</label>
         <select id="foeSelect" class="foe-select">${foeOpts}</select>
         <span class="foe-defeated">defeated: ${State.defeated.size||0}/${FOES.length}</span>
+        <span class="foe-label" style="cursor:help;text-decoration:underline dotted var(--red-dim);margin-left:8px" id="threatToggle">⬆ THREAT</span>
+        <div class="threat-tip" id="threatTip">
+          <div class="tt-stat"><span>HP</span><b>${Math.round(tipFoe.max*tipNgMul)}</b></div>
+          <div class="tt-stat"><span>AC</span><b>${tipFoe.ac}</b></div>
+          <div class="tt-stat"><span>ATK</span><b>+${tipFoe.atk+State.ngPlus}</b></div>
+          <div class="tt-stat"><span>ENRAGE</span><b>${Math.round(tipFoe.enrageAt*100+State.ngPlus*5)}%</b></div>
+          <div class="tt-stat"><span>ABILITY</span><b>${tipFoe.bossAbility}</b></div>
+        </div>
       </div>
       <div class="encounter">
         <div class="enc-party">${partyHtml}</div>
@@ -1930,7 +2105,9 @@
         ${EncState.party.map(p=>{
           const d=DpsTrack.perAlly[p.key]||0;
           const pct=DpsTrack.totalDealt>0?Math.round(d/DpsTrack.totalDealt*100):0;
-          return `<div class="dps-ally"><span class="da-name">${p.name.split(' ')[0]}</span><div class="da-bar"><i style="width:${pct}%"></i></div><span class="da-val">${d}</span></div>`;
+          const tk=DpsTrack.perAllyTaken[p.key]||0;
+          const tkPct=DpsTrack.totalTaken>0?Math.round(tk/DpsTrack.totalTaken*100):0;
+          return `<div class="dps-ally"><span class="da-name">${p.name.split(' ')[0]}</span><div class="da-bar"><i style="width:${pct}%"></i></div><span class="da-val">${d}</span><div class="da-bar-tk"><i style="width:${tkPct}%"></i></div><span class="da-val-tk">${tk}</span></div>`;
         }).join("")}
       </div>
       <div class="enc-ctrl">
@@ -1997,6 +2174,9 @@
       triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.${dropped?"<br>lore fragment archived.":""}`);
       logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)${dropped?" + lore":""}`);
       checkVictoryLap();
+      // secret boss unique ending
+      if(f.key==="ymrsoth"){ setTimeout(()=>showSecretEnding(),800); }
+      else { setTimeout(()=>showRecap(true, f.name),600); }
       encRefresh(); return true;
     }
     return false;
@@ -2046,6 +2226,8 @@
       triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.${dropped?"<br>lore fragment archived.":""}`);
       logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)${dropped?" + lore":""}`);
       checkVictoryLap();
+      if(f.key==="ymrsoth"){ setTimeout(()=>showSecretEnding(),800); }
+      else { setTimeout(()=>showRecap(true, f.name),600); }
     }
     encRefresh();
   }
@@ -2070,14 +2252,14 @@
     const btn=$("#encFoe");
     if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
     if(crit){
-      const dmg=dice(10,16)*2; applyDamage(t,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg;
+      const dmg=dice(10,16)*2; applyDamage(t,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg; if(DpsTrack.perAllyTaken[t.key]!=null)DpsTrack.perAllyTaken[t.key]+=dmg;
       encLog(`> ${f.name} rolls ${roll} — CRITICAL! cleaves ${t.name} for ${dmg}.`,"crit");
       Audio.thud(0.2);
     }else if(miss){
       encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${t.ac}) — parried by ${t.name}.`,"miss");
       Audio.blip(160,0.08,0.08);
     }else{
-      const dmg=dice(8,15); applyDamage(t,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg;
+      const dmg=dice(8,15); applyDamage(t,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg; if(DpsTrack.perAllyTaken[t.key]!=null)DpsTrack.perAllyTaken[t.key]+=dmg;
       encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${t.ac}) — strikes ${t.name} for ${dmg}.`,"fatk");
       Audio.thud(0.16);
     }
@@ -2090,6 +2272,7 @@
       EncState.over=true; addCorruption(10);
       triggerAlert("PARTY WIPED","all allies fallen. corruption +10%.");
       logEvent("WIPE",`party wiped by ${EncState.foe.name} (corruption +10%)`);
+      setTimeout(()=>showRecap(false, EncState.foe.name),600);
       encRefresh();
       return;
     }
@@ -2115,7 +2298,7 @@
         Audio.thud(0.26); setTimeout(()=>Audio.glitch(0.15),150);
         EncState.party.forEach(p=>{
           if(p.hp>0){
-            const dmg=dice(12,20); applyDamage(p,dmg);
+            const dmg=dice(12,20); applyDamage(p,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg; if(DpsTrack.perAllyTaken[p.key]!=null)DpsTrack.perAllyTaken[p.key]+=dmg;
             encLog(`   ${p.name} takes ${dmg} fire. (now ${p.hp}/${p.max})`,"fatk");
             if(p.hp<=0) killed++;
           }
@@ -2128,7 +2311,7 @@
         Audio.thud(0.24); setTimeout(()=>Audio.glitch(0.12),150);
         EncState.party.forEach(p=>{
           if(p.hp>0){
-            const dmg=dice(8,14); applyDamage(p,dmg);
+            const dmg=dice(8,14); applyDamage(p,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg; if(DpsTrack.perAllyTaken[p.key]!=null)DpsTrack.perAllyTaken[p.key]+=dmg;
             p.statuses=(p.statuses||[]).concat([{type:"STUN",turns:1}]);
             encLog(`   ${p.name} takes ${dmg} ash + STUN. (now ${p.hp}/${p.max})`,"fatk");
             if(p.hp<=0) killed++;
@@ -2142,7 +2325,7 @@
         Audio.thud(0.24);
         const targets=aliveAllies().sort(()=>Math.random()-.5).slice(0,2);
         targets.forEach(p=>{
-          const dmg=dice(10,16); p.hp=Math.max(0,p.hp-dmg);
+          const dmg=dice(10,16); p.hp=Math.max(0,p.hp-dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg; if(DpsTrack.perAllyTaken[p.key]!=null)DpsTrack.perAllyTaken[p.key]+=dmg;
           p.statuses=(p.statuses||[]).concat([{type:"POISON",turns:3}]);
           encLog(`   ${p.name} takes ${dmg} + POISON ×3. (now ${p.hp}/${p.max})`,"fatk");
           if(p.hp<=0) killed++;
@@ -2154,7 +2337,7 @@
         Audio.chord([55,58,62,65],0.8,0.2); setTimeout(()=>Audio.glitch(0.2),200);
         EncState.party.forEach(p=>{
           if(p.hp>0){
-            const dmg=dice(18,28); applyDamage(p,dmg);
+            const dmg=dice(18,28); applyDamage(p,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg; if(DpsTrack.perAllyTaken[p.key]!=null)DpsTrack.perAllyTaken[p.key]+=dmg;
             p.statuses=(p.statuses||[]).concat([{type:"BURN",turns:2}]);
             encLog(`   ${p.name} takes ${dmg} unmaking + BURN ×2. (now ${p.hp}/${p.max})`,"fatk");
             if(p.hp<=0) killed++;
@@ -2169,6 +2352,7 @@
       EncState.over=true; addCorruption(10);
       triggerAlert("PARTY WIPED","all allies fallen. corruption +10%.");
       logEvent("WIPE",`party wiped by ${f.bossAbility} (corruption +10%)`);
+      setTimeout(()=>showRecap(false, f.name),600);
     }
     encRefresh();
   }
@@ -2203,6 +2387,7 @@
         EncState.over=true; addCorruption(10);
         triggerAlert("PARTY WIPED","all allies fallen. corruption +10%.");
         logEvent("WIPE",`party wiped by status effects (corruption +10%)`);
+        setTimeout(()=>showRecap(false, EncState.foe.name),600);
         encRefresh(); return;
       }
     }
@@ -2229,7 +2414,7 @@
     const ngMul=1+State.ngPlus*0.5;
     EncState.foe={...base, hp:Math.round(base.max*ngMul), max:Math.round(base.max*ngMul), atk:base.atk+State.ngPlus, enrageAt:Math.min(0.7,base.enrageAt+State.ngPlus*0.05), bossUsed:false, statuses:[]};
     EncState.round=0; EncState.over=false; EncState.log=[]; EncState.initiative=0;
-    DpsTrack.roundDmgDealt=0; DpsTrack.roundDmgTaken=0; DpsTrack.totalDealt=0; DpsTrack.totalTaken=0; DpsTrack.rounds=0; DpsTrack.perAlly={veylan:0,mirewen:0,aldric:0,thistle:0};
+    DpsTrack.roundDmgDealt=0; DpsTrack.roundDmgTaken=0; DpsTrack.totalDealt=0; DpsTrack.totalTaken=0; DpsTrack.rounds=0; DpsTrack.perAlly={veylan:0,mirewen:0,aldric:0,thistle:0}; DpsTrack.perAllyTaken={veylan:0,mirewen:0,aldric:0,thistle:0};
     enrageStingerPlayed=false;
     encLog(">> encounter sim re-initialized. party at full strength vs "+EncState.foe.name+(State.ngPlus>0?" [NG+"+State.ngPlus+"]":"")+".","sys");
     encRefresh();
@@ -2266,6 +2451,46 @@
     const fs=$("#foeSelect"); if(fs) fs.addEventListener("change",()=>selectFoe(fs.value));
     const au=$("#encAuto"); if(au) au.addEventListener("click",()=>autoResolve(5));
     $$("[data-ab]").forEach(b=>b.addEventListener("click",()=>allyAbility(parseInt(b.dataset.ab,10))));
+    // threat tooltip toggle
+    const tt=$("#threatToggle");
+    const tip=$("#threatTip");
+    if(tt && tip){
+      tt.addEventListener("mouseenter",()=>tip.classList.add("show"));
+      tt.addEventListener("mouseleave",()=>tip.classList.remove("show"));
+      tt.addEventListener("click",()=>{tip.classList.toggle("show");});
+    }
+  }
+
+  /* ---------- Encounter recap overlay ---------- */
+  function showRecap(isVictory, foeName){
+    const ov=$("#recapOverlay");
+    const box=$("#recapBox");
+    const head=$("#recapHead");
+    const body=$("#recapBody");
+    if(!ov||!box||!head||!body) return;
+    box.className="recap-box"+(isVictory?"":" wipe");
+    head.className="recap-head "+(isVictory?"win":"lose");
+    head.textContent=isVictory?"ENCOUNTER COMPLETE — VICTORY":"ENCOUNTER COMPLETE — PARTY WIPED";
+    const net=DpsTrack.totalDealt-DpsTrack.totalTaken;
+    const allyRows=EncState.party.map(p=>{
+      const d=DpsTrack.perAlly[p.key]||0;
+      const tk=DpsTrack.perAllyTaken[p.key]||0;
+      return `<div class="recap-ally-row"><span class="ra-name">${p.name.split(' ')[0]}</span><span class="ra-dmg">${d}</span><span class="ra-tk">${tk}</span><span class="ra-status">${p.hp<=0?"FALLEN":"HP "+p.hp}</span></div>`;
+    }).join("");
+    body.innerHTML=`<div class="recap-stats">
+        <div class="recap-stat"><span>Rounds</span><b>${EncState.round}</b></div>
+        <div class="recap-stat"><span>Foe</span><b>${foeName}</b></div>
+        <div class="recap-stat"><span>Damage Dealt</span><b>${DpsTrack.totalDealt}</b></div>
+        <div class="recap-stat"><span>Damage Taken</span><b>${DpsTrack.totalTaken}</b></div>
+        <div class="recap-stat"><span>Net Damage</span><b>${net>=0?"+":""}${net}</b></div>
+        <div class="recap-stat"><span>Survivors</span><b>${aliveAllies().length}/4</b></div>
+      </div>
+      <div class="recap-ally">
+        <div class="recap-ally-row head"><span>ALLY</span><span>DEALT</span><span>TAKEN</span><span>STATUS</span></div>
+        ${allyRows}
+      </div>`;
+    ov.classList.add("show");
+    Audio.blip(isVictory?660:220,0.1,0.12);
   }
 
   /* =========================================================
@@ -2505,6 +2730,8 @@
       const hp=Math.round(f.max*ngMul);
       const isSecret=f.secret||false;
       const loreHtml=hasLore?`<div class="best-lore"><h4>${BOSS_LORE[f.key].title}</h4><p>${BOSS_LORE[f.key].body}</p></div>`:`<div class="best-lore-locked">// defeat ${f.name} to recover lore fragment</div>`;
+      const strat=BOSS_STRATEGY[f.key];
+      const stratHtml=strat?`<div class="best-strategy"><h4>// RECOMMENDED APPROACH</h4><p>${strat.tags.map(t=>`<span class="strat-tag">${t}</span>`).join("")}${strat.text}</p></div>`:"";
       return `<div class="best-card${defeated?" defeated":""}${isSecret?" secret":""}">
         <div class="best-head">
           <div class="best-name">${f.name}${isSecret?" <small style='color:var(--amber)'>[SECRET]</small>":""}</div>
@@ -2520,6 +2747,7 @@
         </div>
         <div class="best-role">// ${f.role}</div>
         ${loreHtml}
+        ${stratHtml}
         <button class="enc-btn best-fight" data-fight="${f.key}">&gt; ENGAGE ${f.name.split(' ')[0].toUpperCase()}</button>
       </div>`;
     }).join("");
@@ -2773,6 +3001,10 @@
     State.unlocked=new Set(); State.cleansed=new Set(); State.rumors=new Set();
     State.campaignLog=[]; State.defeated=new Set(); State.bossLore=new Set(); State.ngPlus=0;
     victoryLapShown=false;
+    // dismiss all overlays
+    ["victoryOverlay","secretOverlay","recapOverlay","alertOverlay","unlockOverlay"].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.classList.remove("show");
+    });
     // remove the secret Zeroth Warden if it was spawned
     const zwIdx=NPCS.findIndex(n=>n.id==="NPC-07-000");
     if(zwIdx!==-1) NPCS.splice(zwIdx,1);
@@ -2943,6 +3175,42 @@
   }
   document.addEventListener("pointerdown",firstGesture);
   document.addEventListener("keydown",firstGesture);
+
+  /* ---------- ambient particle generator ---------- */
+  (function initParticles(){
+    const container=$("#ambientParticles"); if(!container) return;
+    for(let i=0;i<18;i++){
+      const p=document.createElement("div"); p.className="p";
+      p.style.left=Math.random()*100+"%";
+      p.style.top=(40+Math.random()*60)+"%";
+      p.style.animationDuration=(4+Math.random()*8)+"s";
+      p.style.animationDelay=(Math.random()*6)+"s";
+      p.style.width=(1+Math.random()*2)+"px";
+      p.style.height=p.style.width;
+      container.appendChild(p);
+    }
+  })();
+
+  /* ---------- secret boss ending overlay ---------- */
+  function showSecretEnding(){
+    const ov=$("#secretOverlay"); if(!ov) return;
+    ov.classList.add("show");
+    // dissonant cosmic chord
+    Audio.chord([110,138,165,220,277,330,440],1.2,0.18);
+    logEvent("SECRET_ENDING","Ymr-Soth is complete. The god is fully dead.");
+  }
+  const sc=$("#secretClose");
+  if(sc) sc.addEventListener("click",()=>{
+    $("#secretOverlay").classList.remove("show");
+    // then show the normal recap
+    showRecap(true, "Ymr-Soth, the Unmade");
+  });
+
+  /* ---------- recap overlay close ---------- */
+  const rc=$("#recapClose");
+  if(rc) rc.addEventListener("click",()=>{
+    $("#recapOverlay").classList.remove("show");
+  });
 
   /* ---------- visibilitychange: power-down / power-up animation ---------- */
   let poweredDown=false;
