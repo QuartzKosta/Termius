@@ -182,3 +182,46 @@ Unresolved / Next-phase recommendations:
 - Add a "campaign log" panel that timestamps major events (unlock, purge, victory, wipe) for a running narrative.
 - Audio: the whisper could occasionally use a phoneme-like filtered impulse to sound like a word rather than pure noise.
 - Consider a boss-select dropdown so the party can fight different foes (Cinder-King, Vasska) with unique enrage thresholds + abilities.
+
+---
+Task ID: 5
+Agent: main (Z.ai Code) — cron webDevReview round 5
+Task: QA the existing console, then implement the next-phase recommendations from Task 4 (boss-select dropdown, status effects, campaign log panel, collect-all-rumors secret NPC).
+
+Work Log:
+- Reviewed worklog (Tasks 1–4 complete: 15 feature systems). QA via agent-browser: boot completes, 6 menu items (now 7 after adding campaign), 8 NPCs, 2 locked, zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+- Extended `/home/z/my-project/public/dnd-console.html` (~2600 lines) with 4 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+
+New features added:
+1. **Boss-select dropdown** — replaced the single `FOE` const with a `FOES` array of 3 bosses, each with unique stats + enrage thresholds + boss abilities: Kaelen Ashbringer (142hp, 40% enrage, EMBER_NOVA aoe fire), The Cinder-King (200hp, 50% enrage, ASH DECREE aoe dmg+stun), Vasska the Coiled Word (175hp, 45% enrage, BINDING_OATH 2-target dmg+poison×3). A green `.foe-select` dropdown at the top of the encounter panel lets the user switch foes; `selectFoe(key)` resets the field. `bossAbility()` now switches on `f.bossAbility` to apply the correct effect. A "defeated: N/3" counter tracks unique wins via `State.defeated`. Verified: switched to Cinder-King → 200 HP, ASH DECREE button.
+2. **Status effects** — combatants (allies + foe) now carry a `statuses[]` array. New helpers: `statusChips()` renders colored `.status-chip` tags (POISON green, STUN amber, BLEED/BURN red) with turn counters; `tickStatuses()` applies per-round damage (poison 3-6, bleed 2-5, burn 4-8) and decrements turns; `isStunned()` checks stun. `nextTurn()` ticks statuses at the start of each new round + skips stunned allies' attacks ("STUNNED and skips their turn"). ASH DECREE applies STUN, BINDING_OATH applies POISON×3. Stunned allies get a desaturated `.stunned` visual state. Status deaths log "succumbed to afflictions". Verified: status chips render, stun skips turns.
+3. **Campaign log panel** — new `READ_CAMPAIGN_LOG` menu item (7th). `State.campaignLog` array (max 60) + `logEvent(event, detail)` timestamps major events. `renderCampaignLog()` renders entries newest-first as `.clog-entry` rows (time | colored event | detail) in a scrollable `.campaign-log`. Events logged: UNLOCK (WARDEN), PURGE (cleanse), RUMOR (extract), VICTORY (foe kill), WIPE (party death), SECRET (Zeroth Warden). The menu tag (`#logTag`) shows the live event count, updated on every `logEvent()` + on boot. Empty state shows a "chronicle is blank" hint. Verified: extracted 6 rumors → 7 entries (6 RUMOR + 1 SECRET) with timestamps, VLM confirmed header "CAMPAIGN_LOG :: CHRONICLE" + entries.
+4. **Secret 7th NPC (collect-all-rumors reward)** — `checkAllRumorsCollected()` fires after each rumor extraction; when all 6 decrypted-NPC rumors are gathered, it splices "The Zeroth Warden" (NPC-07-000, CELESTIAL, ∞ HP, eye sigil) into the NPCS array at index 6, fires a "SECRET REVEALED" alert + 4-note ascending arpeggio, logs a SECRET campaign event, and re-renders the archive if open. The Zeroth Warden has unique lore tying it to the console itself. FORGET removes it. Verified: after 6th rumor, NPC count 8→9, "The Zeroth Warden" appears with eye hologram, campaign log shows SECRET event.
+
+Styling detail pass:
+- `.foe-select-row` (clipped-corner container) + `.foe-select` (green CRT-styled dropdown) + `.foe-defeated` amber counter.
+- `.status-chips` / `.status-chip` colored border+text chips with glow.
+- `.enc-field.ally.stunned` desaturated dimmed state.
+- `.campaign-log` scrollable list + `.clog-entry` 3-column grid (time/event/detail) + `.campaign-empty` dashed hint box.
+- All existing visuals + responsive breakpoints preserved.
+
+Verification (agent-browser + VLM + node --check):
+- Boot: `boot gone` / `stage live`, 7 menu items, 8 NPCs (fresh), 2 locked, campaign tag 0. Standalone + iframe both verified. Zero console errors.
+- Foe-select: 3 options (Kaelen/Cinder-King/Vasska), "defeated: 0/3" counter; switched to Cinder-King → 200 HP, ASH DECREE button (VLM confirmed dropdown + counter).
+- Campaign log: empty state → "chronicle is blank" hint; after 6 rumors → 7 entries (6 RUMOR + 1 SECRET) with timestamps, newest first (VLM confirmed header + entries).
+- Secret NPC: after 6th rumor → NPC count 8→9, "The Zeroth Warden" with eye sigil hologram + "// the one who recorded the first death" title.
+- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors.
+- Mobile 390px: foe-select-row renders, encounter accessible.
+
+Stage Summary:
+- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2600 lines, single self-contained file. All Task 1–4 visuals + features preserved; 4 new systems layered on top (boss-select, status effects, campaign log, secret NPC).
+- The console now has 3 selectable bosses with unique mechanics, persistent status effects, a full campaign chronicle, and a secret reward for completionists (collect all 6 rumors).
+- Preview: live at `/` via iframe; all new features work in the preview.
+- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+
+Unresolved / Next-phase recommendations:
+- Encounter could use an "auto-resolve" button that runs N rounds automatically for quick simulation.
+- Campaign log could support export (copy-to-clipboard as text) for sharing.
+- Status effects could be expanded (fear, haste, shield) with ally-applied buffs.
+- The 3 bosses could each drop a unique lore fragment on defeat, unlocking new WORLD_LORE entries.
+- Consider a "victory lap" ending screen when all 3 bosses are defeated (State.defeated.size===3).

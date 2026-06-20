@@ -644,6 +644,26 @@
   .enc-btn.foe.ability{border-color:var(--red);color:var(--red);background:linear-gradient(180deg,rgba(255,36,36,.12),rgba(255,36,36,.03));text-shadow:0 0 6px rgba(255,36,36,.5)}
   .enc-btn.foe.ability:hover:not(:disabled){background:linear-gradient(180deg,rgba(255,36,36,.28),rgba(255,36,36,.08));box-shadow:0 0 14px rgba(255,36,36,.5)}
 
+  /* foe-select dropdown */
+  .foe-select-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:8px 12px;border:1px solid #2a2017;background:rgba(6,8,6,.5);clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+  .foe-label{font-family:'VT323',monospace;font-size:14px;color:var(--green-dim);letter-spacing:1px}
+  .foe-select{
+    background:#0a0d0a;color:var(--green);border:1px solid var(--green-dim);
+    font-family:'VT323',monospace;font-size:15px;letter-spacing:1px;
+    padding:4px 10px;cursor:pointer;flex:1;max-width:300px;
+    text-shadow:0 0 4px rgba(74,246,38,.4);
+  }
+  .foe-select:focus{outline:none;border-color:var(--green);box-shadow:0 0 8px rgba(74,246,38,.4)}
+  .foe-select option{background:#0a0d0a;color:var(--green)}
+  .foe-defeated{font-family:'VT323',monospace;font-size:13px;color:var(--text-dim);letter-spacing:1px;margin-left:auto}
+  .foe-defeated b{color:var(--amber)}
+
+  /* status-effect chips + stunned state */
+  .status-chips{display:inline-flex;gap:3px;margin-left:4px;flex-wrap:wrap}
+  .status-chip{font-size:10px;font-family:'VT323',monospace;padding:0 5px;border:1px solid;letter-spacing:1px;background:rgba(0,0,0,.4);text-shadow:0 0 4px currentColor}
+  .enc-field.ally.stunned{opacity:.7;filter:saturate(.5) brightness(.85)}
+  .enc-field.ally.stunned .eh g{color:var(--text-dim)}
+
   /* rumor button + collected state */
   .rumor-btn{
     margin-top:8px;background:linear-gradient(180deg,rgba(63,214,200,.12),rgba(63,214,200,.03));
@@ -658,6 +678,23 @@
   .entry.rumor{border-color:var(--cyan-dim)}
   .entry.rumor h3{color:var(--cyan);text-shadow:0 0 8px rgba(63,214,200,.4)}
   .entry.rumor .meta{color:var(--cyan-dim)}
+
+  /* ---------- Campaign log ---------- */
+  .campaign-log{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto}
+  .campaign-log::-webkit-scrollbar{width:8px}
+  .campaign-log::-webkit-scrollbar-thumb{background:var(--green-deep)}
+  .clog-entry{
+    display:grid;grid-template-columns:90px 90px 1fr;gap:14px;align-items:center;
+    border:1px solid #2a2017;background:linear-gradient(90deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+    padding:10px 14px;
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+    font-family:'VT323',monospace;font-size:14px;
+  }
+  .clog-entry:hover{border-color:rgba(74,246,38,.3);background:linear-gradient(90deg,rgba(74,246,38,.06),rgba(6,8,6,.9))}
+  .clog-time{color:var(--text-dim);letter-spacing:1px}
+  .clog-event{font-weight:bold;letter-spacing:2px;text-shadow:0 0 6px currentColor}
+  .clog-detail{color:var(--text);letter-spacing:.5px;line-height:1.4}
+  .campaign-empty{font-family:'VT323',monospace;font-size:15px;color:var(--text-dim);line-height:1.7;padding:30px 14px;text-align:center;border:1px dashed #1a201a;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
 
   .enc-log{
     border:1px solid #2a2017;background:#040504;margin-top:14px;padding:12px 14px;
@@ -885,6 +922,7 @@
           <button class="menu-item" data-panel="units" data-txt="> SCAN_PLAYER_UNITS"><span class="chev">&gt;</span>SCAN_PLAYER_UNITS<span class="tag">4/5</span></button>
           <button class="menu-item" data-panel="lore" data-txt="> ACCESS_WORLD_LORE"><span class="chev">&gt;</span>ACCESS_WORLD_LORE<span class="tag">7 rec</span></button>
           <button class="menu-item" data-panel="encounter" data-txt="> RUN_ENCOUNTER_SIM"><span class="chev">&gt;</span>RUN_ENCOUNTER_SIM<span class="tag">live</span></button>
+          <button class="menu-item" data-panel="campaign" data-txt="> READ_CAMPAIGN_LOG"><span class="chev">&gt;</span>READ_CAMPAIGN_LOG<span class="tag" id="logTag">0</span></button>
           <button class="menu-item locked" data-panel="ritual" data-txt="> SUMMON_RITUAL_NET"><span class="chev">&#9888;</span>SUMMON_RITUAL_NET<span class="tag">lock</span></button>
           <button class="menu-item locked" data-panel="deadgod" data-txt="> DECRYPT_DEAD_GOD"><span class="chev">&#9888;</span>DECRYPT_DEAD_GOD<span class="tag">lock</span></button>
         </nav>
@@ -1257,12 +1295,14 @@
       const payload={
         corruption:State.corruption, soul:State.soul, signal:State.signal,
         unlocked:[...State.unlocked], cleansed:[...State.cleansed],
-        rumors:[...State.rumors],
+        rumors:[...State.rumors], campaignLog:State.campaignLog,
+        defeated:[...State.defeated],
         selectedNpc:sn, audioMuted:Audio.isMuted(),
       };
       if(enc){
         payload.encAllyHp=enc.party?enc.party[0]?.hp:enc.ally?.hp;
         payload.encFoeHp=enc.foe?.hp;
+        payload.foeKey=enc.foeKey||"kaelen";
         payload.encRound=enc.round; payload.encOver=enc.over;
       }
       localStorage.setItem(STORE_KEY, JSON.stringify(payload));
@@ -1276,7 +1316,16 @@
     unlocked:   new Set(_saved?.unlocked || []),
     cleansed:   new Set(_saved?.cleansed || []), // NPC ids cleansed via PURGE
     rumors:     new Set(_saved?.rumors || []),   // NPC ids whose rumor was collected
+    campaignLog:_saved?.campaignLog || [],       // array of {t,time,event}
+    defeated:   new Set(_saved?.defeated || []),  // foe keys defeated in encounter
   };
+  function logEvent(event, detail){
+    const entry={ time:new Date().toLocaleTimeString("en-GB",{hour12:false}), event, detail:detail||"" };
+    State.campaignLog.push(entry);
+    if(State.campaignLog.length>60) State.campaignLog.shift();
+    saveStore();
+    updateLogTag();
+  }
   function corrTier(v){ return v<30?"low":v<55?"med":v<80?"high":"extreme"; }
   function applyCorruption(){
     const t=corrTier(State.corruption);
@@ -1567,8 +1616,31 @@
     setTimeout(()=>Audio.beep(660,0.08,0.12),90);
     setTimeout(()=>Audio.beep(780,0.12,0.12),180);
     triggerAlert("RUMOR ARCHIVED",`<b>${n.rumor.title}</b><br>fragment added to WORLD_LORE vault.`);
+    logEvent("RUMOR",`extracted "${n.rumor.title}" from ${npcId}`);
+    checkAllRumorsCollected();
     // re-render the detail card to show "archived" state
     const slot=$("#detailSlot"); if(slot){ slot.innerHTML=renderNpcCard(n); const rb=$("#rumorBtn"); if(rb) rb.addEventListener("click",()=>collectRumor(rb.dataset.npc)); }
+  }
+  // secret: collecting all 6 decrypted-NPC rumors reveals a 7th hidden NPC
+  function checkAllRumorsCollected(){
+    const rumorNpcs=NPCS.filter(n=>n.rumor);
+    const all=rumorNpcs.every(n=>State.rumors.has(n.id));
+    if(all && !NPCS.find(n=>n.id==="NPC-07-000")){
+      NPCS.splice(6,0,{
+        id:"NPC-07-000", name:'The <span class="g">Zeroth Warden</span>', title:"// the one who recorded the first death",
+        cls:"CELESTIAL", sigil:"i-eye", cr:"CR ??", chips:["CELESTIAL","TRUE-NEUTRAL","SECRET"],
+        desc:'Before the god died, there was a Warden assigned to record its death. They completed the record early — the god had not yet finished dying — and so became the first thing the god\'s death unmade. They persist only as a footnote in their own journal, which is this console. They are the reason the console boots. They are the reason it forgets. They have been waiting for all six rumors to be gathered, because the rumors are the six true things the god said before it stopped being a god, and true things are the only currency the Zeroth Warden accepts.',
+        attrs:[["HP","∞ / ∞"],["AC","—"],["STR","—"],["DEX","—"],["INT","∞"],["WIS","∞"]],
+        status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: NULL",
+        rumor:null
+      });
+      logEvent("SECRET","the Zeroth Warden has been recorded");
+      triggerAlert("SECRET REVEALED","all 6 rumors archived.<br>the Zeroth Warden manifests in NPC_ARCHIVE.");
+      Audio.beep(220,0.2,0.14); setTimeout(()=>Audio.beep(330,0.2,0.14),200);
+      setTimeout(()=>Audio.beep(440,0.2,0.14),400); setTimeout(()=>Audio.beep(660,0.3,0.16),600);
+      // re-render archive if open
+      if(currentPanel==="archive"){ content.innerHTML=renderArchive(); wirePanel("archive"); }
+    }
   }
 
   /* =========================================================
@@ -1580,22 +1652,61 @@
     {key:"aldric", name:"Brother Aldric", role:"CLERIC", max:50, hp:50, ac:16, atk:4, ability:"HEAL", abLabel:"HEAL PARTY (+18 each)", abUsed:false, color:"var(--green)"},
     {key:"thistle", name:"Thistle", role:"ROGUE", max:50, hp:50, ac:15, atk:7, ability:"SA", abLabel:"SNEAK ATTACK (3×dmg)", abUsed:false, color:"var(--amber)"},
   ];
-  const FOE={name:"Kaelen Ashbringer", max:142, hp:142, ac:19, atk:6, enrageAt:0.4, bossAbility:"EMBER_NOVA", bossUsed:false};
+  const FOES=[
+    {key:"kaelen", name:"Kaelen Ashbringer", max:142, hp:142, ac:19, atk:6, enrageAt:0.4, bossAbility:"EMBER_NOVA", role:"UNDEAD BOSS"},
+    {key:"cinder", name:"The Cinder-King", max:200, hp:200, ac:20, atk:7, enrageAt:0.5, bossAbility:"ASH DECREE", role:"UNDEAD RULER"},
+    {key:"vasska", name:"Vasska, the Coiled Word", max:175, hp:175, ac:17, atk:5, enrageAt:0.45, bossAbility:"BINDING OATH", role:"ABERRATION"},
+  ];
+  const FOE=FOES[0]; // default for any legacy references
   // restore from store if present
   const EncState={
-    party: PARTY.map(p=>({...p, hp: (_saved && _saved.encAllyHp!=null && p.key==="veylan")?_saved.encAllyHp:p.hp})),
-    foe:{...FOE, hp:(_saved?.encFoeHp!=null)?_saved.encFoeHp:FOE.hp, bossUsed:false},
+    party: PARTY.map(p=>({...p, hp: (_saved && _saved.encAllyHp!=null && p.key==="veylan")?_saved.encAllyHp:p.hp, statuses:[]})),
+    foe:{...FOES[0], hp:(_saved?.encFoeHp!=null)?_saved.encFoeHp:FOES[0].hp, bossUsed:false, statuses:[]},
+    foeKey:_saved?.foeKey||"kaelen",
     round:_saved?.encRound||0, over:_saved?.encOver||false, log:[],
     initiative:0, // index into party; -1 = foe turn pending
   };
+  // load the correct foe from store
+  (function initFoe(){
+    const fk=EncState.foeKey;
+    const base=FOES.find(f=>f.key===fk)||FOES[0];
+    EncState.foe={...base, hp:(_saved?.encFoeHp!=null)?_saved.encFoeHp:base.hp, bossUsed:false, statuses:[]};
+  })();
   // now that EncState + selectedNpc exist, apply initial corruption state
   applyCorruption();
+  updateLogTag();
 
   function d20(){return 1+Math.floor(Math.random()*20);}
   function dice(a,b){return a+Math.floor(Math.random()*((b-a)+1));}
   function aliveAllies(){ return EncState.party.filter(p=>p.hp>0); }
 
-  function foeEnraged(){ return EncState.foe.hp>0 && EncState.foe.hp < EncState.foe.max*FOE.enrageAt; }
+  function foeEnraged(){ return EncState.foe.hp>0 && EncState.foe.hp < EncState.foe.max*EncState.foe.enrageAt; }
+  // status-effect helpers
+  function statusChips(statuses){
+    if(!statuses||statuses.length===0) return "";
+    const color={POISON:"var(--green)",STUN:"var(--amber)",BLEED:"var(--red)",BURN:"var(--red)"};
+    return ' <span class="status-chips">'+statuses.map(s=>`<span class="status-chip" style="border-color:${color[s.type]||"var(--text-dim)"};color:${color[s.type]||"var(--text-dim)"}">${s.type}${s.turns>1?" ×"+s.turns:""}</span>`).join("")+'</span>';
+  }
+  function tickStatuses(combatant){
+    if(!combatant.statuses) return;
+    combatant.statuses.forEach(s=>{
+      if(s.type==="POISON"){ const d=dice(3,6); combatant.hp=Math.max(0,combatant.hp-d); if(combatant.name) encLog(`> ${combatant.name} suffers ${d} poison.`,  "fatk"); }
+      if(s.type==="BLEED"){ const d=dice(2,5); combatant.hp=Math.max(0,combatant.hp-d); if(combatant.name) encLog(`> ${combatant.name} bleeds for ${d}.`,  "fatk"); }
+      if(s.type==="BURN"){ const d=dice(4,8); combatant.hp=Math.max(0,combatant.hp-d); if(combatant.name) encLog(`> ${combatant.name} burns for ${d}.`,  "fatk"); }
+      s.turns--;
+    });
+    combatant.statuses=combatant.statuses.filter(s=>s.turns>0);
+  }
+  function isStunned(c){ return c.statuses&&c.statuses.some(s=>s.type==="STUN"); }
+  function selectFoe(key){
+    const base=FOES.find(f=>f.key===key); if(!base) return;
+    EncState.foeKey=key;
+    EncState.foe={...base, hp:base.max, bossUsed:false, statuses:[]};
+    EncState.round=0; EncState.over=false; EncState.log=[]; EncState.initiative=0;
+    encLog(">> foe swapped to "+base.name+". field reset.","sys");
+    saveStore(); encRefresh();
+    Audio.blip(440,0.06,0.1);
+  }
   function renderEncounter(){
     const f=EncState.foe;
     const fp=Math.max(0,Math.round(f.hp/f.max*100));
@@ -1604,31 +1715,38 @@
     const partyHtml=EncState.party.map((p,i)=>{
       const pct=Math.max(0,Math.round(p.hp/p.max*100));
       const dead=p.hp<=0;
+      const stunned=isStunned(p);
       const active=i===EncState.initiative && !EncState.over && !dead;
-      const abBtn = p.ability && !p.abUsed && !dead && !EncState.over
+      const abBtn = p.ability && !p.abUsed && !dead && !EncState.over && !stunned
         ? `<button class="enc-btn ability" data-ab="${i}" style="padding:4px 10px;font-size:12px">${p.abLabel}</button>` : "";
-      return `<div class="enc-field ally${active?" active":""}${dead?" down":""}">
+      return `<div class="enc-field ally${active?" active":""}${dead?" down":""}${stunned?" stunned":""}">
         <div class="eh g">${p.name}<span class="sigil">// ${p.role}</span>${active?'<span class="sigil" style="color:var(--amber)">◀ TURN</span>':''}</div>
         <div class="hpbar"><i style="width:${pct}%"></i></div>
         <div class="hpt"><span>HP ${p.hp}/${p.max}</span><span>AC ${p.ac}</span></div>
-        <div class="cond">CONDITION: ${dead?"FALLEN":(pct<40?"WOUNDED":"READY")} ${p.abUsed?"// ability spent":""}</div>
+        <div class="cond">CONDITION: ${dead?"FALLEN":(stunned?"STUNNED":(pct<40?"WOUNDED":"READY"))} ${p.abUsed?"// ability spent":""}${statusChips(p.statuses)}</div>
         ${abBtn}
       </div>`;
     }).join("");
     const aliveCount=aliveAllies().length;
     const bossBtn = !f.bossUsed && f.hp>0 && !EncState.over
-      ? `<button class="enc-btn foe ability" id="encBoss" style="padding:5px 10px;font-size:12px">EMBER NOVA (all foes, once)</button>` : "";
+      ? `<button class="enc-btn foe ability" id="encBoss" style="padding:5px 10px;font-size:12px">${f.bossAbility} (once)</button>` : "";
+    const foeOpts=FOES.map(fo=>`<option value="${fo.key}"${fo.key===EncState.foeKey?" selected":""}>${fo.name}</option>`).join("");
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> ENCOUNTER_SIM <span class="g">::</span> LIVE</h2>
         <div class="sub">round ${EncState.round} // ${aliveCount} allies standing // threat ${f.name}${en?" [ENRAGED]":""}</div>
       </div>
+      <div class="foe-select-row">
+        <label class="foe-label">&gt; SELECT_FOE:</label>
+        <select id="foeSelect" class="foe-select">${foeOpts}</select>
+        <span class="foe-defeated">defeated: ${State.defeated.size||0}/${FOES.length}</span>
+      </div>
       <div class="encounter">
         <div class="enc-party">${partyHtml}</div>
         <div class="enc-field foe${en?" enraged":""}">
-          <div class="eh r">${f.name}<span class="sigil">// UNDEAD BOSS${en?" // ENRAGED":""}</span></div>
+          <div class="eh r">${f.name}<span class="sigil">// ${f.role}${en?" // ENRAGED":""}</span></div>
           <div class="hpbar"><i style="width:${fp}%"></i></div>
           <div class="hpt"><span>HP ${f.hp}/${f.max}</span><span>AC ${f.ac}</span></div>
-          <div class="cond">CONDITION: ${f.hp>0?(en?"ENRAGED (extra strike)":"CALM"):"DESTROYED"} ${f.bossUsed?"// nova spent":""}</div>
+          <div class="cond">CONDITION: ${f.hp>0?(en?"ENRAGED (extra strike)":"CALM"):"DESTROYED"} ${f.bossUsed?"// "+f.bossAbility.toLowerCase()+" spent":""}${statusChips(f.statuses)}</div>
           ${bossBtn}
         </div>
       </div>
@@ -1683,7 +1801,9 @@
     if(f.hp<=0){
       encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,"die");
       EncState.over=true; addCorruption(-8); Audio.glitch(0.2);
+      State.defeated.add(f.key||"foe");
       triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.`);
+      logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)`);
       encRefresh(); return true;
     }
     return false;
@@ -1726,7 +1846,9 @@
     if(f.hp<=0){
       encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,"die");
       EncState.over=true; addCorruption(-8); Audio.glitch(0.2);
+      State.defeated.add(f.key||"foe");
       triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.`);
+      logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)`);
     }
     encRefresh();
   }
@@ -1770,6 +1892,7 @@
       encLog(`>> THE PARTY HAS FALLEN. The Mire feasts.`,"die");
       EncState.over=true; addCorruption(10);
       triggerAlert("PARTY WIPED","all allies fallen. corruption +10%.");
+      logEvent("WIPE",`party wiped by ${EncState.foe.name} (corruption +10%)`);
       encRefresh();
       return;
     }
@@ -1780,33 +1903,62 @@
       encRefresh();
     }
   }
-  // boss ability: EMBER NOVA — hits ALL living allies for moderate damage (once)
+  // boss ability — varies per foe: EMBER_NOVA (aoe fire), ASH_DECREE (stun + dmg), BINDING_OATH (paralyze 2 + dot)
   function bossAbility(){
     if(EncState.over) return;
     const f=EncState.foe; if(f.hp<=0||f.bossUsed) return;
     Audio.ensure();
     f.bossUsed=true;
     const btn=$("#encBoss");
-    if(btn){ const r=btn.getBoundingClientRect(); popDice("NOVA!",true,false,r.left+40,r.top-6); }
-    encLog(`>> ${f.name} erupts — EMBER NOVA washes over the party!`,"crit");
-    Audio.thud(0.26); setTimeout(()=>Audio.glitch(0.15),150);
+    if(btn){ const r=btn.getBoundingClientRect(); popDice(f.bossAbility+"!",true,false,r.left+40,r.top-6); }
     let killed=0;
-    EncState.party.forEach(p=>{
-      if(p.hp>0){
-        const dmg=dice(12,20);
-        p.hp=Math.max(0,p.hp-dmg);
-        encLog(`   ${p.name} takes ${dmg} fire. (now ${p.hp}/${p.max})`,"fatk");
-        if(p.hp<=0) killed++;
+    switch(f.bossAbility){
+      case "EMBER_NOVA":{
+        encLog(`>> ${f.name} erupts — EMBER NOVA washes over the party!`,"crit");
+        Audio.thud(0.26); setTimeout(()=>Audio.glitch(0.15),150);
+        EncState.party.forEach(p=>{
+          if(p.hp>0){
+            const dmg=dice(12,20); p.hp=Math.max(0,p.hp-dmg);
+            encLog(`   ${p.name} takes ${dmg} fire. (now ${p.hp}/${p.max})`,"fatk");
+            if(p.hp<=0) killed++;
+          }
+        });
+        break;
       }
-    });
-    if(killed>0){
-      encLog(`>> ${killed} ally(ies) fell to the nova.`,"die");
-      Audio.glitch(0.25);
+      case "ASH DECREE":
+      case "ASH_DECREE":{
+        encLog(`>> ${f.name} pronounces the ASH DECREE — the party chokes!`,"crit");
+        Audio.thud(0.24); setTimeout(()=>Audio.glitch(0.12),150);
+        EncState.party.forEach(p=>{
+          if(p.hp>0){
+            const dmg=dice(8,14); p.hp=Math.max(0,p.hp-dmg);
+            p.statuses=(p.statuses||[]).concat([{type:"STUN",turns:1}]);
+            encLog(`   ${p.name} takes ${dmg} ash + STUN. (now ${p.hp}/${p.max})`,"fatk");
+            if(p.hp<=0) killed++;
+          }
+        });
+        break;
+      }
+      case "BINDING OATH":
+      case "BINDING_OATH":{
+        encLog(`>> ${f.name} speaks the BINDING OATH — two allies are bound!`,"crit");
+        Audio.thud(0.24);
+        const targets=aliveAllies().sort(()=>Math.random()-.5).slice(0,2);
+        targets.forEach(p=>{
+          const dmg=dice(10,16); p.hp=Math.max(0,p.hp-dmg);
+          p.statuses=(p.statuses||[]).concat([{type:"POISON",turns:3}]);
+          encLog(`   ${p.name} takes ${dmg} + POISON ×3. (now ${p.hp}/${p.max})`,"fatk");
+          if(p.hp<=0) killed++;
+        });
+        break;
+      }
     }
+    if(killed>0){ encLog(`>> ${killed} ally(ies) fell to ${f.bossAbility}.`,"die"); Audio.glitch(0.25); }
     if(aliveAllies().length===0){
       encLog(`>> THE PARTY HAS FALLEN. The Mire feasts.`,"die");
       EncState.over=true; addCorruption(10);
       triggerAlert("PARTY WIPED","all allies fallen. corruption +10%.");
+      logEvent("WIPE",`party wiped by ${f.bossAbility} (corruption +10%)`);
     }
     encRefresh();
   }
@@ -1825,19 +1977,41 @@
       // wrapped → new round
       EncState.round++;
       encLog("══ ROUND "+EncState.round+" ══","sys");
-      EncState.party.forEach(p=>p.abUsed=false); // abilities refresh each round
+      EncState.party.forEach(p=>{ p.abUsed=false; }); // abilities refresh each round
+      // tick status effects at the start of each new round (on allies)
+      EncState.party.forEach(p=>{ if(p.hp>0) tickStatuses(p); });
+      // check if anyone died from poison/bleed
+      EncState.party.forEach(p=>{ if(p.hp<=0 && !p._diedLogged){ p._diedLogged=true; encLog(`>> ${p.name} succumbed to afflictions.`,"die"); Audio.glitch(0.2); } });
+      if(aliveAllies().length===0){
+        encLog(`>> THE PARTY HAS FALLEN. The Mire feasts.`,"die");
+        EncState.over=true; addCorruption(10);
+        triggerAlert("PARTY WIPED","all allies fallen. corruption +10%.");
+        logEvent("WIPE",`party wiped by status effects (corruption +10%)`);
+        encRefresh(); return;
+      }
     }
     EncState.initiative=next;
     const p=EncState.party[next];
+    // tick foe statuses at start of its turn-ish (apply poison/bleed to foe)
+    if(EncState.foe.statuses && EncState.foe.statuses.length>0 && next<=EncState.initiative){ tickStatuses(EncState.foe); }
+    // stunned ally skips their attack
+    if(isStunned(p)){
+      encLog(`> ${p.name} is STUNNED and skips their turn.`,"miss");
+      Audio.blip(200,0.1,0.08);
+      // consume one stun turn
+      p.statuses=(p.statuses||[]).map(s=>s.type==="STUN"?{...s,turns:s.turns-1}:s).filter(s=>s.turns>0);
+      encRefresh(); return;
+    }
     // auto basic-attack for the current ally
     const ended=allyAttack(next);
     if(!ended) encRefresh();
   }
   function resetEnc(){
-    EncState.party.forEach((p,i)=>{ p.hp=PARTY[i].max; p.abUsed=false; });
-    EncState.foe.hp=FOE.max; EncState.foe.bossUsed=false;
+    EncState.party.forEach((p,i)=>{ p.hp=PARTY[i].max; p.abUsed=false; p.statuses=[]; p._diedLogged=false; });
+    const base=FOES.find(f=>f.key===EncState.foeKey)||FOES[0];
+    EncState.foe={...base, hp:base.max, bossUsed:false, statuses:[]};
     EncState.round=0; EncState.over=false; EncState.log=[]; EncState.initiative=0;
-    encLog(">> encounter sim re-initialized. party at full strength.","sys");
+    encLog(">> encounter sim re-initialized. party at full strength vs "+base.name+".","sys");
     encRefresh();
     Audio.blip(660,0.08,0.1);
     saveStore();
@@ -1847,6 +2021,7 @@
     const fr=$("#encFoe"); if(fr) fr.addEventListener("click",foeStrike);
     const rs=$("#encReset"); if(rs) rs.addEventListener("click",resetEnc);
     const boss=$("#encBoss"); if(boss) boss.addEventListener("click",bossAbility);
+    const fs=$("#foeSelect"); if(fs) fs.addEventListener("change",()=>selectFoe(fs.value));
     $$("[data-ab]").forEach(b=>b.addEventListener("click",()=>allyAbility(parseInt(b.dataset.ab,10))));
   }
 
@@ -2026,10 +2201,16 @@
       case "encounter": return [
         {t:"booting ENCOUNTER_SIM .............. [ OK ]",c:"ok"},
         {t:"spawning party :: 4 adventurers ..... [ OK ]",c:"ok"},
-        {t:"spawning foe   :: Kaelen Ashbringer . [ OK ]",c:"ok"},
+        {t:"spawning foe   :: "+EncState.foe.name+" . [ OK ]",c:"ok"},
         {t:"initiative ordered. abilities armed.",c:"ok"},
         {t:"threat level: BOSS — caution advised.",c:"warn"},
         {t:"sim ready. NEXT TURN advances initiative.",c:"ok"},
+      ];
+      case "campaign": return [
+        {t:"opening CAMPAIGN_LOG ............... [ OK ]",c:"ok"},
+        {t:"scanning event buffer .............. "+State.campaignLog.length+" entries",c:"ok"},
+        {t:"chronological order ............... [ OK ]",c:"ok"},
+        {t:"log ready.",c:"ok"},
       ];
       case "ritual": return [
         {t:"SUMMON_RITUAL_NET unlocked ......... [ OK ]",c:"ok"},
@@ -2048,7 +2229,33 @@
       default: return [{t:"loading ...",c:"ok"}];
     }
   }
-  const CRUMBS={archive:"NPC_ARCHIVE",units:"PLAYER_UNITS",lore:"WORLD_LORE",encounter:"ENCOUNTER_SIM",ritual:"RITUAL_NET",deadgod:"DEAD_GOD"};
+  const CRUMBS={archive:"NPC_ARCHIVE",units:"PLAYER_UNITS",lore:"WORLD_LORE",encounter:"ENCOUNTER_SIM",campaign:"CAMPAIGN_LOG",ritual:"RITUAL_NET",deadgod:"DEAD_GOD"};
+
+  // update the campaign-log menu tag count
+  function updateLogTag(){
+    const t=$("#logTag"); if(t) t.textContent=State.campaignLog.length;
+  }
+  function renderCampaignLog(){
+    const entries=State.campaignLog.slice().reverse(); // newest first
+    const eventColor={UNLOCK:"var(--amber)",PURGE:"var(--green)",RUMOR:"var(--cyan)",VICTORY:"var(--green)",WIPE:"var(--red)",SECRET:"var(--amber)"};
+    if(entries.length===0){
+      return `<div class="panel-head">
+          <h2><span class="g">&gt;</span> CAMPAIGN_LOG <span class="g">::</span> CHRONICLE</h2>
+          <div class="sub">no events recorded yet</div>
+        </div>
+        <div class="campaign-empty">// the chronicle is blank. the console has not yet witnessed anything worth remembering.<br>// extract rumors, cleanse records, or fight the boss to populate this log.</div>`;
+    }
+    const html=entries.map(e=>`<div class="clog-entry">
+        <div class="clog-time">${e.time}</div>
+        <div class="clog-event" style="color:${eventColor[e.event]||"var(--text)"}">${e.event}</div>
+        <div class="clog-detail">${e.detail}</div>
+      </div>`).join("");
+    return `<div class="panel-head">
+        <h2><span class="g">&gt;</span> CAMPAIGN_LOG <span class="g">::</span> CHRONICLE</h2>
+        <div class="sub">${State.campaignLog.length} events recorded // newest first</div>
+      </div>
+      <div class="campaign-log">${html}</div>`;
+  }
 
   function panelHtml(name){
     switch(name){
@@ -2056,9 +2263,10 @@
       case "units": return UNITS_HTML;
       case "lore": return renderLore();
       case "encounter": {
-        if(EncState.log.length===0) encLog(">> encounter sim loaded. party of 4 vs Kaelen Ashbringer.","sys");
+        if(EncState.log.length===0) encLog(">> encounter sim loaded. party of 4 vs "+EncState.foe.name+".","sys");
         return renderEncounter();
       }
+      case "campaign": return renderCampaignLog();
       case "ritual": return renderRitual();
       case "deadgod": return renderDeadGod();
       default: return "<div class='panel-head'><h2>UNKNOWN PANEL</h2></div>";
@@ -2209,6 +2417,10 @@
     try{ localStorage.removeItem(STORE_KEY); }catch(e){}
     State.corruption=27; State.soul=61; State.signal=88;
     State.unlocked=new Set(); State.cleansed=new Set(); State.rumors=new Set();
+    State.campaignLog=[]; State.defeated=new Set();
+    // remove the secret Zeroth Warden if it was spawned
+    const zwIdx=NPCS.findIndex(n=>n.id==="NPC-07-000");
+    if(zwIdx!==-1) NPCS.splice(zwIdx,1);
     selectedNpc=0;
     EncState.party.forEach((p,i)=>{ p.hp=PARTY[i].max; p.abUsed=false; });
     EncState.foe.hp=FOE.max;
@@ -2252,6 +2464,7 @@
     setTimeout(()=>Audio.beep(880,0.12,0.16),120);
     setTimeout(()=>Audio.beep(1100,0.18,0.16),240);
     addCorruption(3);
+    logEvent("UNLOCK","sealed commands opened (WARDEN) — corruption +3%");
     setTimeout(()=>ov.classList.remove("show"),2600);
   }
   // PURGE: cleanse one corrupted NPC (the currently selected one if corrupted, else the first corrupted)
@@ -2267,6 +2480,7 @@
     addCorruption(-6); // cleansing reduces corruption
     saveStore();
     triggerAlert("RECORD CLEANSED","purge successful. corruption −6%.<br>"+(target.cleanse?.name?.replace(/<[^>]+>/g,"")||target.id)+" restored.");
+    logEvent("PURGE",`cleansed ${target.id} → ${target.cleanse?.name?.replace(/<[^>]+>/g,"")||"?"} (corruption −6%)`);
     Audio.beep(330,0.1,0.14);
     setTimeout(()=>Audio.beep(440,0.1,0.14),100);
     setTimeout(()=>Audio.beep(550,0.12,0.14),200);
