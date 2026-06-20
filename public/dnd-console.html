@@ -699,6 +699,41 @@
   .clog-detail{color:var(--text);letter-spacing:.5px;line-height:1.4}
   .campaign-empty{font-family:'VT323',monospace;font-size:15px;color:var(--text-dim);line-height:1.7;padding:30px 14px;text-align:center;border:1px dashed #1a201a;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
 
+  /* ---------- DPS meter ---------- */
+  .dps-meter{display:flex;gap:10px;margin-top:10px;padding:8px 12px;border:1px solid #2a2017;background:rgba(6,8,6,.5);clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+  .dps-stat{display:flex;flex-direction:column;align-items:center;flex:1;font-family:'VT323',monospace}
+  .dps-lbl{font-size:11px;color:var(--text-dim);letter-spacing:2px}
+  .dps-val{font-size:20px;font-weight:bold;letter-spacing:1px}
+  .dps-val.dealt{color:var(--green);text-shadow:0 0 6px rgba(74,246,38,.5)}
+  .dps-val.taken{color:var(--red);text-shadow:0 0 6px rgba(255,36,36,.5)}
+
+  /* ---------- Bestiary ---------- */
+  .bestiary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+  .best-card{border:1px solid #2a2017;background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));padding:14px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+  .best-card.defeated{border-color:var(--green-deep);opacity:.85}
+  .best-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .best-name{font-family:'MedievalSharp',serif;font-size:17px;color:var(--text-dead);letter-spacing:1px}
+  .best-card.defeated .best-name{color:var(--green-dim)}
+  .best-status{font-size:11px;font-family:'VT323',monospace;padding:2px 8px;border:1px solid;letter-spacing:1px}
+  .best-status.alive{border-color:var(--red-dim);color:var(--red);text-shadow:0 0 4px rgba(255,36,36,.4)}
+  .best-status.def{border-color:var(--green-deep);color:var(--green);text-shadow:0 0 4px rgba(74,246,38,.4)}
+  .best-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:8px 0}
+  .best-stat{display:flex;justify-content:space-between;font-size:12px;font-family:'VT323',monospace;padding:2px 6px;border-bottom:1px dashed #1a201a}
+  .best-stat span{color:var(--text-dim);letter-spacing:1px}
+  .best-stat b{color:var(--text-dead)}
+  .best-role{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;margin-bottom:8px}
+  .best-lore{border-top:1px dashed #1a201a;padding-top:8px;margin-top:6px}
+  .best-lore h4{font-family:'MedievalSharp',serif;font-size:15px;color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.4);margin-bottom:4px}
+  .best-lore p{font-size:13px;line-height:1.5;color:var(--text)}
+  .best-lore-locked{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;border-top:1px dashed #1a201a;padding-top:8px;margin-top:6px;font-style:italic}
+
+  /* ---------- Campaign log filter chips ---------- */
+  .clog-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .clog-filter{background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:12px;padding:3px 9px;cursor:pointer;letter-spacing:1px;opacity:.5;transition:all .15s}
+  .clog-filter.active{opacity:1;text-shadow:0 0 6px currentColor;box-shadow:0 0 8px rgba(74,246,38,.15)}
+  .clog-filter:hover{opacity:.9}
+  .clog-filter.clear{border-color:var(--amber);color:var(--amber)}
+
   .enc-log{
     border:1px solid #2a2017;background:#040504;margin-top:14px;padding:12px 14px;
     font-family:'VT323',monospace;font-size:15px;line-height:1.5;color:var(--text);
@@ -921,7 +956,10 @@
     <div class="victory-glyph">✦</div>
     <div class="victory-head">THE MIRE REMEMBERS</div>
     <div class="victory-msg">all three bosses defeated.<br>the chronicle is complete. the Wardens log this cycle closed.<br><span style="color:var(--text-dim)">// the console will not forget. it never does.</span></div>
-    <button class="enc-btn" id="victoryClose" style="margin-top:14px">CONTINUE</button>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+      <button class="enc-btn" id="victoryClose">CONTINUE</button>
+      <button class="enc-btn warn" id="victoryNgPlus">NEW GAME+ <span id="ngPlusTier"></span></button>
+    </div>
   </div>
 </div>
 
@@ -957,6 +995,7 @@
           <button class="menu-item" data-panel="units" data-txt="> SCAN_PLAYER_UNITS"><span class="chev">&gt;</span>SCAN_PLAYER_UNITS<span class="tag">4/5</span></button>
           <button class="menu-item" data-panel="lore" data-txt="> ACCESS_WORLD_LORE"><span class="chev">&gt;</span>ACCESS_WORLD_LORE<span class="tag">7 rec</span></button>
           <button class="menu-item" data-panel="encounter" data-txt="> RUN_ENCOUNTER_SIM"><span class="chev">&gt;</span>RUN_ENCOUNTER_SIM<span class="tag">live</span></button>
+          <button class="menu-item" data-panel="bestiary" data-txt="> OPEN_BESTIARY"><span class="chev">&gt;</span>OPEN_BESTIARY<span class="tag" id="bestTag">0/3</span></button>
           <button class="menu-item" data-panel="campaign" data-txt="> READ_CAMPAIGN_LOG"><span class="chev">&gt;</span>READ_CAMPAIGN_LOG<span class="tag" id="logTag">0</span></button>
           <button class="menu-item locked" data-panel="ritual" data-txt="> SUMMON_RITUAL_NET"><span class="chev">&#9888;</span>SUMMON_RITUAL_NET<span class="tag">lock</span></button>
           <button class="menu-item locked" data-panel="deadgod" data-txt="> DECRYPT_DEAD_GOD"><span class="chev">&#9888;</span>DECRYPT_DEAD_GOD<span class="tag">lock</span></button>
@@ -1332,6 +1371,7 @@
         unlocked:[...State.unlocked], cleansed:[...State.cleansed],
         rumors:[...State.rumors], campaignLog:State.campaignLog,
         defeated:[...State.defeated], bossLore:[...State.bossLore],
+        ngPlus:State.ngPlus,
         selectedNpc:sn, audioMuted:Audio.isMuted(),
       };
       if(enc){
@@ -1354,7 +1394,10 @@
     campaignLog:_saved?.campaignLog || [],       // array of {t,time,event}
     defeated:   new Set(_saved?.defeated || []),  // foe keys defeated in encounter
     bossLore:   new Set(_saved?.bossLore || []),  // foe keys whose lore dropped
+    ngPlus:     _saved?.ngPlus || 0,              // New Game+ tier (0=normal, 1+=harder)
   };
+  // DPS tracking for the current encounter round
+  const DpsTrack={ roundDmgDealt:0, roundDmgTaken:0, totalDealt:0, totalTaken:0, rounds:0 };
   function logEvent(event, detail){
     const entry={ time:new Date().toLocaleTimeString("en-GB",{hour12:false}), event, detail:detail||"" };
     State.campaignLog.push(entry);
@@ -1717,6 +1760,7 @@
   // now that EncState + selectedNpc exist, apply initial corruption state
   applyCorruption();
   updateLogTag();
+  updateBestTag();
 
   function d20(){return 1+Math.floor(Math.random()*20);}
   function dice(a,b){return a+Math.floor(Math.random()*((b-a)+1));}
@@ -1790,6 +1834,16 @@
     setTimeout(()=>Audio.beep(660,0.3,0.16),750);
     setTimeout(()=>Audio.beep(880,0.5,0.18),1000);
   }
+  // per-boss victory fanfare — unique pitch set per foe
+  function playBossFanfare(fkey){
+    const fanfares={
+      kaelen:[523,659,784,1047],   // C-E-G-C triumphant
+      cinder:[440,554,659,880],    // A-C#-E-A darker
+      vasska:[392,466,587,784],    // G-Bb-D-G minor
+    };
+    const notes=fanfares[fkey]||fanfares.kaelen;
+    notes.forEach((n,i)=>setTimeout(()=>Audio.beep(n,0.2,0.15),i*120));
+  }
   function renderEncounter(){
     const f=EncState.foe;
     const fp=Math.max(0,Math.round(f.hp/f.max*100));
@@ -1834,12 +1888,18 @@
         </div>
       </div>
       <div class="enc-log" id="encLog">${logHtml}<span class="cursor"></span></div>
+      <div class="dps-meter">
+        <div class="dps-stat"><span class="dps-lbl">DEALT</span><span class="dps-val dealt">${DpsTrack.totalDealt}</span></div>
+        <div class="dps-stat"><span class="dps-lbl">TAKEN</span><span class="dps-val taken">${DpsTrack.totalTaken}</span></div>
+        <div class="dps-stat"><span class="dps-lbl">NET</span><span class="dps-val ${DpsTrack.totalDealt-DpsTrack.totalTaken>=0?"dealt":"taken"}">${DpsTrack.totalDealt-DpsTrack.totalTaken>=0?"+":""}${DpsTrack.totalDealt-DpsTrack.totalTaken}</span></div>
+        <div class="dps-stat"><span class="dps-lbl">ROUNDS</span><span class="dps-val">${EncState.round}</span></div>
+      </div>
       <div class="enc-ctrl">
         <button class="enc-btn" id="encRound" ${EncState.over?"disabled":""}>${EncState.over?"CONCLUDED":"NEXT TURN"}</button>
         <button class="enc-btn foe" id="encFoe" ${EncState.over?"disabled":""}>FOE STRIKE${en?" ×2":""}</button>
         <button class="enc-btn auto" id="encAuto" ${EncState.over?"disabled":""}>AUTO ×5</button>
         <button class="enc-btn warn" id="encReset">RESET</button>
-        <div class="enc-info">d20+atk vs AC // crit 20 // ${aliveCount} alive${en?" // ENRAGED":""}</div>
+        <div class="enc-info">d20+atk vs AC // crit 20 // ${aliveCount} alive${en?" // ENRAGED":""}${State.ngPlus>0?" // NG+"+State.ngPlus:""}</div>
       </div>`;
   }
 
@@ -1871,14 +1931,14 @@
     const btn=$(`[data-ab="${i}"]`)||$("#encRound");
     if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
     if(crit){
-      const dmg=dice(8,12)*2; f.hp=Math.max(0,f.hp-dmg);
+      const dmg=dice(8,12)*2; f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg;
       encLog(`> ${p.name} rolls ${roll} — CRITICAL! smites ${f.name} for ${dmg}.`,"crit");
       Audio.thud(0.18);
     }else if(miss){
       encLog(`> ${p.name} rolls ${roll} (${hit} vs AC ${f.ac}) — deflected.`,"miss");
       Audio.blip(180,0.08,0.08);
     }else{
-      const dmg=dice(6,11); f.hp=Math.max(0,f.hp-dmg);
+      const dmg=dice(6,11); f.hp=Math.max(0,f.hp-dmg); DpsTrack.roundDmgDealt+=dmg; DpsTrack.totalDealt+=dmg;
       encLog(`> ${p.name} rolls ${roll} (${hit} vs AC ${f.ac}) — hits for ${dmg}.`,"atk");
       Audio.thud(0.14);
     }
@@ -1887,6 +1947,8 @@
       EncState.over=true; addCorruption(-8); Audio.glitch(0.2);
       State.defeated.add(f.key||"foe");
       const dropped=dropBossLore(f.key);
+      playBossFanfare(f.key);
+      updateBestTag();
       triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.${dropped?"<br>lore fragment archived.":""}`);
       logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)${dropped?" + lore":""}`);
       checkVictoryLap();
@@ -1934,6 +1996,8 @@
       EncState.over=true; addCorruption(-8); Audio.glitch(0.2);
       State.defeated.add(f.key||"foe");
       const dropped=dropBossLore(f.key);
+      playBossFanfare(f.key);
+      updateBestTag();
       triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.${dropped?"<br>lore fragment archived.":""}`);
       logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)${dropped?" + lore":""}`);
       checkVictoryLap();
@@ -1961,14 +2025,14 @@
     const btn=$("#encFoe");
     if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
     if(crit){
-      const dmg=dice(10,16)*2; applyDamage(t,dmg);
+      const dmg=dice(10,16)*2; applyDamage(t,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg;
       encLog(`> ${f.name} rolls ${roll} — CRITICAL! cleaves ${t.name} for ${dmg}.`,"crit");
       Audio.thud(0.2);
     }else if(miss){
       encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${t.ac}) — parried by ${t.name}.`,"miss");
       Audio.blip(160,0.08,0.08);
     }else{
-      const dmg=dice(8,15); applyDamage(t,dmg);
+      const dmg=dice(8,15); applyDamage(t,dmg); DpsTrack.roundDmgTaken+=dmg; DpsTrack.totalTaken+=dmg;
       encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${t.ac}) — strikes ${t.name} for ${dmg}.`,"fatk");
       Audio.thud(0.16);
     }
@@ -2063,7 +2127,13 @@
     }
     if(next<=EncState.initiative){
       // wrapped → new round
+      // log DPS summary for the round just completed (if any damage was dealt)
+      if(DpsTrack.rounds>0 && (DpsTrack.roundDmgDealt>0||DpsTrack.roundDmgTaken>0)){
+        encLog(`── ROUND ${DpsTrack.rounds} SUMMARY: dealt ${DpsTrack.roundDmgDealt} // taken ${DpsTrack.roundDmgTaken} ──`,"sys");
+      }
+      DpsTrack.roundDmgDealt=0; DpsTrack.roundDmgTaken=0;
       EncState.round++;
+      DpsTrack.rounds=EncState.round;
       encLog("══ ROUND "+EncState.round+" ══","sys");
       EncState.party.forEach(p=>{ p.abUsed=false; }); // abilities refresh each round
       // tick status effects at the start of each new round (on allies)
@@ -2097,9 +2167,12 @@
   function resetEnc(){
     EncState.party.forEach((p,i)=>{ p.hp=PARTY[i].max; p.abUsed=false; p.statuses=[]; p._diedLogged=false; });
     const base=FOES.find(f=>f.key===EncState.foeKey)||FOES[0];
-    EncState.foe={...base, hp:base.max, bossUsed:false, statuses:[]};
+    // NG+ scales foe HP + atk + enrage threshold
+    const ngMul=1+State.ngPlus*0.5;
+    EncState.foe={...base, hp:Math.round(base.max*ngMul), max:Math.round(base.max*ngMul), atk:base.atk+State.ngPlus, enrageAt:Math.min(0.7,base.enrageAt+State.ngPlus*0.05), bossUsed:false, statuses:[]};
     EncState.round=0; EncState.over=false; EncState.log=[]; EncState.initiative=0;
-    encLog(">> encounter sim re-initialized. party at full strength vs "+base.name+".","sys");
+    DpsTrack.roundDmgDealt=0; DpsTrack.roundDmgTaken=0; DpsTrack.totalDealt=0; DpsTrack.totalTaken=0; DpsTrack.rounds=0;
+    encLog(">> encounter sim re-initialized. party at full strength vs "+EncState.foe.name+(State.ngPlus>0?" [NG+"+State.ngPlus+"]":"")+".","sys");
     encRefresh();
     Audio.blip(660,0.08,0.1);
     saveStore();
@@ -2333,6 +2406,13 @@
         {t:"chronological order ............... [ OK ]",c:"ok"},
         {t:"log ready.",c:"ok"},
       ];
+      case "bestiary": return [
+        {t:"opening BESTIARY ................... [ OK ]",c:"ok"},
+        {t:"scanning threat registry ........... "+FOES.length+" bosses",c:"ok"},
+        {t:"defeated: "+State.defeated.size+"/"+FOES.length,c:State.defeated.size>=FOES.length?"ok":"warn"},
+        {t:"lore recovered: "+State.bossLore.size+"/"+FOES.length,c:"ok"},
+        {t:"bestiary ready.",c:"ok"},
+      ];
       case "ritual": return [
         {t:"SUMMON_RITUAL_NET unlocked ......... [ OK ]",c:"ok"},
         {t:"weaving true-rune circle ........... 12/12",c:"ok"},
@@ -2350,22 +2430,63 @@
       default: return [{t:"loading ...",c:"ok"}];
     }
   }
-  const CRUMBS={archive:"NPC_ARCHIVE",units:"PLAYER_UNITS",lore:"WORLD_LORE",encounter:"ENCOUNTER_SIM",campaign:"CAMPAIGN_LOG",ritual:"RITUAL_NET",deadgod:"DEAD_GOD"};
+  const CRUMBS={archive:"NPC_ARCHIVE",units:"PLAYER_UNITS",lore:"WORLD_LORE",encounter:"ENCOUNTER_SIM",bestiary:"BESTIARY",campaign:"CAMPAIGN_LOG",ritual:"RITUAL_NET",deadgod:"DEAD_GOD"};
+
+  // update the bestiary menu tag count
+  function updateBestTag(){
+    const t=$("#bestTag"); if(t) t.textContent=State.defeated.size+"/"+FOES.length;
+  }
+  function renderBestiary(){
+    const cards=FOES.map(f=>{
+      const defeated=State.defeated.has(f.key);
+      const hasLore=State.bossLore.has(f.key);
+      const ngMul=1+State.ngPlus*0.5;
+      const hp=Math.round(f.max*ngMul);
+      const loreHtml=hasLore?`<div class="best-lore"><h4>${BOSS_LORE[f.key].title}</h4><p>${BOSS_LORE[f.key].body}</p></div>`:`<div class="best-lore-locked">// defeat ${f.name} to recover lore fragment</div>`;
+      return `<div class="best-card${defeated?" defeated":""}">
+        <div class="best-head">
+          <div class="best-name">${f.name}</div>
+          <div class="best-status ${defeated?"def":"alive"}">${defeated?"DEFEATED":"ACTIVE"}</div>
+        </div>
+        <div class="best-stats">
+          <div class="best-stat"><span>HP</span><b>${hp}</b>${State.ngPlus>0?" <small style='color:var(--amber)'>(NG+"+State.ngPlus+")</small>":""}</div>
+          <div class="best-stat"><span>AC</span><b>${f.ac}</b></div>
+          <div class="best-stat"><span>ATK</span><b>+${f.atk+State.ngPlus}</b></div>
+          <div class="best-stat"><span>ENRAGE</span><b>${Math.round(f.enrageAt*100+State.ngPlus*5)}%</b></div>
+          <div class="best-stat"><span>ABILITY</span><b>${f.bossAbility}</b></div>
+          <div class="best-stat"><span>LORE</span><b style="color:${hasLore?"var(--green)":"var(--text-dim)"}">${hasLore?"RECOVERED":"SEALED"}</b></div>
+        </div>
+        <div class="best-role">// ${f.role}</div>
+        ${loreHtml}
+      </div>`;
+    }).join("");
+    return `<div class="panel-head">
+        <h2><span class="g">&gt;</span> BESTIARY <span class="g">::</span> THREAT REGISTRY</h2>
+        <div class="sub">${State.defeated.size}/${FOES.length} defeated // ${State.bossLore.size}/${FOES.length} lore recovered${State.ngPlus>0?" // NG+ tier "+State.ngPlus:""}</div>
+      </div>
+      <div class="bestiary-grid">${cards}</div>`;
+  }
 
   // update the campaign-log menu tag count
   function updateLogTag(){
     const t=$("#logTag"); if(t) t.textContent=State.campaignLog.length;
   }
+  // campaign log filter state (which event types to show; empty = all)
+  let clogFilter=new Set();
   function renderCampaignLog(){
-    const entries=State.campaignLog.slice().reverse(); // newest first
-    const eventColor={UNLOCK:"var(--amber)",PURGE:"var(--green)",RUMOR:"var(--cyan)",VICTORY:"var(--green)",WIPE:"var(--red)",SECRET:"var(--amber)",LORE_DROP:"var(--amber)",VICTORY_LAP:"var(--amber)"};
-    if(entries.length===0){
+    const eventColor={UNLOCK:"var(--amber)",PURGE:"var(--green)",RUMOR:"var(--cyan)",VICTORY:"var(--green)",WIPE:"var(--red)",SECRET:"var(--amber)",LORE_DROP:"var(--amber)",VICTORY_LAP:"var(--amber)",NEW_GAME_PLUS:"var(--amber)",EXPORT:"var(--text-dim)"};
+    let entries=State.campaignLog.slice().reverse(); // newest first
+    if(clogFilter.size>0) entries=entries.filter(e=>clogFilter.has(e.event));
+    if(State.campaignLog.length===0){
       return `<div class="panel-head">
           <h2><span class="g">&gt;</span> CAMPAIGN_LOG <span class="g">::</span> CHRONICLE</h2>
           <div class="sub">no events recorded yet</div>
         </div>
         <div class="campaign-empty">// the chronicle is blank. the console has not yet witnessed anything worth remembering.<br>// extract rumors, cleanse records, or fight the boss to populate this log.</div>`;
     }
+    // build filter chips from all event types present
+    const allTypes=[...new Set(State.campaignLog.map(e=>e.event))];
+    const filterChips=allTypes.map(t=>`<button class="clog-filter${clogFilter.has(t)?" active":""}${clogFilter.size===0?" active":""}" data-filter="${t}" style="color:${eventColor[t]||"var(--text)"};border-color:${eventColor[t]||"var(--text-dim)"}">${t}</button>`).join("");
     const html=entries.map(e=>`<div class="clog-entry">
         <div class="clog-time">${e.time}</div>
         <div class="clog-event" style="color:${eventColor[e.event]||"var(--text)"}">${e.event}</div>
@@ -2373,13 +2494,14 @@
       </div>`).join("");
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> CAMPAIGN_LOG <span class="g">::</span> CHRONICLE</h2>
-        <div class="sub">${State.campaignLog.length} events recorded // newest first</div>
+        <div class="sub">${State.campaignLog.length} events recorded // showing ${entries.length}${clogFilter.size>0?" (filtered)":""}</div>
       </div>
+      <div class="clog-filters">${filterChips}<button class="clog-filter clear" data-filter="">${clogFilter.size>0?"CLEAR":"ALL"}</button></div>
       <div class="enc-ctrl" style="margin-top:0;margin-bottom:12px">
         <button class="enc-btn" id="clogExport">EXPORT CHRONICLE</button>
         <div class="enc-info">copy ${State.campaignLog.length} events to clipboard</div>
       </div>
-      <div class="campaign-log">${html}</div>`;
+      <div class="campaign-log">${html}${entries.length===0?"<div class='campaign-empty' style='margin:20px 0'>// no events match the active filter</div>":""}</div>`;
   }
   function exportChronicle(){
     const lines=State.campaignLog.map(e=>`[${e.time}] ${e.event.padEnd(10)} ${e.detail}`);
@@ -2406,6 +2528,7 @@
         if(EncState.log.length===0) encLog(">> encounter sim loaded. party of 4 vs "+EncState.foe.name+".","sys");
         return renderEncounter();
       }
+      case "bestiary": return renderBestiary();
       case "campaign": return renderCampaignLog();
       case "ritual": return renderRitual();
       case "deadgod": return renderDeadGod();
@@ -2468,6 +2591,14 @@
     if(name==="encounter"){ wireEncounter(); }
     if(name==="campaign"){
       const ex=$("#clogExport"); if(ex) ex.addEventListener("click",exportChronicle);
+      $$(".clog-filter").forEach(b=>b.addEventListener("click",()=>{
+        const f=b.dataset.filter;
+        if(f===""){ clogFilter=new Set(); }
+        else if(clogFilter.has(f)){ clogFilter.delete(f); }
+        else { clogFilter.add(f); }
+        content.innerHTML=renderCampaignLog();
+        wirePanel("campaign");
+      }));
     }
     if(name==="ritual"){
       const b=$("#ritActivate"); if(b) b.addEventListener("click",()=>{
@@ -2560,7 +2691,7 @@
     try{ localStorage.removeItem(STORE_KEY); }catch(e){}
     State.corruption=27; State.soul=61; State.signal=88;
     State.unlocked=new Set(); State.cleansed=new Set(); State.rumors=new Set();
-    State.campaignLog=[]; State.defeated=new Set(); State.bossLore=new Set();
+    State.campaignLog=[]; State.defeated=new Set(); State.bossLore=new Set(); State.ngPlus=0;
     victoryLapShown=false;
     // remove the secret Zeroth Warden if it was spawned
     const zwIdx=NPCS.findIndex(n=>n.id==="NPC-07-000");
@@ -2685,8 +2816,25 @@
   // victory-lap close button
   const vc=$("#victoryClose");
   if(vc) vc.addEventListener("click",()=>{ $("#victoryOverlay").classList.remove("show"); });
-  // restore victoryLapShown if all bosses already defeated on load
-  if(State.defeated.size>=FOES.length) victoryLapShown=true;
+  // New Game+ button — increments tier, resets defeated set, closes overlay
+  const vng=$("#victoryNgPlus");
+  const updateNgTier=()=>{ const t=$("#ngPlusTier"); if(t) t.textContent="(tier "+(State.ngPlus+1)+")"; };
+  updateNgTier();
+  if(vng) vng.addEventListener("click",()=>{
+    State.ngPlus++;
+    State.defeated=new Set();
+    victoryLapShown=false;
+    saveStore();
+    logEvent("NEW_GAME_PLUS","NG+ tier "+State.ngPlus+" engaged. bosses reset, scaled harder.");
+    $("#victoryOverlay").classList.remove("show");
+    triggerAlert("NEW GAME+ TIER "+State.ngPlus,"bosses scaled harder.<br>HP ×"+(1+State.ngPlus*0.5).toFixed(1)+", enrage +"+(State.ngPlus*5)+"%.");
+    Audio.beep(220,0.2,0.16); setTimeout(()=>Audio.beep(330,0.2,0.16),150); setTimeout(()=>Audio.beep(440,0.3,0.18),300);
+    updateNgTier();
+    // re-render encounter if open
+    if(currentPanel==="encounter") startPanel("encounter");
+  });
+  // restore victoryLapShown if all bosses already defeated on load (and not yet NG+)
+  if(State.defeated.size>=FOES.length && State.ngPlus===0) victoryLapShown=true;
 
   /* ---------- keyboard: number shortcuts + unlock code + audio toggle ---------- */
   document.addEventListener("keydown",e=>{
