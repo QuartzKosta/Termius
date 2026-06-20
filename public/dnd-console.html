@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ASHEN CODEX // CAMPAIGN CONSOLE v3.7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=MedievalSharp&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     ASHEN CODEX — Dark Fantasy magitech console
+     Pure HTML / CSS / Vanilla JS — single file
+     ============================================================ */
+
+  :root{
+    --bg:#050505;
+    --bg-deep:#020202;
+    --panel:#0a0d0a;
+    --panel-2:#0e120e;
+    --line:#1a201a;
+    --green:#4af626;
+    --green-dim:#2c8a17;
+    --green-deep:#163d0d;
+    --cyan:#3fd6c8;
+    --cyan-dim:#1f7d76;
+    --red:#ff2424;
+    --red-dim:#a01212;
+    --amber:#e8a13a;
+    --text:#b6c2b2;
+    --text-dim:#5d685c;
+    --text-dead:#8a9588;
+    --rust:#3a2a1c;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Share Tech Mono',monospace;
+    overflow:hidden;
+    position:relative;
+    -webkit-font-smoothing:antialiased;
+    cursor:default;
+  }
+
+  /* ---------- CRT / screen overlays ---------- */
+  .crt-scanlines,
+  .crt-vignette,
+  .crt-flicker,
+  .crt-noise{
+    position:fixed;inset:0;pointer-events:none;z-index:9000;
+  }
+  .crt-scanlines{
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.28) 3px,
+      rgba(0,0,0,.28) 4px
+    );
+    mix-blend-mode:multiply;
+    opacity:.55;
+  }
+  .crt-vignette{
+    background:
+      radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 85%, rgba(0,0,0,.95) 100%),
+      radial-gradient(ellipse at center, rgba(10,40,15,.05) 0%, rgba(0,0,0,0) 60%);
+    box-shadow:inset 0 0 200px 40px rgba(0,0,0,.9);
+  }
+  .crt-flicker{
+    background:rgba(74,246,38,.012);
+    animation:flicker 5s infinite steps(60);
+  }
+  .crt-noise{
+    opacity:.04;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.5  0 0 0 0 0.25  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    animation:noiseShift .4s steps(4) infinite;
+  }
+  @keyframes flicker{
+    0%,96%,100%{opacity:.012}
+    97%{opacity:.06}
+    97.5%{opacity:.005}
+    98%{opacity:.04}
+    98.5%{opacity:.01}
+  }
+  @keyframes noiseShift{
+    0%{transform:translate(0,0)}25%{transform:translate(-3px,2px)}
+    50%{transform:translate(2px,-2px)}75%{transform:translate(-2px,-1px)}
+    100%{transform:translate(3px,1px)}
+  }
+
+  /* ---------- Boot overlay ---------- */
+  .boot{
+    position:fixed;inset:0;z-index:9500;background:#000;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transition:opacity .8s ease;
+  }
+  .boot.gone{opacity:0;pointer-events:none}
+  .boot-sweep{
+    position:absolute;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,transparent,rgba(74,246,38,.0),rgba(74,246,38,.9),#fff,rgba(74,246,38,.9),transparent);
+    box-shadow:0 0 24px 6px rgba(74,246,38,.7),0 0 60px 14px rgba(74,246,38,.35);
+    top:-4px;animation:sweepDown 1.6s cubic-bezier(.7,.05,.3,1) forwards;
+  }
+  @keyframes sweepDown{
+    0%{top:-4px;opacity:0}
+    8%{opacity:1}
+    90%{opacity:1}
+    100%{top:100%;opacity:0}
+  }
+  .boot-flash{
+    position:absolute;inset:0;background:#fff;opacity:0;
+    animation:bflash 1.6s ease-out forwards;
+  }
+  @keyframes bflash{
+    0%{opacity:0}4%{opacity:.9}8%{opacity:.05}12%{opacity:.5}16%{opacity:0}100%{opacity:0}
+  }
+  .boot-log{
+    font-family:'VT323',monospace;color:var(--green);
+    font-size:18px;line-height:1.4;text-shadow:0 0 6px rgba(74,246,38,.6);
+    max-width:640px;width:90%;min-height:220px;
+    opacity:0;animation:bootLogIn .2s .55s forwards;
+  }
+  @keyframes bootLogIn{to{opacity:1}}
+  .boot-log .ln{white-space:pre-wrap}
+  .boot-log .ok{color:var(--green)}
+  .boot-log .warn{color:var(--amber)}
+  .boot-log .err{color:var(--red)}
+  .boot-bar{
+    margin-top:14px;width:60%;height:8px;border:1px solid var(--green-dim);
+    background:#06120a;position:relative;opacity:0;animation:bootLogIn .2s .6s forwards;
+  }
+  .boot-bar::after{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:0%;
+    background:repeating-linear-gradient(45deg,var(--green) 0 6px,#0c2a08 6px 12px);
+    animation:bootFill 2.6s .7s forwards;
+  }
+  @keyframes bootFill{to{width:100%}}
+
+  /* ---------- Console frame (scratched metal / cracked glass) ---------- */
+  .stage{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    padding:14px;opacity:0;transition:opacity 1s .2s ease;
+    z-index:10;
+  }
+  .stage.live{opacity:1}
+  .console{
+    width:100%;max-width:1280px;height:100%;max-height:920px;
+    display:flex;flex-direction:column;
+    background:
+      linear-gradient(180deg,rgba(20,18,14,.6),rgba(8,8,8,.9)),
+      var(--panel);
+    border:1px solid #241a12;
+    border-radius:6px;
+    box-shadow:
+      0 0 0 1px #000,
+      0 0 0 2px #2a2018,
+      0 0 0 3px #0a0806,
+      inset 0 0 0 1px rgba(120,90,50,.15),
+      inset 0 0 60px rgba(0,0,0,.9),
+      0 30px 80px rgba(0,0,0,.9),
+      0 0 90px rgba(74,246,38,.05);
+    position:relative;
+    overflow:hidden;
+  }
+  /* scratches / dust texture */
+  .console::before{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.5;
+    background:
+      repeating-linear-gradient(117deg, rgba(255,255,255,.012) 0 1px, transparent 1px 7px),
+      repeating-linear-gradient(63deg, rgba(255,255,255,.008) 0 1px, transparent 1px 11px),
+      radial-gradient(circle at 18% 12%, rgba(180,120,60,.05), transparent 30%),
+      radial-gradient(circle at 88% 88%, rgba(90,40,20,.07), transparent 35%);
+  }
+  /* cracked glass hint */
+  .console::after{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:2;opacity:.18;
+    background:
+      linear-gradient(135deg,transparent 49.6%,rgba(180,200,170,.5) 49.8%,transparent 50.2%),
+      linear-gradient(60deg,transparent 69.4%,rgba(180,200,170,.35) 69.5%,transparent 69.8%);
+    background-size:340px 340px,260px 260px;
+    background-position:20% 80%,70% 20%;
+    background-repeat:no-repeat;
+    mix-blend-mode:screen;
+  }
+
+  /* ---------- Title bar ---------- */
+  .titlebar{
+    display:flex;align-items:center;gap:14px;
+    padding:8px 14px;
+    background:linear-gradient(180deg,#161310,#0a0807);
+    border-bottom:1px solid #2a2017;
+    border-radius:6px 6px 0 0;
+    position:relative;z-index:3;
+    flex-shrink:0;
+  }
+  .tb-leds{display:flex;gap:6px}
+  .led{width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 2px #000}
+  .led.r{background:var(--red);box-shadow:0 0 6px var(--red),inset 0 0 2px #000}
+  .led.a{background:var(--amber);box-shadow:0 0 6px var(--amber),inset 0 0 2px #000}
+  .led.g{background:var(--green);box-shadow:0 0 6px var(--green),inset 0 0 2px #000;animation:ledBlink 2.2s infinite}
+  @keyframes ledBlink{0%,90%,100%{opacity:1}93%{opacity:.2}96%{opacity:1}}
+  .tb-title{
+    font-family:'MedievalSharp',serif;font-size:16px;letter-spacing:2px;
+    color:var(--text-dead);text-shadow:0 0 6px rgba(74,246,38,.25);
+    flex:1;text-align:center;
+  }
+  .tb-title b{color:var(--green);text-shadow:0 0 8px rgba(74,246,38,.7)}
+  .tb-meta{font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px}
+  .tb-meta span{color:var(--green)}
+
+  /* ---------- Body layout ---------- */
+  .body{
+    flex:1;display:flex;min-height:0;position:relative;z-index:3;
+  }
+  .sidebar{
+    width:260px;flex-shrink:0;
+    border-right:1px solid #1c1610;
+    background:linear-gradient(180deg,rgba(10,12,10,.7),rgba(6,8,6,.7));
+    display:flex;flex-direction:column;
+    padding:14px 10px;
+  }
+  .side-head{
+    font-size:12px;color:var(--text-dim);letter-spacing:3px;
+    padding:4px 8px 10px;border-bottom:1px dashed #1a201a;margin-bottom:10px;
+  }
+  .menu{display:flex;flex-direction:column;gap:4px}
+  .menu-item{
+    position:relative;display:block;width:100%;text-align:left;
+    background:none;border:1px solid transparent;
+    color:var(--text);font-family:'Share Tech Mono',monospace;font-size:14px;
+    padding:9px 12px;cursor:pointer;letter-spacing:1px;
+    transition:background .15s,border-color .15s,color .15s;
+    clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%);
+  }
+  .menu-item .chev{color:var(--green-dim);margin-right:8px}
+  .menu-item .tag{float:right;font-size:11px;color:var(--text-dim);font-family:'VT323',monospace}
+  .menu-item:hover{
+    background:linear-gradient(90deg,rgba(74,246,38,.08),transparent);
+    border-color:rgba(74,246,38,.35);color:var(--green);
+    text-shadow:0 0 6px rgba(74,246,38,.6);
+    animation:glitchHover .5s steps(2) infinite;
+  }
+  .menu-item:hover .chev{color:var(--green)}
+  .menu-item.active{
+    background:linear-gradient(90deg,rgba(74,246,38,.14),transparent);
+    border-color:rgba(74,246,38,.5);color:var(--green);
+    text-shadow:0 0 8px rgba(74,246,38,.8);
+  }
+  .menu-item.active .chev{color:var(--green)}
+  .menu-item.locked{color:var(--red-dim)}
+  .menu-item.locked .chev{color:var(--red-dim)}
+  .menu-item.locked:hover{color:var(--red);border-color:rgba(255,36,36,.4);text-shadow:0 0 8px rgba(255,36,36,.6);background:linear-gradient(90deg,rgba(255,36,36,.08),transparent)}
+  .menu-item.deny{color:var(--red);border-color:rgba(255,36,36,.6);text-shadow:0 0 10px rgba(255,36,36,.8);background:linear-gradient(90deg,rgba(255,36,36,.18),transparent);animation:glitchHover .12s steps(2) 4}
+
+  @keyframes glitchHover{
+    0%{transform:translate(0,0)}
+    25%{transform:translate(1px,-1px)}
+    50%{transform:translate(-1px,1px)}
+    75%{transform:translate(1px,1px)}
+    100%{transform:translate(0,0)}
+  }
+  .menu-item:hover::before,.menu-item:hover::after{
+    content:attr(data-txt);position:absolute;left:12px;top:9px;
+    pointer-events:none;opacity:.7;mix-blend-mode:screen;
+  }
+  .menu-item:hover::before{color:#ff003c;transform:translate(-2px,0);animation:gl .6s steps(2) infinite}
+  .menu-item:hover::after{color:#00e5ff;transform:translate(2px,0);animation:gl .5s steps(2) infinite reverse}
+  @keyframes gl{0%{transform:translate(-2px,0)}50%{transform:translate(-1px,1px)}100%{transform:translate(-2px,-1px)}}
+
+  .side-foot{margin-top:auto;padding-top:12px;border-top:1px dashed #1a201a}
+  .meter{margin:6px 8px;font-size:12px;font-family:'VT323',monospace}
+  .meter .lbl{color:var(--text-dim);letter-spacing:1px;display:flex;justify-content:space-between}
+  .meter .lbl b{color:var(--green)}
+  .meter .bar{height:6px;background:#0c140c;border:1px solid #1a201a;margin-top:3px;overflow:hidden}
+  .meter .bar i{display:block;height:100%;background:repeating-linear-gradient(45deg,var(--green) 0 4px,#0c2a08 4px 8px)}
+
+  /* ---------- Main viewport ---------- */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+  .crumbs{
+    display:flex;align-items:center;gap:8px;
+    padding:6px 14px;border-bottom:1px solid #1a201a;
+    font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:2px;
+    background:rgba(6,8,6,.5);
+  }
+  .crumbs .sep{color:var(--green-dim)}
+  .crumbs b{color:var(--green)}
+  .crumbs .right{margin-left:auto;display:flex;gap:14px}
+  .crumbs .right span{color:var(--text-dim)}
+
+  .viewport{
+    flex:1;min-height:0;position:relative;overflow:hidden;
+    background:
+      radial-gradient(ellipse at 50% 0%,rgba(74,246,38,.04),transparent 60%),
+      linear-gradient(180deg,#070907,#040504);
+  }
+  /* loading screen */
+  .loader{
+    position:absolute;inset:0;padding:24px 28px;
+    font-family:'VT323',monospace;font-size:18px;line-height:1.5;
+    color:var(--green);text-shadow:0 0 6px rgba(74,246,38,.6);
+    display:flex;flex-direction:column;
+    background:#040504;
+  }
+  .loader .ln{white-space:pre-wrap;min-height:1.5em}
+  .loader .ln.ok::before{content:"[ OK ] ";color:var(--green)}
+  .loader .ln.warn::before{content:"[WARN] ";color:var(--amber)}
+  .loader .ln.err::before{content:"[FAIL] ";color:var(--red)}
+  .loader .ln.dim{color:var(--text-dim)}
+  .loader .cursor{display:inline-block;width:10px;height:18px;background:var(--green);vertical-align:-3px;animation:cur 1s steps(2) infinite;box-shadow:0 0 8px var(--green)}
+  @keyframes cur{50%{opacity:0}}
+  .loader .progress{margin-top:auto}
+  .loader .pbar{height:8px;border:1px solid var(--green-dim);background:#06120a;margin-top:6px;position:relative}
+  .loader .pbar::after{content:"";position:absolute;inset:0;width:0;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#0c2a08 6px 12px);transition:width .2s linear}
+
+  /* content */
+  .content{position:absolute;inset:0;padding:18px 22px;overflow-y:auto;opacity:0;transition:opacity .3s}
+  .content.show{opacity:1}
+  .content::-webkit-scrollbar{width:10px}
+  .content::-webkit-scrollbar-track{background:#0a0d0a}
+  .content::-webkit-scrollbar-thumb{background:linear-gradient(var(--green-dim),#0c2a08);border:1px solid #1a201a}
+
+  .panel-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;gap:14px;flex-wrap:wrap}
+  .panel-head h2{
+    font-family:'MedievalSharp',serif;font-size:26px;color:var(--text-dead);
+    letter-spacing:2px;text-shadow:0 0 10px rgba(74,246,38,.25);
+  }
+  .panel-head h2 .g{color:var(--green);text-shadow:0 0 12px rgba(74,246,38,.7)}
+  .panel-head .sub{font-size:13px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px}
+
+  /* ---------- NPC cards ---------- */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{
+    border:1px solid #2a2017;
+    background:
+      linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+    padding:16px;position:relative;
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+    box-shadow:inset 0 0 30px rgba(0,0,0,.7);
+  }
+  .card::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(74,246,38,.02) 0 1px,transparent 1px 4px);
+  }
+  .card.corrupt{border-color:#3a1414}
+  .card.corrupt::before{background:repeating-linear-gradient(0deg,rgba(255,36,36,.03) 0 1px,transparent 1px 4px)}
+
+  .card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .card-id{font-size:12px;color:var(--text-dim);letter-spacing:2px;font-family:'VT323',monospace}
+  .card-id b{color:var(--green)}
+  .card.corrupt .card-id b{color:var(--red)}
+  .card-status{font-size:12px;font-family:'VT323',monospace;letter-spacing:1px;padding:2px 8px;border:1px solid var(--green-dim);color:var(--green)}
+  .card.corrupt .card-status{border-color:var(--red-dim);color:var(--red);animation:statusBlink 1.4s steps(2) infinite}
+  @keyframes statusBlink{50%{opacity:.3}}
+
+  .card-body{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;align-items:stretch}
+  .card-info{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .npc-name{
+    font-family:'MedievalSharp',serif;font-size:22px;letter-spacing:1px;
+    color:var(--text-dead);text-shadow:0 0 8px rgba(74,246,38,.3);
+    line-height:1.15;
+  }
+  .npc-name .g{color:var(--green);text-shadow:0 0 10px rgba(74,246,38,.7)}
+  .npc-name.corrupt{
+    color:var(--red);text-shadow:0 0 8px rgba(255,36,36,.7);
+    animation:corruptGlitch 2.2s infinite steps(10);
+    position:relative;
+  }
+  @keyframes corruptGlitch{
+    0%,100%{transform:translate(0,0);filter:none}
+    4%{transform:translate(-2px,1px);filter:hue-rotate(20deg)}
+    8%{transform:translate(2px,-1px)}
+    12%{transform:translate(-1px,0)}
+    16%{transform:translate(0,0)}
+    60%{transform:translate(0,0)}
+    62%{transform:translate(1px,1px) skewX(3deg)}
+    64%{transform:translate(-1px,-1px)}
+  }
+  .npc-title{font-size:13px;color:var(--green-dim);font-family:'VT323',monospace;letter-spacing:1px}
+  .card.corrupt .npc-title{color:var(--red-dim)}
+
+  .stat-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+  .chip{font-size:12px;font-family:'VT323',monospace;padding:1px 7px;border:1px solid var(--green-deep);color:var(--green);letter-spacing:1px;background:rgba(74,246,38,.05)}
+  .card.corrupt .chip{border-color:#3a1414;color:var(--red-dim);background:rgba(255,36,36,.04)}
+
+  .desc{font-size:14px;line-height:1.55;color:var(--text);margin-top:4px;position:relative}
+  .desc.dim{color:var(--text-dim)}
+  .censor{display:inline-block;background:#000;border:1px solid #1a1a1a;height:.9em;vertical-align:-1px;margin:0 1px}
+  .desc-block{position:relative}
+  .desc-block .garble{color:var(--text-dim);letter-spacing:1px;word-break:break-all}
+
+  .attrs{margin-top:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:6px 12px;padding-top:8px;border-top:1px dashed #1a201a}
+  .attr{display:flex;justify-content:space-between;font-size:12px;font-family:'VT323',monospace;letter-spacing:1px}
+  .attr .k{color:var(--text-dim)}
+  .attr .v{color:var(--green)}
+  .card.corrupt .attr .v{color:var(--red-dim)}
+  .attr .v.garbled{color:var(--red);animation:garbFlick .3s steps(2) infinite}
+  @keyframes garbFlick{50%{opacity:.4}}
+
+  /* ---------- Hologram ---------- */
+  .holo{
+    position:relative;aspect-ratio:1/1;min-height:200px;
+    border:1px solid var(--green-deep);
+    background:
+      radial-gradient(circle at 50% 60%,rgba(74,246,38,.10),transparent 60%),
+      linear-gradient(180deg,#04140a,#020805);
+    overflow:hidden;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.8),inset 0 0 14px rgba(74,246,38,.15);
+  }
+  .card.corrupt .holo{border-color:#3a1414;background:radial-gradient(circle at 50% 50%,rgba(255,36,36,.10),transparent 60%),linear-gradient(180deg,#140404,#080202);box-shadow:inset 0 0 40px rgba(0,0,0,.8),inset 0 0 14px rgba(255,36,36,.18)}
+
+  /* corner brackets */
+  .holo .bracket{position:absolute;width:18px;height:18px;border:2px solid var(--green);box-shadow:0 0 8px rgba(74,246,38,.5)}
+  .card.corrupt .holo .bracket{border-color:var(--red);box-shadow:0 0 8px rgba(255,36,36,.5)}
+  .holo .bracket.tl{top:6px;left:6px;border-right:none;border-bottom:none}
+  .holo .bracket.tr{top:6px;right:6px;border-left:none;border-bottom:none}
+  .holo .bracket.bl{bottom:6px;left:6px;border-right:none;border-top:none}
+  .holo .bracket.br{bottom:6px;right:6px;border-left:none;border-top:none}
+
+  .holo .crosshair{position:absolute;inset:0;pointer-events:none;opacity:.35}
+  .holo .crosshair::before,.holo .crosshair::after{content:"";position:absolute;background:var(--green-dim)}
+  .holo .crosshair::before{left:50%;top:0;bottom:0;width:1px;transform:translateX(-.5px)}
+  .holo .crosshair::after{top:50%;left:0;right:0;height:1px;transform:translateY(-.5px)}
+  .card.corrupt .holo .crosshair::before,.card.corrupt .holo .crosshair::after{background:var(--red-dim)}
+
+  .holo .rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:.5}
+  .holo .rings .ring{position:absolute;border:1px solid var(--green-dim);border-radius:50%}
+  .ring.r1{width:78%;height:78%}
+  .ring.r2{width:58%;height:58%;border-style:dashed}
+  .ring.r3{width:38%;height:38%}
+
+  .holo-stage{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    perspective:700px;
+  }
+  .holo-subj{
+    width:62%;height:62%;display:flex;align-items:center;justify-content:center;
+    transform-style:preserve-3d;
+    animation:holoSpin 9s linear infinite, holoSway 5s ease-in-out infinite;
+    color:var(--cyan);
+    filter:drop-shadow(0 0 8px rgba(63,214,200,.6));
+  }
+  @keyframes holoSpin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+  @keyframes holoSway{0%,100%{translate:0 -2px}50%{translate:0 4px}}
+  .holo-subj svg{width:100%;height:100%;opacity:.85}
+
+  /* scan line moving over hologram */
+  .holo .scan{
+    position:absolute;left:0;right:0;height:14px;top:-14px;
+    background:linear-gradient(180deg,transparent,rgba(74,246,38,.0),rgba(74,246,38,.55),transparent);
+    box-shadow:0 0 14px rgba(74,246,38,.4);
+    animation:holoScan 3.4s linear infinite;
+  }
+  @keyframes holoScan{0%{top:-14px}100%{top:100%}}
+  .card.corrupt .holo .scan{background:linear-gradient(180deg,transparent,rgba(255,36,36,.5),transparent);box-shadow:0 0 14px rgba(255,36,36,.4);animation-duration:1.3s}
+
+  .holo .floor{position:absolute;bottom:8%;left:18%;right:18%;height:14px;background:radial-gradient(ellipse at center,rgba(74,246,38,.35),transparent 70%);filter:blur(2px)}
+  .card.corrupt .holo .floor{background:radial-gradient(ellipse at center,rgba(255,36,36,.35),transparent 70%)}
+
+  .holo .tag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:11px;font-family:'VT323',monospace;color:var(--green-dim);letter-spacing:2px}
+  .card.corrupt .holo .tag{color:var(--red-dim)}
+
+  /* corrupted hologram subject */
+  .holo-subj.err{
+    color:var(--red);
+    filter:drop-shadow(0 0 10px rgba(255,36,36,.7));
+    animation:errSpin 1.6s linear infinite, errJit .12s steps(2) infinite;
+  }
+  @keyframes errSpin{from{transform:rotateY(0) rotateZ(0)}to{transform:rotateY(360deg) rotateZ(8deg)}}
+  @keyframes errJit{0%{translate:0 0}50%{translate:2px -1px}100%{translate:-2px 1px}}
+  .holo-subj.err svg{opacity:.9}
+
+  .holo .static{position:absolute;inset:0;mix-blend-mode:screen;opacity:.18;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.2  0 0 0 0 0.2  0 0 0 0.8 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    animation:noiseShift .25s steps(3) infinite;
+  }
+
+  /* ---------- Status bar ---------- */
+  .statusbar{
+    display:flex;align-items:center;gap:18px;
+    padding:6px 14px;border-top:1px solid #2a2017;
+    background:linear-gradient(180deg,#0a0807,#161310);
+    font-size:12px;font-family:'VT323',monospace;letter-spacing:1px;
+    color:var(--text-dim);flex-shrink:0;position:relative;z-index:3;
+  }
+  .statusbar .s{display:flex;align-items:center;gap:6px}
+  .statusbar .s b{color:var(--green)}
+  .statusbar .s.r b{color:var(--red)}
+  .statusbar .s.a b{color:var(--amber)}
+  .statusbar .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:ledBlink 2s infinite}
+  .statusbar .sep{color:#2a2017}
+  .statusbar .right{margin-left:auto;display:flex;gap:18px}
+
+  /* ---------- Player units panel ---------- */
+  .units{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .unit{
+    border:1px solid #2a2017;background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+    padding:12px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  }
+  .unit.dead{border-color:#3a1414;opacity:.7}
+  .unit h3{font-family:'MedievalSharp',serif;font-size:18px;color:var(--text-dead);letter-spacing:1px}
+  .unit h3 .g{color:var(--green)}
+  .unit.dead h3{color:var(--red-dim)}
+  .unit .role{font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px;margin-bottom:8px}
+  .hp{height:8px;border:1px solid #1a201a;background:#0c0c0c;margin:4px 0;position:relative;overflow:hidden}
+  .hp i{display:block;height:100%;background:linear-gradient(90deg,var(--green-dim),var(--green))}
+  .unit.dead .hp i{background:linear-gradient(90deg,#3a0c0c,var(--red-dim))}
+  .unit .hp-txt{font-size:12px;font-family:'VT323',monospace;color:var(--green);display:flex;justify-content:space-between}
+  .unit.dead .hp-txt{color:var(--red-dim)}
+  .unit .urow{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);display:flex;justify-content:space-between;margin-top:3px}
+  .unit .urow b{color:var(--text-dead)}
+
+  /* ---------- Lore panel ---------- */
+  .lore{display:flex;flex-direction:column;gap:12px}
+  .entry{
+    border:1px solid #2a2017;background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+    padding:12px 14px;position:relative;
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  }
+  .entry.locked{border-color:#3a1414}
+  .entry h3{font-family:'MedievalSharp',serif;font-size:18px;color:var(--green);letter-spacing:1px;text-shadow:0 0 8px rgba(74,246,38,.4);margin-bottom:6px}
+  .entry.locked h3{color:var(--red);text-shadow:0 0 8px rgba(255,36,36,.5);animation:corruptGlitch 3s infinite steps(10)}
+  .entry p{font-size:14px;line-height:1.6;color:var(--text)}
+  .entry.locked p{color:var(--text-dim)}
+  .entry .meta{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;margin-top:6px;border-top:1px dashed #1a201a;padding-top:5px}
+
+  /* ---------- Footer / signature ---------- */
+  .signature{
+    position:fixed;left:50%;bottom:6px;transform:translateX(-50%);
+    font-size:11px;font-family:'VT323',monospace;color:#2a332a;letter-spacing:2px;
+    z-index:5;pointer-events:none;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:900px){
+    .body{flex-direction:column}
+    .sidebar{width:100%;border-right:none;border-bottom:1px solid #1c1610;flex-direction:row;flex-wrap:wrap;padding:8px}
+    .side-head{display:none}
+    .menu{flex-direction:row;flex-wrap:wrap;flex:1}
+    .menu-item{width:auto;clip-path:none;padding:6px 10px;font-size:12px}
+    .menu-item .tag{display:none}
+    .side-foot{display:none}
+    .cards{grid-template-columns:1fr}
+    .card-body{grid-template-columns:1fr 1fr}
+    .titlebar{flex-wrap:wrap}
+    .panel-head h2{font-size:20px}
+  }
+  @media (max-width:560px){
+    .card-body{grid-template-columns:1fr}
+    .holo{min-height:220px}
+    .crumbs .right{display:none}
+    .statusbar{flex-wrap:wrap;gap:10px;font-size:11px}
+    .statusbar .right{gap:10px}
+  }
+</style>
+</head>
+<body>
+
+<!-- screen overlays -->
+<div class="crt-scanlines"></div>
+<div class="crt-vignette"></div>
+<div class="crt-noise"></div>
+<div class="crt-flicker"></div>
+
+<!-- BOOT -->
+<div class="boot" id="boot">
+  <div class="boot-flash"></div>
+  <div class="boot-sweep"></div>
+  <div class="boot-log" id="bootLog"></div>
+  <div class="boot-bar"></div>
+</div>
+
+<!-- CONSOLE -->
+<div class="stage" id="stage">
+  <div class="console">
+
+    <!-- TITLEBAR -->
+    <div class="titlebar">
+      <div class="tb-leds">
+        <span class="led r"></span>
+        <span class="led a"></span>
+        <span class="led g"></span>
+      </div>
+      <div class="tb-title">A S H E N&nbsp;&nbsp;C O D E X &nbsp;//&nbsp; <b>CAMPAIGN CONSOLE</b> &nbsp;v3.7-pact</div>
+      <div class="tb-meta">SECT <span>07</span> // PACT <span>ACTIVE</span></div>
+    </div>
+
+    <!-- BODY -->
+    <div class="body">
+
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="side-head">// COMMAND_INDEX</div>
+        <nav class="menu" id="menu">
+          <button class="menu-item active" data-panel="archive" data-txt="> QUERY_NPC_ARCHIVE"><span class="chev">&gt;</span>QUERY_NPC_ARCHIVE<span class="tag">12 rec</span></button>
+          <button class="menu-item" data-panel="units" data-txt="> SCAN_PLAYER_UNITS"><span class="chev">&gt;</span>SCAN_PLAYER_UNITS<span class="tag">4/5</span></button>
+          <button class="menu-item" data-panel="lore" data-txt="> ACCESS_WORLD_LORE"><span class="chev">&gt;</span>ACCESS_WORLD_LORE<span class="tag">7 rec</span></button>
+          <button class="menu-item locked" data-panel="archive" data-txt="> SUMMON_RITUAL_NET"><span class="chev">&#9888;</span>SUMMON_RITUAL_NET<span class="tag">lock</span></button>
+          <button class="menu-item locked" data-panel="archive" data-txt="> DECRYPT_DEAD_GOD"><span class="chev">&#9888;</span>DECRYPT_DEAD_GOD<span class="tag">lock</span></button>
+        </nav>
+
+        <div class="side-foot">
+          <div class="meter">
+            <div class="lbl"><span>SOUL_RESERVE</span><b id="m1v">61%</b></div>
+            <div class="bar"><i id="m1" style="width:61%"></i></div>
+          </div>
+          <div class="meter">
+            <div class="lbl"><span>CORRUPTION</span><b id="m2v">27%</b></div>
+            <div class="bar"><i id="m2" style="width:27%;background:repeating-linear-gradient(45deg,var(--red) 0 4px,#2a0808 4px 8px)"></i></div>
+          </div>
+          <div class="meter">
+            <div class="lbl"><span>SIGNAL</span><b id="m3v">88%</b></div>
+            <div class="bar"><i id="m3" style="width:88%"></i></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main">
+        <div class="crumbs">
+          <span>ROOT</span><span class="sep">&gt;</span>
+          <span>SECT_07</span><span class="sep">&gt;</span>
+          <b id="crumbCur">NPC_ARCHIVE</b>
+          <div class="right">
+            <span>UPLINK: <b style="color:var(--green)">STABLE</b></span>
+            <span>LAT 41.2°N</span>
+            <span id="clock">--:--:--</span>
+          </div>
+        </div>
+
+        <div class="viewport" id="viewport">
+          <!-- loader -->
+          <div class="loader" id="loader">
+            <div class="ln" id="loaderOut"></div>
+            <div class="progress">
+              <div style="display:flex;justify-content:space-between"><span id="loaderTask">INITIALIZING</span><span id="loaderPct">0%</span></div>
+              <div class="pbar" id="loaderPbar"></div>
+            </div>
+          </div>
+
+          <!-- content panels -->
+          <div class="content" id="content"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- STATUSBAR -->
+    <div class="statusbar">
+      <div class="s"><span class="dot"></span> ONLINE</div>
+      <span class="sep">|</span>
+      <div class="s">MEM <b>63.4%</b></div>
+      <span class="sep">|</span>
+      <div class="s">PACT <b>3/7</b></div>
+      <span class="sep">|</span>
+      <div class="s r">BREACH <b>0.4</b></div>
+      <div class="right">
+        <div class="s a">WARN <b>2</b></div>
+        <span class="sep">|</span>
+        <div class="s">USER: <b>warden_07</b></div>
+        <span class="sep">|</span>
+        <div class="s" id="sbClock">--:--:--</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="signature">// ASHEN_CODEX — RECOVERED FRAGMENT — DO NOT TRUST THE LIGHT</div>
+
+<!-- ============ SVG TEMPLATES ============ -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- skull sigil (open npc) -->
+    <symbol id="i-skull" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".5"/>
+        <circle cx="60" cy="60" r="42" opacity=".35"/>
+        <path d="M60 20 C40 20 28 36 28 56 C28 66 32 73 38 79 L38 90 L48 90 L48 84 L56 84 L56 90 L64 90 L64 84 L72 84 L72 90 L82 90 L82 79 C88 73 92 66 92 56 C92 36 80 20 60 20 Z"/>
+        <ellipse cx="46" cy="55" rx="8" ry="10"/>
+        <ellipse cx="74" cy="55" rx="8" ry="10"/>
+        <circle cx="46" cy="55" r="2" fill="currentColor"/>
+        <circle cx="74" cy="55" r="2" fill="currentColor"/>
+        <path d="M60 62 L53 75 L67 75 Z"/>
+        <line x1="48" y1="84" x2="48" y2="90"/><line x1="56" y1="84" x2="56" y2="90"/>
+        <line x1="64" y1="84" x2="64" y2="90"/><line x1="72" y1="84" x2="72" y2="90"/>
+        <path d="M60 14 L60 8" opacity=".6"/><path d="M14 60 L8 60" opacity=".6"/>
+        <path d="M106 60 L112 60" opacity=".6"/><path d="M60 106 L60 112" opacity=".6"/>
+      </g>
+    </symbol>
+    <!-- error / question (corrupt) -->
+    <symbol id="i-err" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="60" cy="60" r="46" stroke-dasharray="6 6" opacity=".6"/>
+        <path d="M44 46 C44 30 76 30 76 48 C76 58 60 58 60 70"/>
+        <circle cx="60" cy="88" r="3" fill="currentColor"/>
+        <path d="M30 30 L24 24" opacity=".5"/><path d="M90 30 L96 24" opacity=".5"/>
+        <path d="M30 90 L24 96" opacity=".5"/><path d="M90 90 L96 96" opacity=".5"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+/* ============================================================
+   ASHEN CODEX — console logic
+   ============================================================ */
+(function(){
+  const $ = (s,p=document)=>p.querySelector(s);
+  const $$ = (s,p=document)=>[...p.querySelectorAll(s)];
+
+  /* ---------- BOOT SEQUENCE ---------- */
+  const bootLines = [
+    {t:"> ASHEN_CODEX BIOS v3.7-pact ...",c:"ok"},
+    {t:"> MOUNTING /dev/soul_reservoir ........ [ OK ]",c:"ok"},
+    {t:"> MOUNTING /dev/pact_archive .......... [ OK ]",c:"ok"},
+    {t:"> LOADING rune_table.bin .............. [ OK ]",c:"ok"},
+    {t:"> CHECKING corruption_seal ............ [ 0.4 ]",c:"warn"},
+    {t:"> DEAD_GOD fragments detected ......... 3 ENCOUNTERED",c:"warn"},
+    {t:"> ESTABLISHING uplink to WARDEN_NET ... [ OK ]",c:"ok"},
+    {t:"> HANDSHAKE with SECT_07 .............. [ OK ]",c:"ok"},
+    {t:"> DECRYPTING campaign manifest ........ [ OK ]",c:"ok"},
+    {t:"> WARNING: 2 archive entries CORRUPTED. seal integrity 73%.",c:"err"},
+    {t:"> RENDERING interface .................. done",c:"ok"},
+  ];
+  const bootLog = $("#bootLog");
+  let bi=0;
+  function bootStep(){
+    if(bi>=bootLines.length){
+      setTimeout(()=>{$("#boot").classList.add("gone");$("#stage").classList.add("live");startPanel("archive",true);},700);
+      return;
+    }
+    const l=bootLines[bi++];
+    const d=document.createElement("div");
+    d.className="ln "+l.c;
+    d.textContent=l.t;
+    bootLog.appendChild(d);
+    setTimeout(bootStep, 130+Math.random()*90);
+  }
+  setTimeout(bootStep,650);
+
+  /* ---------- CLOCK ---------- */
+  function tick(){
+    const d=new Date();
+    const s=d.toLocaleTimeString("en-GB",{hour12:false});
+    const c=$("#clock"); if(c)c.textContent=s;
+    const s2=$("#sbClock"); if(s2)s2.textContent=s;
+  }
+  setInterval(tick,1000); tick();
+
+  /* ---------- meters drift ---------- */
+  function drift(){
+    const m1=40+Math.floor(Math.random()*30);
+    const m2=20+Math.floor(Math.random()*15);
+    const m3=80+Math.floor(Math.random()*18);
+    $("#m1").style.width=m1+"%";$("#m1v").textContent=m1+"%";
+    $("#m2").style.width=m2+"%";$("#m2v").textContent=m2+"%";
+    $("#m3").style.width=m3+"%";$("#m3v").textContent=m3+"%";
+  }
+  setInterval(drift,2600);
+
+  /* ---------- DATA ---------- */
+  const GARBLE="█▓▒░▚▞▒▓█░▒▓";
+  function garble(n){let s="";for(let i=0;i<n;i++)s+=GARBLE[Math.floor(Math.random()*GARBLE.length)];return s;}
+  function garble2(n){return garble(n).split("").sort(()=>Math.random()-.5).join("");}
+
+  const ARCHIVE_HTML = `
+    <div class="panel-head">
+      <h2><span class="g">&gt;</span> NPC_ARCHIVE <span class="g">::</span> SECT_07</h2>
+      <div class="sub">12 records // 2 corrupted // seal 73%</div>
+    </div>
+    <div class="cards">
+
+      <!-- OPEN NPC -->
+      <div class="card">
+        <div class="card-top">
+          <div class="card-id">ID: <b>NPC-07-003</b> // CLASS: UNDEAD</div>
+          <div class="card-status">DECRYPTED</div>
+        </div>
+        <div class="card-body">
+          <div class="card-info">
+            <div class="npc-name">Kaelen <span class="g">Ashbringer</span></div>
+            <div class="npc-title">// the Fallen Paladin, Last of the Ember Vow</div>
+            <div class="stat-row">
+              <span class="chip">CR 9</span><span class="chip">UNDEAD</span>
+              <span class="chip">LAWFUL-EVIL</span><span class="chip">BOSS</span>
+            </div>
+            <p class="desc">Once a knight of the Ember Vow, Kaelen rode into the Ashen Mire to bury a dead god — and never returned as a man. His armor still smolders; his voice is a choir of dying candles. He guards the <span style="color:var(--green)">Seventh Seal</span> and bargains in memories, not gold.</p>
+            <div class="attrs">
+              <div class="attr"><span class="k">HP</span><span class="v">142 / 142</span></div>
+              <div class="attr"><span class="k">AC</span><span class="v">19 (plate)</span></div>
+              <div class="attr"><span class="k">STR</span><span class="v">18 (+4)</span></div>
+              <div class="attr"><span class="k">DEX</span><span class="v">11 (+0)</span></div>
+              <div class="attr"><span class="k">INT</span><span class="v">16 (+3)</span></div>
+              <div class="attr"><span class="k">WIS</span><span class="v">14 (+2)</span></div>
+            </div>
+          </div>
+          <div class="holo">
+            <div class="bracket tl"></div><div class="bracket tr"></div>
+            <div class="bracket bl"></div><div class="bracket br"></div>
+            <div class="crosshair"></div>
+            <div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+            <div class="holo-stage">
+              <div class="holo-subj"><svg><use href="#i-skull"/></svg></div>
+            </div>
+            <div class="scan"></div>
+            <div class="floor"></div>
+            <div class="tag">HOLO_RENDER :: STABLE</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CORRUPTED NPC -->
+      <div class="card corrupt">
+        <div class="card-top">
+          <div class="card-id">ID: <b>NPC-07-???</b> // CLASS: <span style="color:var(--red)">UNKNOWN</span></div>
+          <div class="card-status">CORRUPTED</div>
+        </div>
+        <div class="card-body">
+          <div class="card-info">
+            <div class="npc-name corrupt" id="corrName">[DATA CORRUPTED]</div>
+            <div class="npc-title">// designation unrecoverable</div>
+            <div class="stat-row">
+              <span class="chip">CR ??</span><span class="chip">???</span>
+              <span class="chip">UNKNOWN</span><span class="chip">THREAT</span>
+            </div>
+            <p class="desc desc-block">
+              <span class="garble" id="gar1"></span><br>
+              The <span class="censor" style="width:64px"></span> walked the <span class="censor" style="width:90px"></span> before the <span class="censor" style="width:48px"></span> fell. It speaks in <span class="censor" style="width:72px"></span> and trades in <span class="censor" style="width:54px"></span>. Do not <span class="censor" style="width:40px"></span> its name.<br>
+              <span class="garble" id="gar2"></span>
+            </p>
+            <div class="attrs">
+              <div class="attr"><span class="k">HP</span><span class="v garbled" id="g3"></span></div>
+              <div class="attr"><span class="k">AC</span><span class="v garbled" id="g4"></span></div>
+              <div class="attr"><span class="k">STR</span><span class="v garbled" id="g5"></span></div>
+              <div class="attr"><span class="k">DEX</span><span class="v garbled" id="g6"></span></div>
+              <div class="attr"><span class="k">INT</span><span class="v garbled" id="g7"></span></div>
+              <div class="attr"><span class="k">WIS</span><span class="v garbled" id="g8"></span></div>
+            </div>
+          </div>
+          <div class="holo">
+            <div class="bracket tl"></div><div class="bracket tr"></div>
+            <div class="bracket bl"></div><div class="bracket br"></div>
+            <div class="crosshair"></div>
+            <div class="rings"><div class="ring r1" style="border-color:var(--red-dim)"></div><div class="ring r2" style="border-color:var(--red-dim)"></div><div class="ring r3" style="border-color:var(--red-dim)"></div></div>
+            <div class="holo-stage">
+              <div class="holo-subj err"><svg><use href="#i-err"/></svg></div>
+            </div>
+            <div class="scan"></div>
+            <div class="static"></div>
+            <div class="floor"></div>
+            <div class="tag">HOLO_RENDER :: FAULT // 0x4E53</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  const UNITS_HTML = `
+    <div class="panel-head">
+      <h2><span class="g">&gt;</span> PLAYER_UNITS <span class="g">::</span> PARTY SCAN</h2>
+      <div class="sub">4 alive / 5 total // 1 marked KIA // pact integrity 71%</div>
+    </div>
+    <div class="units">
+      <div class="unit">
+        <h3>Sir <span class="g">Veylan</span> of Moor</h3>
+        <div class="role">// Paladin — Oath of the Ember Vow</div>
+        <div class="hp"><i style="width:82%"></i></div>
+        <div class="hp-txt"><span>HP 41/50</span><span>AC 18</span></div>
+        <div class="urow"><span>LEVEL</span><b>7</b></div>
+        <div class="urow"><span>CONDITION</span><b style="color:var(--green)">blessed</b></div>
+        <div class="urow"><span>LAST SEEN</span><b>SECT_07 / Mire</b></div>
+      </div>
+      <div class="unit">
+        <h3><span class="g">Mirewen</span> Blacktongue</h3>
+        <div class="role">// Warlock — Pact of the Drowned Choir</div>
+        <div class="hp"><i style="width:46%"></i></div>
+        <div class="hp-txt"><span>HP 22/48</span><span>AC 13</span></div>
+        <div class="urow"><span>LEVEL</span><b>7</b></div>
+        <div class="urow"><span>CONDITION</span><b style="color:var(--amber)">corroding</b></div>
+        <div class="urow"><span>LAST SEEN</span><b>SECT_07 / Mire</b></div>
+      </div>
+      <div class="unit">
+        <h3>Brother <span class="g">Aldric</span></h3>
+        <div class="role">// Cleric — Domain of Graves</div>
+        <div class="hp"><i style="width:68%"></i></div>
+        <div class="hp-txt"><span>HP 34/50</span><span>AC 16</span></div>
+        <div class="urow"><span>LEVEL</span><b>7</b></div>
+        <div class="urow"><span>CONDITION</span><b style="color:var(--green)">steadied</b></div>
+        <div class="urow"><span>LAST SEEN</span><b>SECT_07 / Mire</b></div>
+      </div>
+      <div class="unit">
+        <h3><span class="g">Thistle</span> Quickhand</h3>
+        <div class="role">// Rogue — Urchin, Mire-touched</div>
+        <div class="hp"><i style="width:90%"></i></div>
+        <div class="hp-txt"><span>HP 45/50</span><span>AC 15</span></div>
+        <div class="urow"><span>LEVEL</span><b>7</b></div>
+        <div class="urow"><span>CONDITION</span><b style="color:var(--green)">hidden</b></div>
+        <div class="urow"><span>LAST SEEN</span><b>SECT_07 / Ruins</b></div>
+      </div>
+      <div class="unit dead">
+        <h3>Rhys <span style="color:var(--red-dim)">Winterborn</span></h3>
+        <div class="role">// Ranger — KIA / SECT_06 / 3 cycles ago</div>
+        <div class="hp"><i style="width:0%"></i></div>
+        <div class="hp-txt"><span>HP 0/44</span><span>AC --</span></div>
+        <div class="urow"><span>LEVEL</span><b>7</b></div>
+        <div class="urow"><span>CONDITION</span><b style="color:var(--red)">KIA</b></div>
+        <div class="urow"><span>NOTE</span><b>body unrecovered</b></div>
+      </div>
+    </div>
+  `;
+
+  const LORE_HTML = `
+    <div class="panel-head">
+      <h2><span class="g">&gt;</span> WORLD_LORE <span class="g">::</span> VAULT</h2>
+      <div class="sub">7 fragments // 2 sealed // 1 heretical</div>
+    </div>
+    <div class="lore">
+      <div class="entry">
+        <h3>The Ashen Mire</h3>
+        <p>Where the dead god's body fell, the soil turned to glass and the rivers to ink. Travelers who linger too long begin to hum a song they cannot name — and then to forget their own.</p>
+        <div class="meta">FRAGMENT 01 / 07 // VERIFIED // source: Warden_07 field journal</div>
+      </div>
+      <div class="entry">
+        <h3>The Ember Vow</h3>
+        <p>An oath sworn upon a still-warm coal taken from a dying saint's mouth. To break it is to become a candle that burns others. Kaelen Ashbringer is its most famous — and last — keeper.</p>
+        <div class="meta">FRAGMENT 02 / 07 // VERIFIED // source: Codex of Embers, folio IV</div>
+      </div>
+      <div class="entry locked">
+        <h3 id="loreLock1">[ THE SEVENTH SEAL ]</h3>
+        <p>It is not a door. It is a <span class="censor" style="width:70px"></span>. Those who open it do not pass through — they <span class="censor" style="width:60px"></span>. The Warden is forbidden to render its true shape. <span class="garble" id="lg1"></span></p>
+        <div class="meta">FRAGMENT 03 / 07 // SEALED // request unlock from WARDEN_PRIME</div>
+      </div>
+      <div class="entry">
+        <h3>The Drowned Choir</h3>
+        <p>A pact-bargain struck at the bottom of a black lake. The patron sings in the voices of those it has swallowed. Mirewen hears three of them clearly. The fourth is learning her voice.</p>
+        <div class="meta">FRAGMENT 04 / 07 // VERIFIED // source: Mirewen's testimony, under ward</div>
+      </div>
+      <div class="entry locked">
+        <h3 id="loreLock2">[ DATA CORRUPTED ]</h3>
+        <p><span class="garble" id="lg2"></span> The <span class="censor" style="width:80px"></span> that walks without <span class="censor" style="width:50px"></span> cannot be <span class="censor" style="width:64px"></span>. To read further is to invite it. <span class="garble" id="lg3"></span></p>
+        <div class="meta">FRAGMENT 05 / 07 // CORRUPTED // 0x4E53</div>
+      </div>
+      <div class="entry">
+        <h3>The Warden Order</h3>
+        <p>Sworn to catalogue, never to intervene. We record the dying of the world in neat rows so that whatever comes after will know exactly how it ended. This console is one of seven. We are the last wardens still warm.</p>
+        <div class="meta">FRAGMENT 06 / 07 // VERIFIED // source: Order charter, article I</div>
+      </div>
+    </div>
+  `;
+
+  const PANELS={
+    archive:{html:ARCHIVE_HTML,logs:[
+      {t:"opening NPC_ARCHIVE :: SECT_07 ...",c:"ok"},
+      {t:"scanning record table ............... 12 entries",c:"ok"},
+      {t:"decrypting NPC-07-003 ............... [ OK ]",c:"ok"},
+      {t:"rendering holo-grid for NPC-07-003 .. [ OK ]",c:"ok"},
+      {t:"attempting NPC-07-??? ............... [ FAIL ]",c:"err"},
+      {t:"seal corruption 0.4 — partial render only.",c:"warn"},
+      {t:"archive ready.",c:"ok"},
+    ],crumb:"NPC_ARCHIVE"},
+    units:{html:UNITS_HTML,logs:[
+      {t:"init SCAN_PLAYER_UNITS ............. [ OK ]",c:"ok"},
+      {t:"pinging pact-beacons ............... 5 found",c:"ok"},
+      {t:"beacon #04 (Rhys) .................. SILENT",c:"err"},
+      {t:"marking Rhys Winterborn as KIA ..... done",c:"warn"},
+      {t:"compiling vitals ................... [ OK ]",c:"ok"},
+      {t:"scan complete.",c:"ok"},
+    ],crumb:"PLAYER_UNITS"},
+    lore:{html:LORE_HTML,logs:[
+      {t:"opening WORLD_LORE vault ........... [ OK ]",c:"ok"},
+      {t:"verifying fragment integrity ....... 5/7 clean",c:"ok"},
+      {t:"fragment 03 SEALED — bypass denied .",c:"warn"},
+      {t:"fragment 05 CORRUPTED — 0x4E53 .....",c:"err"},
+      {t:"vault ready.",c:"ok"},
+    ],crumb:"WORLD_LORE"},
+  };
+
+  /* ---------- typewriter loader ---------- */
+  const loader=$("#loader"),content=$("#content");
+  let busy=false;
+  function startPanel(name,instant){
+    if(busy && !instant) return;
+    const p=PANELS[name]; if(!p) return;
+    busy=true;
+    content.classList.remove("show");
+    loader.style.display="flex";
+    const out=$("#loaderOut"); out.innerHTML="";
+    const task=$("#loaderTask"),pct=$("#loaderPct"),pbar=$("#loaderPbar");
+    task.textContent="INITIALIZING";pct.textContent="0%";pbar.style.setProperty("--w","0%");
+    // animate inner bar
+    pbar.querySelector?null:null;
+    let li=0,total=p.logs.length;
+    function next(){
+      if(li<total){
+        const l=p.logs[li++];
+        const d=document.createElement("div");d.className="ln "+l.c;d.textContent=l.t;
+        out.appendChild(d);
+        const prog=Math.round(li/total*100);
+        pct.textContent=prog+"%";
+        task.textContent=l.t.replace(/^\>\s/,"").split(" ")[0]+"...";
+        // move the bar via ::after width — emulate by setting a CSS var on element
+        const after=document.createElement("style");
+        // simpler: set width on a child
+        let fill=pbar.querySelector("i");
+        if(!fill){fill=document.createElement("i");fill.style.cssText="position:absolute;inset:0;width:0;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#0c2a08 6px 12px);transition:width .2s";pbar.appendChild(fill);}
+        fill.style.width=prog+"%";
+        out.parentElement && (out.parentElement.scrollTop=out.parentElement.scrollHeight);
+        setTimeout(next,150+Math.random()*120);
+      }else{
+        setTimeout(reveal,260);
+      }
+    }
+    function reveal(){
+      content.innerHTML=p.html;
+      content.scrollTop=0;
+      loader.style.display="none";
+      content.classList.add("show");
+      $("#crumbCur").textContent=p.crumb;
+      busy=false;
+      initPanelExtras(name);
+    }
+    next();
+  }
+
+  /* ---------- per-panel extras (glitchy garble refresh) ---------- */
+  function initPanelExtras(name){
+    if(name==="archive"){
+      const corr=$("#corrName");
+      const corruptNames=["[DATA CORRUPTED]","[D_T_ C_RRUPT_D]","[??TA ??RRUPT?D]","[DATA CØRRUPTED]","[_D_A_T_A_ C_O_R_R_U_P_T_E_D]","[ D A T A   C O R R U P T ]"];
+      let ci=0;
+      corr._iv=setInterval(()=>{
+        if(!document.body.contains(corr)){clearInterval(corr._iv);return;}
+        corr.textContent=corruptNames[ci%corruptNames.length];ci++;
+      },220);
+      refreshGarble(["gar1","gar2"],18);
+      refreshGarble(["g3","g4","g5","g6","g7","g8"],6);
+    }
+    if(name==="lore"){
+      refreshGarble(["lg1","lg3"],16);
+      refreshGarble(["lg2"],24);
+      const ll1=$("#loreLock1");
+      const v=["[ THE SEVENTH SEAL ]","[ TH_ S_V_NTH S_AL ]","[ THE 7TH S3AL ]","[ THE SEVENTH SEAL ]"];
+      let i=0;if(ll1)ll1._iv=setInterval(()=>{if(!document.body.contains(ll1)){clearInterval(ll1._iv);return;}ll1.textContent=v[i++%v.length];},300);
+    }
+  }
+  function refreshGarble(ids,len){
+    ids.forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el)return;
+      el._iv=setInterval(()=>{
+        if(!document.body.contains(el)){clearInterval(el._iv);return;}
+        el.textContent=garble2(len);
+      },180);
+    });
+  }
+
+  /* ---------- menu wiring ---------- */
+  $$("#menu .menu-item").forEach(b=>{
+    b.addEventListener("click",()=>{
+      if(b.classList.contains("locked")){
+        // keep previous active item active; just signal denial
+        $$("#menu .menu-item").forEach(x=>x.classList.remove("deny"));
+        b.classList.add("deny");
+        setTimeout(()=>b.classList.remove("deny"),500);
+        // locked: shake + red flash
+        b.animate([{transform:"translateX(0)"},{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"translateX(0)"}],{duration:220});
+        flashRed();
+        return;
+      }
+      $$("#menu .menu-item").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      startPanel(b.dataset.panel);
+    });
+  });
+
+  function flashRed(){
+    const f=document.createElement("div");
+    f.style.cssText="position:fixed;inset:0;background:radial-gradient(circle,rgba(255,36,36,.0),rgba(255,36,36,.18));z-index:9400;pointer-events:none;animation:flicker .4s forwards";
+    document.body.appendChild(f);
+    setTimeout(()=>f.remove(),450);
+  }
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener("keydown",e=>{
+    if(e.key==="1")clickMenu(0);
+    if(e.key==="2")clickMenu(1);
+    if(e.key==="3")clickMenu(2);
+  });
+  function clickMenu(i){const b=$$("#menu .menu-item")[i];if(b)b.click();}
+
+})();
+</script>
+</body>
+</html>
