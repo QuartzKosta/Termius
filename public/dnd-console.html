@@ -639,6 +639,25 @@
     border:1px solid var(--amber);color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.5);
   }
   .enc-btn.ability:hover:not(:disabled){background:linear-gradient(180deg,rgba(232,161,58,.3),rgba(232,161,58,.1));box-shadow:0 0 14px rgba(232,161,58,.5)}
+  .enc-field.foe.enraged{border-color:var(--red);box-shadow:0 0 18px rgba(255,36,36,.4),inset 0 0 14px rgba(255,36,36,.12);animation:foeEnrage 1s ease-in-out infinite}
+  @keyframes foeEnrage{0%,100%{box-shadow:0 0 18px rgba(255,36,36,.4),inset 0 0 14px rgba(255,36,36,.12)}50%{box-shadow:0 0 28px rgba(255,36,36,.7),inset 0 0 20px rgba(255,36,36,.2)}}
+  .enc-btn.foe.ability{border-color:var(--red);color:var(--red);background:linear-gradient(180deg,rgba(255,36,36,.12),rgba(255,36,36,.03));text-shadow:0 0 6px rgba(255,36,36,.5)}
+  .enc-btn.foe.ability:hover:not(:disabled){background:linear-gradient(180deg,rgba(255,36,36,.28),rgba(255,36,36,.08));box-shadow:0 0 14px rgba(255,36,36,.5)}
+
+  /* rumor button + collected state */
+  .rumor-btn{
+    margin-top:8px;background:linear-gradient(180deg,rgba(63,214,200,.12),rgba(63,214,200,.03));
+    border:1px solid var(--cyan-dim);color:var(--cyan);font-family:'VT323',monospace;
+    font-size:13px;letter-spacing:2px;padding:6px 12px;cursor:pointer;
+    text-shadow:0 0 6px rgba(63,214,200,.5);transition:all .15s;
+    clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));
+  }
+  .rumor-btn:hover{background:linear-gradient(180deg,rgba(63,214,200,.25),rgba(63,214,200,.08));box-shadow:0 0 14px rgba(63,214,200,.4);text-shadow:0 0 10px rgba(63,214,200,.9)}
+  .rumor-collected{margin-top:8px;font-size:12px;font-family:'VT323',monospace;color:var(--cyan-dim);letter-spacing:1px;opacity:.7}
+  .lore-sep{font-size:12px;font-family:'VT323',monospace;color:var(--cyan-dim);letter-spacing:2px;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px dashed #1a201a}
+  .entry.rumor{border-color:var(--cyan-dim)}
+  .entry.rumor h3{color:var(--cyan);text-shadow:0 0 8px rgba(63,214,200,.4)}
+  .entry.rumor .meta{color:var(--cyan-dim)}
 
   .enc-log{
     border:1px solid #2a2017;background:#040504;margin-top:14px;padding:12px 14px;
@@ -1140,9 +1159,43 @@
       g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.4);
       o.connect(g);g.connect(master);o.start();o.stop(ctx.currentTime+0.45);
     }
+    // eerie whisper: filtered reversed-noise burst with highpass sweep
+    function whisper(vol=0.14){
+      if(!ctx||muted) return;
+      const dur=1.4;
+      const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++){ const t=i/d.length; d[i]=(Math.random()*2-1)*(1-t)*0.6; }
+      const src=ctx.createBufferSource(); src.buffer=buf;
+      // play reversed
+      src.playbackRate.value=0.7;
+      const f=ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=1200; f.Q.value=4;
+      f.frequency.setValueAtTime(2400,ctx.currentTime);
+      f.frequency.exponentialRampToValueAtTime(400,ctx.currentTime+dur);
+      const g=ctx.createGain();
+      g.gain.setValueAtTime(0,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(vol,ctx.currentTime+0.3);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+      src.connect(f); f.connect(g); g.connect(master); src.start(); src.stop(ctx.currentTime+dur+0.05);
+    }
+    // power-down: ramp master to silence (used on tab hide)
+    let prevVol=0.35;
+    function setActive(active){
+      if(!ctx) return;
+      if(active){
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.setValueAtTime(master.gain.value,ctx.currentTime);
+        master.gain.linearRampToValueAtTime(prevVol,ctx.currentTime+0.6);
+      }else{
+        prevVol=master.gain.value>0.01?master.gain.value:prevVol;
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.setValueAtTime(master.gain.value,ctx.currentTime);
+        master.gain.linearRampToValueAtTime(0.0,ctx.currentTime+0.3);
+      }
+    }
     return {
       init, setMuted, isMuted(){return muted;}, isStarted(){return started;},
-      blip, beep, glitch, thud,
+      blip, beep, glitch, thud, whisper, setActive,
       ensure(){ if(!started) init(); if(ctx&&ctx.state==="suspended") ctx.resume(); }
     };
   })();
@@ -1204,6 +1257,7 @@
       const payload={
         corruption:State.corruption, soul:State.soul, signal:State.signal,
         unlocked:[...State.unlocked], cleansed:[...State.cleansed],
+        rumors:[...State.rumors],
         selectedNpc:sn, audioMuted:Audio.isMuted(),
       };
       if(enc){
@@ -1221,6 +1275,7 @@
     signal:     _saved?.signal ?? 88,
     unlocked:   new Set(_saved?.unlocked || []),
     cleansed:   new Set(_saved?.cleansed || []), // NPC ids cleansed via PURGE
+    rumors:     new Set(_saved?.rumors || []),   // NPC ids whose rumor was collected
   };
   function corrTier(v){ return v<30?"low":v<55?"med":v<80?"high":"extreme"; }
   function applyCorruption(){
@@ -1274,6 +1329,10 @@
     $("#m3").style.width=State.signal+"%";$("#m3v").textContent=State.signal+"%";
     applyCorruption();
     sealStress();
+    // rare whisper at high corruption — the dead god stirs
+    if(State.corruption>=55 && Math.random()<0.12){
+      Audio.whisper(0.10+State.corruption/600);
+    }
   }
   setInterval(drift,3000);
   // applyCorruption() is deferred until after EncState/selectedNpc are defined
@@ -1291,32 +1350,38 @@
       cls:"UNDEAD", sigil:"i-skull", cr:"CR 9", chips:["UNDEAD","LAWFUL-EVIL","BOSS"],
       desc:'Once a knight of the Ember Vow, Kaelen rode into the Ashen Mire to bury a dead god — and never returned as a man. His armor still smolders; his voice is a choir of dying candles. He guards the <span style="color:var(--green)">Seventh Seal</span> and bargains in memories, not gold.',
       attrs:[["HP","142 / 142"],["AC","19 (plate)"],["STR","18 (+4)"],["DEX","11 (+0)"],["INT","16 (+3)"],["WIS","14 (+2)"]],
-      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE",
+      rumor:{ title:"The Coal Kaelen Keeps", body:"Before he fell, Kaelen swallowed the last warm coal of Saint Vael. It still burns behind his ribs. If you can make him laugh — truly laugh — he will cough it up, and the Mire will lose its grip on one soul of your choosing. He has not laughed in four hundred years." } },
     { id:"NPC-07-011", name:'<span class="g">Mourven</span> the Hollow', title:"// courier of the Drowned Choir",
       cls:"FIEND", sigil:"i-eye", cr:"CR 5", chips:["FIEND","CHAOTIC-NEUTRAL","EMISSARY"],
       desc:'A faceless thing that trades in secrets along the ink-rivers. It wears the voices of those it has swallowed and refuses to bargain in anything but riddles. Mirewen owes it three answers and has only given two.',
       attrs:[["HP","76 / 76"],["AC","15"],["STR","12 (+1)"],["DEX","18 (+4)"],["INT","20 (+5)"],["WIS","14 (+2)"]],
-      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE",
+      rumor:{ title:"The Third Answer", body:"Mourven's third question to Mirewen is always the same: 'What is the name of the god you buried?' Mirewen does not know it — she was not there. But Mourven believes she does, and the belief is enough to bind. If the party learns the god's true name from the DECRYPT_DEAD_GOD fragment, Mirewen can settle her debt and sever her pact." } },
     { id:"NPC-07-022", name:'Sister <span class="g">Ysolde</span>', title:"// exiled leech-priest, Domain of Ash",
       cls:"HUMANOID", sigil:"i-flame", cr:"CR 6", chips:["HUMANOID","NEUTRAL","HEALER"],
       desc:'She pulls poison from wounds with a kiss and a coal. The Order cast her out for healing those the Mire had already claimed. She will tend the party — but every life she saves, the Mire remembers.',
       attrs:[["HP","88 / 88"],["AC","12"],["STR","10 (+0)"],["DEX","14 (+2)"],["INT","13 (+1)"],["WIS","18 (+4)"]],
-      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE",
+      rumor:{ title:"The Coal Ysolde Carries", body:"Ysolde's healing coal is the twin of the one Kaelen swallowed. If the two coals ever touch, the Ember Vow reignites — and Kaelen becomes a man again, for exactly as long as it takes him to die properly. She does not know this. He does." } },
     { id:"NPC-07-017", name:'<span class="g">Vasska</span>, the Coiled Word', title:"// serpent-god, diminished",
       cls:"ABERRATION", sigil:"i-serpent", cr:"CR 12", chips:["ABERRATION","CHAOTIC-EVIL","ANCIENT"],
       desc:'Once a god of oaths, now a dying thing coiled beneath the ruined temple of Vael. It speaks only in contracts. Those who answer its riddle are bound; those who refuse are digested slowly, over years, in dreams.',
       attrs:[["HP","210 / 210"],["AC","17"],["STR","16 (+3)"],["DEX","14 (+2)"],["INT","22 (+6)"],["WIS","19 (+4)"]],
-      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE",
+      rumor:{ title:"Vasska's Riddle", body:"Vasska's riddle has only ever been answered once, by a liar. The riddle is: 'What is the oath the dead cannot break?' The liar answered 'silence,' and Vasska, being a god of oaths, was bound to accept it. The liar was the Cinder-King. He has not spoken since." } },
     { id:"NPC-07-001", name:'The <span class="g">Cinder-King</span>', title:"// last monarch of the Ashen Throne",
       cls:"UNDEAD", sigil:"i-crown", cr:"CR 14", chips:["UNDEAD","LAWFUL-EVIL","RULER"],
       desc:'He ruled when the god still lived. When it died, he refused to. Now he sits a throne of fused glass, crown welded to skull, issuing decrees to a court of ash. He remembers the party\'s names from a war they have not yet fought.',
       attrs:[["HP","280 / 280"],["AC","20"],["STR","18 (+4)"],["DEX","8 (-1)"],["INT","20 (+5)"],["WIS","12 (+1)"]],
-      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE",
+      rumor:{ title:"The War Not Yet Fought", body:"The Cinder-King remembers a war the party has not yet fought because, in his court, time runs backward. If the party enters his throne room, they will arrive before they left. He has already executed them once. He is polite about it." } },
     { id:"NPC-07-030", name:'The <span class="g">Hour-Keeper</span>', title:"// warden of the Last Clock",
       cls:"CONSTRUCT", sigil:"i-hourglass", cr:"CR 8", chips:["CONSTRUCT","TRUE-NEUTRAL","GUARDIAN"],
       desc:'A being of brass and bone that tends the clock which counts down to the god\'s final death. It will not fight unless the clock is touched. It answers three questions per visitor, and lies on the third.',
       attrs:[["HP","120 / 120"],["AC","18"],["STR","16 (+3)"],["DEX","10 (+0)"],["INT","14 (+2)"],["WIS","16 (+3)"]],
-      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE",
+      rumor:{ title:"The Third Question", body:"The Hour-Keeper always lies on the third question. The party has learned to ask, as their third: 'Will you lie to us now?' If it answers 'no,' it has lied, and the clock is safe to touch. If it answers 'yes,' it has told the truth — which means it intends to lie next, which it cannot, because the round is over. This paradox is the only thing keeping the god asleep." } },
     { id:"NPC-07-???", name:'[DATA CORRUPTED]', title:"// designation unrecoverable",
       cls:"UNKNOWN", sigil:"i-err", cr:"CR ??", chips:["???","UNKNOWN","THREAT"],
       desc:null, // rendered with censors
@@ -1444,6 +1509,11 @@
     }
     const chips = n.chips.map(c=>`<span class="chip">${c}</span>`).join("");
     const attrs = n.attrs.map(a=>`<div class="attr"><span class="k">${a[0]}</span><span class="v">${a[1]}</span></div>`).join("");
+    const hasRumor = n.rumor && !State.rumors.has(n.id);
+    const rumorCollected = n.rumor && State.rumors.has(n.id);
+    const rumorBtn = hasRumor
+      ? `<button class="rumor-btn" id="rumorBtn" data-npc="${n.id}">&gt; EXTRACT RUMOR</button>`
+      : (rumorCollected ? `<div class="rumor-collected">// rumor archived to WORLD_LORE</div>` : "");
     return `<div class="card">
       <div class="card-top">
         <div class="card-id">ID: <b>${n.id}</b> // CLASS: ${n.cls}</div>
@@ -1458,6 +1528,7 @@
           </div>
           <p class="desc">${n.desc}</p>
           <div class="attrs">${attrs}</div>
+          ${rumorBtn}
         </div>
         <div class="holo">
           <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -1483,7 +1554,21 @@
     slot.innerHTML=renderNpcCard(NPCS[i]);
     $$("#npcList .npc-row").forEach((r,j)=>r.classList.toggle("sel",j===i));
     Audio.blip(520,0.05,0.08);
+    const rb=$("#rumorBtn"); if(rb) rb.addEventListener("click",()=>collectRumor(rb.dataset.npc));
     initPanelExtras("archive-detail");
+  }
+  // collect a rumor from an NPC → archives it to WORLD_LORE panel
+  function collectRumor(npcId){
+    const n=NPCS.find(x=>x.id===npcId);
+    if(!n||!n.rumor||State.rumors.has(npcId)) return;
+    State.rumors.add(npcId);
+    saveStore();
+    Audio.beep(520,0.08,0.12);
+    setTimeout(()=>Audio.beep(660,0.08,0.12),90);
+    setTimeout(()=>Audio.beep(780,0.12,0.12),180);
+    triggerAlert("RUMOR ARCHIVED",`<b>${n.rumor.title}</b><br>fragment added to WORLD_LORE vault.`);
+    // re-render the detail card to show "archived" state
+    const slot=$("#detailSlot"); if(slot){ slot.innerHTML=renderNpcCard(n); const rb=$("#rumorBtn"); if(rb) rb.addEventListener("click",()=>collectRumor(rb.dataset.npc)); }
   }
 
   /* =========================================================
@@ -1495,11 +1580,11 @@
     {key:"aldric", name:"Brother Aldric", role:"CLERIC", max:50, hp:50, ac:16, atk:4, ability:"HEAL", abLabel:"HEAL PARTY (+18 each)", abUsed:false, color:"var(--green)"},
     {key:"thistle", name:"Thistle", role:"ROGUE", max:50, hp:50, ac:15, atk:7, ability:"SA", abLabel:"SNEAK ATTACK (3×dmg)", abUsed:false, color:"var(--amber)"},
   ];
-  const FOE={name:"Kaelen Ashbringer", max:142, hp:142, ac:19, atk:6};
+  const FOE={name:"Kaelen Ashbringer", max:142, hp:142, ac:19, atk:6, enrageAt:0.4, bossAbility:"EMBER_NOVA", bossUsed:false};
   // restore from store if present
   const EncState={
     party: PARTY.map(p=>({...p, hp: (_saved && _saved.encAllyHp!=null && p.key==="veylan")?_saved.encAllyHp:p.hp})),
-    foe:{...FOE, hp:(_saved?.encFoeHp!=null)?_saved.encFoeHp:FOE.hp},
+    foe:{...FOE, hp:(_saved?.encFoeHp!=null)?_saved.encFoeHp:FOE.hp, bossUsed:false},
     round:_saved?.encRound||0, over:_saved?.encOver||false, log:[],
     initiative:0, // index into party; -1 = foe turn pending
   };
@@ -1510,9 +1595,11 @@
   function dice(a,b){return a+Math.floor(Math.random()*((b-a)+1));}
   function aliveAllies(){ return EncState.party.filter(p=>p.hp>0); }
 
+  function foeEnraged(){ return EncState.foe.hp>0 && EncState.foe.hp < EncState.foe.max*FOE.enrageAt; }
   function renderEncounter(){
     const f=EncState.foe;
     const fp=Math.max(0,Math.round(f.hp/f.max*100));
+    const en=foeEnraged();
     const logHtml=EncState.log.slice(-40).map(l=>`<div class="ln ${l.c}">${l.t}</div>`).join("");
     const partyHtml=EncState.party.map((p,i)=>{
       const pct=Math.max(0,Math.round(p.hp/p.max*100));
@@ -1529,25 +1616,28 @@
       </div>`;
     }).join("");
     const aliveCount=aliveAllies().length;
+    const bossBtn = !f.bossUsed && f.hp>0 && !EncState.over
+      ? `<button class="enc-btn foe ability" id="encBoss" style="padding:5px 10px;font-size:12px">EMBER NOVA (all foes, once)</button>` : "";
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> ENCOUNTER_SIM <span class="g">::</span> LIVE</h2>
-        <div class="sub">round ${EncState.round} // ${aliveCount} allies standing // threat ${f.name}</div>
+        <div class="sub">round ${EncState.round} // ${aliveCount} allies standing // threat ${f.name}${en?" [ENRAGED]":""}</div>
       </div>
       <div class="encounter">
         <div class="enc-party">${partyHtml}</div>
-        <div class="enc-field foe">
-          <div class="eh r">${f.name}<span class="sigil">// UNDEAD BOSS</span></div>
+        <div class="enc-field foe${en?" enraged":""}">
+          <div class="eh r">${f.name}<span class="sigil">// UNDEAD BOSS${en?" // ENRAGED":""}</span></div>
           <div class="hpbar"><i style="width:${fp}%"></i></div>
           <div class="hpt"><span>HP ${f.hp}/${f.max}</span><span>AC ${f.ac}</span></div>
-          <div class="cond">CONDITION: ${f.hp>0?(f.hp<f.max*0.4?"ENRAGED":"CALM"):"DESTROYED"}</div>
+          <div class="cond">CONDITION: ${f.hp>0?(en?"ENRAGED (extra strike)":"CALM"):"DESTROYED"} ${f.bossUsed?"// nova spent":""}</div>
+          ${bossBtn}
         </div>
       </div>
       <div class="enc-log" id="encLog">${logHtml}<span class="cursor"></span></div>
       <div class="enc-ctrl">
         <button class="enc-btn" id="encRound" ${EncState.over?"disabled":""}>${EncState.over?"CONCLUDED":"NEXT TURN"}</button>
-        <button class="enc-btn foe" id="encFoe" ${EncState.over?"disabled":""}>FOE STRIKE</button>
+        <button class="enc-btn foe" id="encFoe" ${EncState.over?"disabled":""}>FOE STRIKE${en?" ×2":""}</button>
         <button class="enc-btn warn" id="encReset">RESET</button>
-        <div class="enc-info">d20+atk vs AC // crit 20 // ${aliveCount} alive</div>
+        <div class="enc-info">d20+atk vs AC // crit 20 // ${aliveCount} alive${en?" // ENRAGED":""}</div>
       </div>`;
   }
 
@@ -1640,11 +1730,18 @@
     }
     encRefresh();
   }
-  // foe strikes a random living ally
+  // foe strikes a random living ally; enrage → two strikes
   function foeStrike(){
     if(EncState.over) return;
     const f=EncState.foe; if(f.hp<=0) return;
-    const targets=aliveAllies(); if(targets.length===0) return;
+    const en=foeEnraged();
+    const strikes=en?2:1;
+    doFoeStrike(strikes);
+  }
+  function doFoeStrike(remaining){
+    if(EncState.over||remaining<=0){ encRefresh(); return; }
+    const f=EncState.foe;
+    const targets=aliveAllies(); if(targets.length===0){ encRefresh(); return; }
     Audio.ensure();
     const t=targets[Math.floor(Math.random()*targets.length)];
     const roll=d20();
@@ -1667,6 +1764,43 @@
     }
     if(t.hp<=0){
       encLog(`>> ${t.name} has FALLEN. The Mire takes another.`,"die");
+      Audio.glitch(0.25);
+    }
+    if(aliveAllies().length===0){
+      encLog(`>> THE PARTY HAS FALLEN. The Mire feasts.`,"die");
+      EncState.over=true; addCorruption(10);
+      triggerAlert("PARTY WIPED","all allies fallen. corruption +10%.");
+      encRefresh();
+      return;
+    }
+    if(remaining>1){
+      encRefresh();
+      setTimeout(()=>doFoeStrike(remaining-1),650);
+    }else{
+      encRefresh();
+    }
+  }
+  // boss ability: EMBER NOVA — hits ALL living allies for moderate damage (once)
+  function bossAbility(){
+    if(EncState.over) return;
+    const f=EncState.foe; if(f.hp<=0||f.bossUsed) return;
+    Audio.ensure();
+    f.bossUsed=true;
+    const btn=$("#encBoss");
+    if(btn){ const r=btn.getBoundingClientRect(); popDice("NOVA!",true,false,r.left+40,r.top-6); }
+    encLog(`>> ${f.name} erupts — EMBER NOVA washes over the party!`,"crit");
+    Audio.thud(0.26); setTimeout(()=>Audio.glitch(0.15),150);
+    let killed=0;
+    EncState.party.forEach(p=>{
+      if(p.hp>0){
+        const dmg=dice(12,20);
+        p.hp=Math.max(0,p.hp-dmg);
+        encLog(`   ${p.name} takes ${dmg} fire. (now ${p.hp}/${p.max})`,"fatk");
+        if(p.hp<=0) killed++;
+      }
+    });
+    if(killed>0){
+      encLog(`>> ${killed} ally(ies) fell to the nova.`,"die");
       Audio.glitch(0.25);
     }
     if(aliveAllies().length===0){
@@ -1701,7 +1835,7 @@
   }
   function resetEnc(){
     EncState.party.forEach((p,i)=>{ p.hp=PARTY[i].max; p.abUsed=false; });
-    EncState.foe.hp=FOE.max;
+    EncState.foe.hp=FOE.max; EncState.foe.bossUsed=false;
     EncState.round=0; EncState.over=false; EncState.log=[]; EncState.initiative=0;
     encLog(">> encounter sim re-initialized. party at full strength.","sys");
     encRefresh();
@@ -1712,6 +1846,7 @@
     const r=$("#encRound"); if(r) r.addEventListener("click",()=>{Audio.ensure();nextTurn();});
     const fr=$("#encFoe"); if(fr) fr.addEventListener("click",foeStrike);
     const rs=$("#encReset"); if(rs) rs.addEventListener("click",resetEnc);
+    const boss=$("#encBoss"); if(boss) boss.addEventListener("click",bossAbility);
     $$("[data-ab]").forEach(b=>b.addEventListener("click",()=>allyAbility(parseInt(b.dataset.ab,10))));
   }
 
@@ -1813,7 +1948,7 @@
     </div>
   `;
 
-  const LORE_HTML = `
+  function renderLore(){ return `
     <div class="panel-head">
       <h2><span class="g">&gt;</span> WORLD_LORE <span class="g">::</span> VAULT</h2>
       <div class="sub">7 fragments // 2 sealed // 1 heretical</div>
@@ -1849,8 +1984,19 @@
         <p>Sworn to catalogue, never to intervene. We record the dying of the world in neat rows so that whatever comes after will know exactly how it ended. This console is one of seven. We are the last wardens still warm.</p>
         <div class="meta">FRAGMENT 06 / 07 // VERIFIED // source: Order charter, article I</div>
       </div>
+      ${rumorEntriesHtml()}
     </div>
-  `;
+  `; }
+  function rumorEntriesHtml(){
+    const collected = NPCS.filter(n=>n.rumor && State.rumors.has(n.id));
+    if(collected.length===0) return "";
+    const html = collected.map((n,i)=>`<div class="entry rumor">
+        <h3>${n.rumor.title}</h3>
+        <p>${n.rumor.body}</p>
+        <div class="meta">RUMOR ${String(i+1).padStart(2,"0")} // ARCHIVED // extracted from ${n.id}</div>
+      </div>`).join("");
+    return `<div class="lore-sep">// ARCHIVED RUMORS — extracted from NPC_ARCHIVE</div>${html}`;
+  }
 
   function buildLogs(name){
     switch(name){
@@ -1908,7 +2054,7 @@
     switch(name){
       case "archive": return renderArchive();
       case "units": return UNITS_HTML;
-      case "lore": return LORE_HTML;
+      case "lore": return renderLore();
       case "encounter": {
         if(EncState.log.length===0) encLog(">> encounter sim loaded. party of 4 vs Kaelen Ashbringer.","sys");
         return renderEncounter();
@@ -1969,6 +2115,7 @@
       $$("#npcList .npc-row").forEach(r=>{
         r.addEventListener("click",()=>selectNpc(parseInt(r.dataset.i,10)));
       });
+      const rb=$("#rumorBtn"); if(rb) rb.addEventListener("click",()=>collectRumor(rb.dataset.npc));
     }
     if(name==="encounter"){ wireEncounter(); }
     if(name==="ritual"){
@@ -2029,6 +2176,7 @@
      ========================================================= */
   const UNLOCK_CODE="WARDEN";
   const PURGE_CODE="PURGE";
+  const FORGET_CODE="FORGET";
   let keyBuffer="";
   const keybufEl=$("#keybuf"), keybufTxt=$("#keybufTxt");
   let keybufTimer=null;
@@ -2050,6 +2198,40 @@
       keyBuffer="";
       return;
     }
+    if(upper.length>=FORGET_CODE.length && upper.slice(-FORGET_CODE.length)===FORGET_CODE){
+      forgetAll();
+      keyBuffer="";
+      return;
+    }
+  }
+  // FORGET: wipe localStorage + reset all state, force a clean reboot
+  function forgetAll(){
+    try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+    State.corruption=27; State.soul=61; State.signal=88;
+    State.unlocked=new Set(); State.cleansed=new Set(); State.rumors=new Set();
+    selectedNpc=0;
+    EncState.party.forEach((p,i)=>{ p.hp=PARTY[i].max; p.abUsed=false; });
+    EncState.foe.hp=FOE.max;
+    EncState.round=0; EncState.over=false; EncState.log=[]; EncState.initiative=0;
+    // re-lock the menu items
+    $$("#menu .menu-item").forEach((b,i)=>{
+      if(i>=4){ // the two sealed commands (indices 4,5)
+        b.classList.add("locked");
+        b.classList.remove("active","unlocked","deny");
+        const chev=b.querySelector(".chev"); if(chev) chev.textContent="\u26A0";
+        const tag=b.querySelector(".tag"); if(tag) tag.textContent="lock";
+      }
+    });
+    const ov=$("#unlockOverlay");
+    $("#unlockHead").textContent="MEMORY PURGED";
+    $("#unlockMsg").innerHTML='all records wiped. the console forgets.<br>state reset to factory seal.';
+    ov.classList.add("show");
+    Audio.glitch(0.3);
+    setTimeout(()=>Audio.glitch(0.2),200);
+    applyCorruption();
+    // re-render whatever panel is open
+    if(currentPanel) startPanel(currentPanel);
+    setTimeout(()=>ov.classList.remove("show"),2600);
   }
   function unlockAll(){
     if(State.unlocked.has("ritual")) return; // already
@@ -2169,6 +2351,34 @@
   }
   document.addEventListener("pointerdown",firstGesture);
   document.addEventListener("keydown",firstGesture);
+
+  /* ---------- visibilitychange: power-down / power-up animation ---------- */
+  let poweredDown=false;
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden && !poweredDown){
+      poweredDown=true;
+      Audio.setActive(false);
+      // CRT power-down: quick fade + flicker
+      const console_el=document.querySelector(".console");
+      if(console_el){
+        console_el.style.transition="filter .3s, opacity .3s";
+        console_el.style.filter="brightness(0.15) contrast(1.3)";
+        console_el.style.opacity="0.5";
+      }
+    }else if(!document.hidden && poweredDown){
+      poweredDown=false;
+      Audio.setActive(true);
+      const console_el=document.querySelector(".console");
+      if(console_el){
+        // power-up: flash bright then settle
+        console_el.style.filter="brightness(2.2) contrast(1.1)";
+        setTimeout(()=>{ console_el.style.filter="brightness(1.3) contrast(1.1)"; },80);
+        setTimeout(()=>{ console_el.style.filter=""; console_el.style.opacity="1"; },350);
+      }
+      Audio.beep(120,0.08,0.10);
+      setTimeout(()=>Audio.beep(220,0.08,0.10),80);
+    }
+  });
 
 })();
 </script>

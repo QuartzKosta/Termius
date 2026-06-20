@@ -135,3 +135,50 @@ Unresolved / Next-phase recommendations:
 - Add a top-right "WIPE SAVE" hidden button (or type "FORGET") to clear localStorage for demo/reset purposes.
 - Audio: add a rare random "whisper" layer (filtered reversed noise burst) at high corruption for extra unease.
 - Consider a subtle power-down animation on `visibilitychange` (tab hide) — fade CRT + cut audio.
+
+---
+Task ID: 4
+Agent: main (Z.ai Code) — cron webDevReview round 4
+Task: QA the existing console, then implement the next-phase recommendations from Task 3 (FORGET wipe code, foe enrage + boss ability, NPC rumor hooks → WORLD_LORE, whisper audio layer, visibilitychange power-down).
+
+Work Log:
+- Reviewed worklog (Tasks 1–3 complete: 10 feature systems — audio, data-driven archive, encounter sim, WARDEN unlock, corruption degradation, localStorage, breathing LFO, seal-stress alerts, PURGE cleanse, party encounter with abilities).
+- QA via agent-browser: boot completes, 6 menu items, 8 NPCs, 2 locked (fresh state), zero console errors, `node --check` clean, `bun run lint` clean, iframe route works, mobile responsive. No bugs found → proceeded to feature expansion.
+- Extended `/home/z/my-project/public/dnd-console.html` (~2390 lines) with 5 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+
+New features added:
+1. **FORGET wipe code** — typing "FORGET" triggers `forgetAll()`: removes localStorage key, resets State (corruption→27, soul→61, signal→88, unlocked/cleansed/rumors→empty Sets), resets encounter (full HP, round 0), re-locks the two sealed menu items, shows "MEMORY PURGED" overlay with double-glitch burst, and re-renders the current panel. Verified: rumors array empties, corruption resets to 27, locked count returns to 2.
+2. **Foe enrage phase + boss ability** — FOE now has `enrageAt:0.4` + `bossAbility:"EMBER_NOVA"`. When foe HP drops below 40%, `foeEnraged()` returns true → foe field gets `.enraged` class (red pulsing `foeEnrage` animation), condition shows "ENRAGED (extra strike)", FOE STRIKE button reads "FOE STRIKE ×2", and `foeStrike()` calls `doFoeStrike(2)` which strikes twice with 650ms delay. New `bossAbility()` function: EMBER NOVA hits ALL living allies for 12–20 fire each (once per fight), with "NOVA!" dice popup, log lines per ally, and party-wipe check. Boss button is a red `.enc-btn.foe.ability` that disappears after use. Verified: foe at 55/142 (39%) → enraged=true, FOE STRIKE ×2, EMBER NOVA consumed + dealt fire to all 4 allies.
+3. **NPC rumor hooks → WORLD_LORE** — each of the 6 decrypted NPCs now carries a `rumor:{title,body}` field with unique lore (e.g. "The Coal Kaelen Keeps", "The Third Answer", "Vasska's Riddle"). Decrypted NPC detail cards render a cyan `> EXTRACT RUMOR` button (or "rumor archived to WORLD_LORE" if already collected). `collectRumor(npcId)` adds the id to `State.rumors`, saves to localStorage, fires a "RUMOR ARCHIVED" alert with the rumor title, plays a 3-note ascending arpeggio. Converted `LORE_HTML` const → `renderLore()` function so `${rumorEntriesHtml()}` evaluates fresh each render; collected rumors appear at the bottom of WORLD_LORE under a "// ARCHIVED RUMORS — extracted from NPC_ARCHIVE" separator as cyan-accented `.entry.rumor` blocks. Verified: extract rumor → alert fires → WORLD_LORE shows the rumor entry at the bottom.
+4. **Rare whisper audio layer** — new `Audio.whisper(vol)` method: generates a 1.4s reversed-noise buffer, bandpass filter sweeping 2400→400Hz, slow gain ramp. Triggered from `drift()` when corruption≥55 with 12% chance (vol scales with corruption). Adds an eerie "dead god stirs" unease layer at high corruption.
+5. **visibilitychange power-down** — new `Audio.setActive(active)` ramps master gain to silence (0.3s) on hide and restores (0.6s) on return. `visibilitychange` listener: on tab hide, fades `.console` to brightness(0.15)+opacity(0.5); on return, flashes brightness(2.2)→(1.3)→normal over 350ms with a 2-tone power-up beep. Simulates a CRT powering down/up when the user switches tabs.
+
+Styling detail pass:
+- `.enc-field.foe.enraged` red pulsing border + inset glow (`foeEnrage` keyframes).
+- `.enc-btn.foe.ability` red boss button variant.
+- `.rumor-btn` cyan ability-style button with clipped corners + glow hover; `.rumor-collected` dim confirmation text.
+- `.lore-sep` cyan separator label; `.entry.rumor` cyan-bordered lore entry with cyan title/meta.
+- All existing visuals + responsive breakpoints preserved.
+
+Verification (agent-browser + VLM + node --check):
+- Boot: `boot gone` / `stage live`, 6 menu items, 8 NPCs, 2 locked (fresh). Standalone + iframe both verified. Zero console errors across all tests.
+- Rumor: EXTRACT RUMOR button on Kaelen → "RUMOR ARCHIVED" alert → button replaced with "rumor archived to WORLD_LORE" → WORLD_LORE panel shows "The Coal Kaelen Keeps" entry at bottom under "ARCHIVED RUMORS" separator (VLM confirmed after scroll).
+- FORGET: typing F-O-R-G-E-T → "MEMORY PURGED" overlay, locked count→2, store rumors=[] , corruption→27.
+- Enrage: damaged foe to 55/142 (39%) → `enraged` class=true, condition "ENRAGED (extra strike)", FOE STRIKE ×2 button.
+- Boss ability: EMBER NOVA click → button consumed, "nova spent" in condition, log shows all 4 allies taking fire damage.
+- VLM confirmed encounter: 4-ally grid + foe + 4 ability buttons + red EMBER NOVA boss button + NEXT TURN/FOE STRIKE/RESET + combat log + active-turn highlight.
+- Mobile 390px: encounter party grid → single column.
+- `node --check`: clean. `bun run lint`: clean.
+
+Stage Summary:
+- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2390 lines, single self-contained file. All Task 1–3 visuals + features preserved; 5 new systems layered on top (FORGET wipe, foe enrage + EMBER NOVA, NPC rumors → WORLD_LORE, whisper audio, visibilitychange power-down).
+- The console now has 3 hidden keyboard codes (WARDEN unlock, PURGE cleanse, FORGET wipe), cross-panel content threading (NPC rumors populate the lore vault), and a full boss-mechanics encounter (enrage + nova).
+- Preview: live at `/` via iframe; all new features work in the preview.
+- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+
+Unresolved / Next-phase recommendations:
+- Encounter could add status effects (poison/stun) with persistent condition tags on combatants.
+- Rumors could unlock new encounter abilities or trigger world events (e.g. collecting all 6 rumors reveals a secret 7th NPC).
+- Add a "campaign log" panel that timestamps major events (unlock, purge, victory, wipe) for a running narrative.
+- Audio: the whisper could occasionally use a phoneme-like filtered impulse to sound like a word rather than pure noise.
+- Consider a boss-select dropdown so the party can fight different foes (Cinder-King, Vasska) with unique enrage thresholds + abilities.
