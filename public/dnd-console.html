@@ -610,15 +610,21 @@
   .entry .meta{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;margin-top:6px;border-top:1px dashed #1a201a;padding-top:5px}
 
   /* ---------- Encounter simulator ---------- */
-  .encounter{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .encounter{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start}
+  .enc-party{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .enc-field{
     border:1px solid #2a2017;background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
     padding:12px;min-height:120px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+    transition:border-color .2s,box-shadow .2s;
   }
-  .enc-field .eh{font-family:'MedievalSharp',serif;font-size:16px;color:var(--text-dead);letter-spacing:1px;margin-bottom:6px}
+  .enc-field.ally.active{border-color:var(--amber);box-shadow:0 0 16px rgba(232,161,58,.35),inset 0 0 12px rgba(232,161,58,.08);animation:activePulse 1.2s ease-in-out infinite}
+  @keyframes activePulse{0%,100%{box-shadow:0 0 16px rgba(232,161,58,.35),inset 0 0 12px rgba(232,161,58,.08)}50%{box-shadow:0 0 24px rgba(232,161,58,.55),inset 0 0 16px rgba(232,161,58,.12)}}
+  .enc-field.down{opacity:.45;filter:grayscale(.6)}
+  .enc-field.foe{min-height:140px}
+  .enc-field .eh{font-family:'MedievalSharp',serif;font-size:15px;color:var(--text-dead);letter-spacing:1px;margin-bottom:6px}
   .enc-field .eh.g{color:var(--green)}
   .enc-field .eh.r{color:var(--red)}
-  .enc-field .eh .sigil{font-size:13px;color:var(--text-dim);font-family:'VT323',monospace;margin-left:6px}
+  .enc-field .eh .sigil{font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;margin-left:6px}
   .enc-field .hpbar{height:10px;border:1px solid #1a201a;background:#0c0c0c;margin:5px 0;position:relative;overflow:hidden}
   .enc-field .hpbar i{display:block;height:100%;transition:width .35s}
   .enc-field.ally .hpbar i{background:linear-gradient(90deg,var(--green-dim),var(--green))}
@@ -627,6 +633,12 @@
   .enc-field.ally .hpt{color:var(--green)}
   .enc-field.foe .hpt{color:var(--red)}
   .enc-field .cond{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);margin-top:4px;letter-spacing:1px}
+  .enc-btn.ability{
+    margin-top:8px;width:100%;padding:5px 8px;font-size:12px;letter-spacing:1px;
+    background:linear-gradient(180deg,rgba(232,161,58,.14),rgba(232,161,58,.03));
+    border:1px solid var(--amber);color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.5);
+  }
+  .enc-btn.ability:hover:not(:disabled){background:linear-gradient(180deg,rgba(232,161,58,.3),rgba(232,161,58,.1));box-shadow:0 0 14px rgba(232,161,58,.5)}
 
   .enc-log{
     border:1px solid #2a2017;background:#040504;margin-top:14px;padding:12px 14px;
@@ -719,6 +731,31 @@
   .unlock-box .um{font-size:15px;color:var(--text);letter-spacing:1px}
   .unlock-box .um b{color:var(--amber)}
 
+  /* ---------- Alert overlay (seal stress / victory / wipe) ---------- */
+  .alert-overlay{
+    position:fixed;inset:0;z-index:9600;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .alert-overlay.show{opacity:1}
+  .alert-box{
+    position:relative;border:2px solid var(--red);background:#0a0404;padding:24px 40px 22px;
+    text-align:center;min-width:340px;max-width:540px;
+    box-shadow:0 0 50px rgba(255,36,36,.5),inset 0 0 30px rgba(255,36,36,.15);
+    clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+    font-family:'VT323',monospace;
+    animation:alertIn .25s ease-out,alertPulse .8s ease-in-out infinite;
+  }
+  @keyframes alertIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes alertPulse{0%,100%{box-shadow:0 0 50px rgba(255,36,36,.5),inset 0 0 30px rgba(255,36,36,.15)}50%{box-shadow:0 0 70px rgba(255,36,36,.8),inset 0 0 40px rgba(255,36,36,.25)}}
+  .alert-stripe{
+    position:absolute;top:0;left:0;right:0;height:4px;
+    background:repeating-linear-gradient(90deg,var(--red) 0 10px,#3a0c0c 10px 20px);
+    animation:stripeScroll .6s linear infinite;
+  }
+  @keyframes stripeScroll{to{background-position:20px 0}}
+  .alert-head{font-family:'MedievalSharp',serif;font-size:24px;color:var(--red);text-shadow:0 0 12px rgba(255,36,36,.8);letter-spacing:3px;margin-bottom:6px;margin-top:4px}
+  .alert-msg{font-size:15px;color:var(--text);letter-spacing:1px;line-height:1.4}
+
   /* key-code indicator (bottom-left, shows typed buffer when typing) */
   .keybuf{
     position:fixed;left:14px;bottom:30px;z-index:9200;
@@ -751,8 +788,10 @@
     .titlebar{flex-wrap:wrap}
     .panel-head h2{font-size:20px}
     .encounter{grid-template-columns:1fr}
+    .enc-party{grid-template-columns:1fr 1fr}
   }
   @media (max-width:560px){
+    .enc-party{grid-template-columns:1fr}
     .card-body{grid-template-columns:1fr}
     .holo{min-height:220px}
     .crumbs .right{display:none}
@@ -783,6 +822,15 @@
   <div class="unlock-box">
     <div class="uh" id="unlockHead">ACCESS GRANTED</div>
     <div class="um" id="unlockMsg"></div>
+  </div>
+</div>
+
+<!-- ALERT OVERLAY (seal stress / victory / wipe) -->
+<div class="alert-overlay" id="alertOverlay">
+  <div class="alert-box">
+    <div class="alert-stripe"></div>
+    <div class="alert-head" id="alertHead">ALERT</div>
+    <div class="alert-msg" id="alertMsg"></div>
   </div>
 </div>
 
@@ -1044,6 +1092,13 @@
       const nf=ctx.createBiquadFilter(); nf.type="lowpass"; nf.frequency.value=180; nf.Q.value=0.7;
       const ng=ctx.createGain(); ng.gain.value=0.08;
       ns.connect(nf); nf.connect(ng); ng.connect(humGain); ns.start();
+      // breathing LFO: slow sine modulates the noise filter cutoff + master hum gain for a living drone
+      const lfo=ctx.createOscillator(); lfo.type="sine"; lfo.frequency.value=0.08; // ~12s breath cycle
+      const lfoGain=ctx.createGain(); lfoGain.gain.value=90; // ±90Hz on filter
+      lfo.connect(lfoGain); lfoGain.connect(nf.frequency); lfo.start();
+      const lfo2=ctx.createOscillator(); lfo2.type="sine"; lfo2.frequency.value=0.05;
+      const lfo2g=ctx.createGain(); lfo2g.gain.value=0.04;
+      lfo2.connect(lfo2g); lfo2g.connect(humGain.gain); lfo2.start();
       humNode=humGain;
       started=true;
     }
@@ -1135,12 +1190,37 @@
 
   /* =========================================================
      CORRUPTION STATE — drives global degradation
+     (persisted to localStorage so refreshes keep progress)
      ========================================================= */
+  const STORE_KEY="ashen_codex_v1";
+  function loadStore(){
+    try{ const raw=localStorage.getItem(STORE_KEY); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; }
+  }
+  function saveStore(){
+    try{
+      // EncState/selectedNpc may not be defined yet during early init — guard with typeof
+      const enc = (typeof EncState!=="undefined") ? EncState : null;
+      const sn = (typeof selectedNpc!=="undefined") ? selectedNpc : 0;
+      const payload={
+        corruption:State.corruption, soul:State.soul, signal:State.signal,
+        unlocked:[...State.unlocked], cleansed:[...State.cleansed],
+        selectedNpc:sn, audioMuted:Audio.isMuted(),
+      };
+      if(enc){
+        payload.encAllyHp=enc.party?enc.party[0]?.hp:enc.ally?.hp;
+        payload.encFoeHp=enc.foe?.hp;
+        payload.encRound=enc.round; payload.encOver=enc.over;
+      }
+      localStorage.setItem(STORE_KEY, JSON.stringify(payload));
+    }catch(e){}
+  }
+  const _saved=loadStore();
   const State = {
-    corruption:27,    // 0..100
-    soul:61,
-    signal:88,
-    unlocked:new Set(), // panel names unlocked via code
+    corruption: _saved?.corruption ?? 27,
+    soul:       _saved?.soul ?? 61,
+    signal:     _saved?.signal ?? 88,
+    unlocked:   new Set(_saved?.unlocked || []),
+    cleansed:   new Set(_saved?.cleansed || []), // NPC ids cleansed via PURGE
   };
   function corrTier(v){ return v<30?"low":v<55?"med":v<80?"high":"extreme"; }
   function applyCorruption(){
@@ -1153,11 +1233,35 @@
     const sb=$("#sbBreach"); if(sb)sb.textContent=breach;
     const warn=State.corruption<30?2:State.corruption<55?4:State.corruption<80?7:11;
     const sw=$("#sbWarn"); if(sw)sw.textContent=warn;
+    saveStore();
   }
   function addCorruption(n){
     State.corruption=Math.max(0,Math.min(100,Math.round(State.corruption+n)));
     applyCorruption();
     if(n>0) Audio.glitch(0.12);
+  }
+
+  /* ---------- seal-stress random events ---------- */
+  function sealStress(){
+    // only fires occasionally, more often at higher corruption
+    const chance=0.12 + State.corruption/100*0.25;
+    if(Math.random()<chance && State.corruption<95){
+      const spike=2+Math.floor(Math.random()*(3+Math.floor(State.corruption/20)));
+      addCorruption(spike);
+      triggerAlert("SEAL STRESS","corruption spike +"+spike+"% // seal integrity "+(100-State.corruption)+"%");
+      Audio.glitch(0.2);
+    }
+  }
+  let alertTimer=null;
+  function triggerAlert(title,msg){
+    const ov=$("#alertOverlay");
+    $("#alertHead").textContent=title;
+    $("#alertMsg").innerHTML=msg;
+    ov.classList.add("show");
+    Audio.beep(440,0.1,0.16);
+    setTimeout(()=>Audio.beep(330,0.12,0.16),130);
+    clearTimeout(alertTimer);
+    alertTimer=setTimeout(()=>ov.classList.remove("show"),3000);
   }
 
   /* ---------- meters drift ---------- */
@@ -1169,9 +1273,11 @@
     $("#m1").style.width=State.soul+"%";$("#m1v").textContent=State.soul+"%";
     $("#m3").style.width=State.signal+"%";$("#m3v").textContent=State.signal+"%";
     applyCorruption();
+    sealStress();
   }
   setInterval(drift,3000);
-  applyCorruption();
+  // applyCorruption() is deferred until after EncState/selectedNpc are defined
+  // (saveStore references them); see applyCorruptionDeferred() call below.
 
   /* =========================================================
      NPC DATA — data-driven archive
@@ -1215,24 +1321,36 @@
       cls:"UNKNOWN", sigil:"i-err", cr:"CR ??", chips:["???","UNKNOWN","THREAT"],
       desc:null, // rendered with censors
       attrs:null,
-      status:"CORRUPTED", corrupt:true, tag:"HOLO_RENDER :: FAULT // 0x4E53" },
+      status:"CORRUPTED", corrupt:true, tag:"HOLO_RENDER :: FAULT // 0x4E53",
+      // revealed when cleansed via PURGE:
+      cleanse:{ name:'<span class="g">Velkin</span> the Unmourned', title:"// the Hollow Brother, Returned",
+        cls:"UNDEAD", sigil:"i-eye", cr:"CR 7", chips:["UNDEAD","NEUTRAL","TRAGIC"],
+        desc:'Once Sir Veylan\'s shield-brother. He rode into the Mire first and was the first to be forgotten by it. The corruption was not his death — it was the world forgetting he had lived. Cleansing the record lets the Mire remember him, and remember to let him rest.',
+        attrs:[["HP","95 / 95"],["AC","16"],["STR","15 (+2)"],["DEX","12 (+1)"],["INT","10 (+0)"],["WIS","13 (+1)"]],
+        tag:"HOLO_RENDER :: RESTORED" } },
     { id:"NPC-07-?!7", name:'[S__L R____D]', title:"// fragment refused by seal",
       cls:"UNKNOWN", sigil:"i-err", cr:"CR ??", chips:["???","REFUSED","SEALED"],
       desc:null,
       attrs:null,
-      status:"CORRUPTED", corrupt:true, tag:"HOLO_RENDER :: FAULT // 0x51EA" },
+      status:"CORRUPTED", corrupt:true, tag:"HOLO_RENDER :: FAULT // 0x51EA",
+      cleanse:{ name:'The <span class="g">Sallow Regent</span>', title:"// steward of the First Decay",
+        cls:"FIEND", sigil:"i-crown", cr:"CR 11", chips:["FIEND","LAWFUL-EVIL","NOBLE"],
+        desc:'A noble of the court that buried the dead god, now a thing of parchment and dried breath. It refused to be recorded because to be recorded is to be remembered, and to be remembered is to be answerable. The seal broke around its name first. Now that the record is clean, it is — reluctantly — bound.',
+        attrs:[["HP","160 / 160"],["AC","17"],["STR","14 (+2)"],["DEX","16 (+3)"],["INT","19 (+4)"],["WIS","15 (+2)"]],
+        tag:"HOLO_RENDER :: RESTORED" } },
   ];
 
-  let selectedNpc=0;
+  let selectedNpc= _saved?.selectedNpc ?? 0;
+  if(selectedNpc<0||selectedNpc>=NPCS.length) selectedNpc=0;
 
   function renderArchive(){
     const list = NPCS.map((n,i)=>{
       const sel=i===selectedNpc?" sel":"";
-      const cor=n.corrupt?" corrupt":"";
+      const cor=(n.corrupt && !State.cleansed.has(n.id))?" corrupt":"";
       return `<div class="npc-row${sel}${cor}" data-i="${i}">
         <div class="rid">${n.id}</div>
         <div class="rnm">${n.name}</div>
-        <div class="rtag">${n.corrupt?"CORRUPT":n.cls}</div>
+        <div class="rtag">${(n.corrupt && !State.cleansed.has(n.id))?"CORRUPT":(n.corrupt?"CLEANSED":n.cls)}</div>
       </div>`;
     }).join("");
     const detail = renderNpcCard(NPCS[selectedNpc]);
@@ -1247,6 +1365,39 @@
   }
 
   function renderNpcCard(n){
+    if(n.corrupt && State.cleansed.has(n.id) && n.cleanse){
+      // cleansed reveal — render as a normal decrypted card using cleanse data
+      const c=n.cleanse;
+      const chips=c.chips.map(ch=>`<span class="chip">${ch}</span>`).join("");
+      const attrs=c.attrs.map(a=>`<div class="attr"><span class="k">${a[0]}</span><span class="v">${a[1]}</span></div>`).join("");
+      return `<div class="card cleansed">
+        <div class="card-top">
+          <div class="card-id">ID: <b>${n.id}</b> // CLASS: ${c.cls}</div>
+          <div class="card-status" style="border-color:var(--amber);color:var(--amber)">CLEANSED</div>
+        </div>
+        <div class="card-body">
+          <div class="card-info">
+            <div class="npc-name">${c.name}</div>
+            <div class="npc-title">${c.title}</div>
+            <div class="stat-row"><span class="chip">${c.cr}</span>${chips}</div>
+            <p class="desc">${c.desc}</p>
+            <div class="attrs">${attrs}</div>
+          </div>
+          <div class="holo" style="border-color:var(--amber)">
+            <div class="bracket tl" style="border-color:var(--amber)"></div><div class="bracket tr" style="border-color:var(--amber)"></div>
+            <div class="bracket bl" style="border-color:var(--amber)"></div><div class="bracket br" style="border-color:var(--amber)"></div>
+            <div class="crosshair"></div>
+            <div class="rings"><div class="ring r1" style="border-color:var(--amber)"></div><div class="ring r2" style="border-color:var(--amber)"></div><div class="ring r3" style="border-color:var(--amber)"></div></div>
+            <div class="holo-stage">
+              <div class="holo-subj" style="color:var(--amber);filter:drop-shadow(0 0 8px rgba(232,161,58,.6))"><svg><use href="#${c.sigil}"/></svg></div>
+            </div>
+            <div class="scan" style="background:linear-gradient(180deg,transparent,rgba(232,161,58,.5),transparent);box-shadow:0 0 14px rgba(232,161,58,.4)"></div>
+            <div class="floor" style="background:radial-gradient(ellipse at center,rgba(232,161,58,.35),transparent 70%)"></div>
+            <div class="tag" style="color:var(--amber)">${c.tag}</div>
+          </div>
+        </div>
+      </div>`;
+    }
     if(n.corrupt){
       return `<div class="card corrupt">
         <div class="card-top">
@@ -1327,6 +1478,7 @@
   function selectNpc(i){
     if(i<0||i>=NPCS.length) return;
     selectedNpc=i;
+    saveStore();
     const slot=$("#detailSlot"); if(!slot) return;
     slot.innerHTML=renderNpcCard(NPCS[i]);
     $$("#npcList .npc-row").forEach((r,j)=>r.classList.toggle("sel",j===i));
@@ -1335,30 +1487,54 @@
   }
 
   /* =========================================================
-     ENCOUNTER SIMULATOR
+     ENCOUNTER SIMULATOR — party vs boss with abilities
      ========================================================= */
-  const EncState={ ally:{name:"Sir Veylan",max:50,hp:50,ac:18,atk:8},
-                   foe:{name:"Kaelen Ashbringer",max:142,hp:142,ac:19,atk:9},
-                   round:0, over:false, log:[] };
+  const PARTY=[
+    {key:"veylan", name:"Sir Veylan", role:"PALADIN", max:50, hp:50, ac:18, atk:5, ability:"SMITE", abLabel:"SMITE (+8, 2×dmg)", abUsed:false, color:"var(--green)"},
+    {key:"mirewen", name:"Mirewen", role:"WARLOCK", max:48, hp:48, ac:13, atk:6, ability:"ELDRITCH", abLabel:"ELDRITCH (auto-hit, force)", abUsed:false, color:"var(--cyan)"},
+    {key:"aldric", name:"Brother Aldric", role:"CLERIC", max:50, hp:50, ac:16, atk:4, ability:"HEAL", abLabel:"HEAL PARTY (+18 each)", abUsed:false, color:"var(--green)"},
+    {key:"thistle", name:"Thistle", role:"ROGUE", max:50, hp:50, ac:15, atk:7, ability:"SA", abLabel:"SNEAK ATTACK (3×dmg)", abUsed:false, color:"var(--amber)"},
+  ];
+  const FOE={name:"Kaelen Ashbringer", max:142, hp:142, ac:19, atk:6};
+  // restore from store if present
+  const EncState={
+    party: PARTY.map(p=>({...p, hp: (_saved && _saved.encAllyHp!=null && p.key==="veylan")?_saved.encAllyHp:p.hp})),
+    foe:{...FOE, hp:(_saved?.encFoeHp!=null)?_saved.encFoeHp:FOE.hp},
+    round:_saved?.encRound||0, over:_saved?.encOver||false, log:[],
+    initiative:0, // index into party; -1 = foe turn pending
+  };
+  // now that EncState + selectedNpc exist, apply initial corruption state
+  applyCorruption();
+
   function d20(){return 1+Math.floor(Math.random()*20);}
   function dice(a,b){return a+Math.floor(Math.random()*((b-a)+1));}
+  function aliveAllies(){ return EncState.party.filter(p=>p.hp>0); }
 
   function renderEncounter(){
-    const a=EncState.ally,f=EncState.foe;
-    const ap=Math.max(0,Math.round(a.hp/a.max*100));
+    const f=EncState.foe;
     const fp=Math.max(0,Math.round(f.hp/f.max*100));
-    const logHtml=EncState.log.map(l=>`<div class="ln ${l.c}">${l.t}</div>`).join("");
+    const logHtml=EncState.log.slice(-40).map(l=>`<div class="ln ${l.c}">${l.t}</div>`).join("");
+    const partyHtml=EncState.party.map((p,i)=>{
+      const pct=Math.max(0,Math.round(p.hp/p.max*100));
+      const dead=p.hp<=0;
+      const active=i===EncState.initiative && !EncState.over && !dead;
+      const abBtn = p.ability && !p.abUsed && !dead && !EncState.over
+        ? `<button class="enc-btn ability" data-ab="${i}" style="padding:4px 10px;font-size:12px">${p.abLabel}</button>` : "";
+      return `<div class="enc-field ally${active?" active":""}${dead?" down":""}">
+        <div class="eh g">${p.name}<span class="sigil">// ${p.role}</span>${active?'<span class="sigil" style="color:var(--amber)">◀ TURN</span>':''}</div>
+        <div class="hpbar"><i style="width:${pct}%"></i></div>
+        <div class="hpt"><span>HP ${p.hp}/${p.max}</span><span>AC ${p.ac}</span></div>
+        <div class="cond">CONDITION: ${dead?"FALLEN":(pct<40?"WOUNDED":"READY")} ${p.abUsed?"// ability spent":""}</div>
+        ${abBtn}
+      </div>`;
+    }).join("");
+    const aliveCount=aliveAllies().length;
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> ENCOUNTER_SIM <span class="g">::</span> LIVE</h2>
-        <div class="sub">round ${EncState.round} // threat ${f.name}</div>
+        <div class="sub">round ${EncState.round} // ${aliveCount} allies standing // threat ${f.name}</div>
       </div>
       <div class="encounter">
-        <div class="enc-field ally">
-          <div class="eh g">${a.name}<span class="sigil">// PALADIN L7</span></div>
-          <div class="hpbar"><i style="width:${ap}%"></i></div>
-          <div class="hpt"><span>HP ${a.hp}/${a.max}</span><span>AC ${a.ac}</span></div>
-          <div class="cond">CONDITION: ${a.hp>0?(a.hp<a.max*0.4?"WOUNDED":"READY"):"FALLEN"}</div>
-        </div>
+        <div class="enc-party">${partyHtml}</div>
         <div class="enc-field foe">
           <div class="eh r">${f.name}<span class="sigil">// UNDEAD BOSS</span></div>
           <div class="hpbar"><i style="width:${fp}%"></i></div>
@@ -1368,16 +1544,15 @@
       </div>
       <div class="enc-log" id="encLog">${logHtml}<span class="cursor"></span></div>
       <div class="enc-ctrl">
-        <button class="enc-btn" id="encRound" ${EncState.over?"disabled":""}>${EncState.over?"CONCLUDED":"RUN ROUND"}</button>
+        <button class="enc-btn" id="encRound" ${EncState.over?"disabled":""}>${EncState.over?"CONCLUDED":"NEXT TURN"}</button>
+        <button class="enc-btn foe" id="encFoe" ${EncState.over?"disabled":""}>FOE STRIKE</button>
         <button class="enc-btn warn" id="encReset">RESET</button>
-        <div class="enc-info">d20 vs AC // crit on 20 // dmg <b id="encDmg"></b></div>
+        <div class="enc-info">d20+atk vs AC // crit 20 // ${aliveCount} alive</div>
       </div>`;
   }
 
-  function encLog(t,c){ EncState.log.push({t,c}); }
+  function encLog(t,c){ EncState.log.push({t,c}); if(EncState.log.length>120) EncState.log.shift(); saveStore(); }
   function encRefresh(){
-    const vp=$("#viewport"); if(!vp) return;
-    // re-render only encounter content
     const content=$("#content");
     content.innerHTML=renderEncounter();
     const el=$("#encLog"); if(el) el.scrollTop=el.scrollHeight;
@@ -1391,68 +1566,153 @@
     document.body.appendChild(d);
     setTimeout(()=>d.remove(),900);
   }
-  function runRound(){
+  // ally basic attack by index
+  function allyAttack(i){
+    if(EncState.over) return;
+    const p=EncState.party[i]; if(!p||p.hp<=0) return;
+    Audio.ensure();
+    const f=EncState.foe;
+    const roll=d20();
+    const hit=roll+p.atk;
+    const crit=roll===20;
+    const miss=roll===1||hit<f.ac;
+    const btn=$(`[data-ab="${i}"]`)||$("#encRound");
+    if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
+    if(crit){
+      const dmg=dice(8,12)*2; f.hp=Math.max(0,f.hp-dmg);
+      encLog(`> ${p.name} rolls ${roll} — CRITICAL! smites ${f.name} for ${dmg}.`,"crit");
+      Audio.thud(0.18);
+    }else if(miss){
+      encLog(`> ${p.name} rolls ${roll} (${hit} vs AC ${f.ac}) — deflected.`,"miss");
+      Audio.blip(180,0.08,0.08);
+    }else{
+      const dmg=dice(6,11); f.hp=Math.max(0,f.hp-dmg);
+      encLog(`> ${p.name} rolls ${roll} (${hit} vs AC ${f.ac}) — hits for ${dmg}.`,"atk");
+      Audio.thud(0.14);
+    }
+    if(f.hp<=0){
+      encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,"die");
+      EncState.over=true; addCorruption(-8); Audio.glitch(0.2);
+      triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.`);
+      encRefresh(); return true;
+    }
+    return false;
+  }
+  // ally ability by index
+  function allyAbility(i){
+    if(EncState.over) return;
+    const p=EncState.party[i]; if(!p||p.hp<=0||p.abUsed) return;
+    Audio.ensure();
+    const f=EncState.foe;
+    const btn=$(`[data-ab="${i}"]`);
+    if(btn){ const r=btn.getBoundingClientRect(); popDice(p.ability+"!",true,false,r.left+40,r.top-6); }
+    switch(p.ability){
+      case "SMITE":{
+        const dmg=dice(12,18); f.hp=Math.max(0,f.hp-dmg);
+        encLog(`>> ${p.name} unleashes SMITE — divine force for ${dmg}!`,"crit");
+        Audio.thud(0.22);
+        break;
+      }
+      case "ELDRITCH":{
+        const dmg=dice(10,16); f.hp=Math.max(0,f.hp-dmg);
+        encLog(`>> ${p.name} invokes ELDRITCH BOLT — auto-hit force for ${dmg}.`,"crit");
+        Audio.thud(0.2);
+        break;
+      }
+      case "HEAL":{
+        EncState.party.forEach(a=>{ if(a.hp>0){ a.hp=Math.min(a.max,a.hp+18); } });
+        encLog(`>> ${p.name} channels HEAL — party +18 HP each.`,"sys");
+        Audio.beep(660,0.15,0.14);
+        break;
+      }
+      case "SA":{
+        const dmg=dice(6,9)*3; f.hp=Math.max(0,f.hp-dmg);
+        encLog(`>> ${p.name} strikes from shadow — SNEAK ATTACK for ${dmg}!`,"crit");
+        Audio.thud(0.22);
+        break;
+      }
+    }
+    p.abUsed=true;
+    if(f.hp<=0){
+      encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,"die");
+      EncState.over=true; addCorruption(-8); Audio.glitch(0.2);
+      triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.`);
+    }
+    encRefresh();
+  }
+  // foe strikes a random living ally
+  function foeStrike(){
+    if(EncState.over) return;
+    const f=EncState.foe; if(f.hp<=0) return;
+    const targets=aliveAllies(); if(targets.length===0) return;
+    Audio.ensure();
+    const t=targets[Math.floor(Math.random()*targets.length)];
+    const roll=d20();
+    const hit=roll+f.atk;
+    const crit=roll===20;
+    const miss=roll===1||hit<t.ac;
+    const btn=$("#encFoe");
+    if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
+    if(crit){
+      const dmg=dice(10,16)*2; t.hp=Math.max(0,t.hp-dmg);
+      encLog(`> ${f.name} rolls ${roll} — CRITICAL! cleaves ${t.name} for ${dmg}.`,"crit");
+      Audio.thud(0.2);
+    }else if(miss){
+      encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${t.ac}) — parried by ${t.name}.`,"miss");
+      Audio.blip(160,0.08,0.08);
+    }else{
+      const dmg=dice(8,15); t.hp=Math.max(0,t.hp-dmg);
+      encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${t.ac}) — strikes ${t.name} for ${dmg}.`,"fatk");
+      Audio.thud(0.16);
+    }
+    if(t.hp<=0){
+      encLog(`>> ${t.name} has FALLEN. The Mire takes another.`,"die");
+      Audio.glitch(0.25);
+    }
+    if(aliveAllies().length===0){
+      encLog(`>> THE PARTY HAS FALLEN. The Mire feasts.`,"die");
+      EncState.over=true; addCorruption(10);
+      triggerAlert("PARTY WIPED","all allies fallen. corruption +10%.");
+    }
+    encRefresh();
+  }
+  function nextTurn(){
     if(EncState.over) return;
     Audio.ensure();
-    EncState.round++;
-    const a=EncState.ally,f=EncState.foe;
-    encLog("══ ROUND "+EncState.round+" ══","sys");
-    // ally attacks
-    if(a.hp>0){
-      const roll=d20();
-      const hit=roll+5;
-      const crit=roll===20;
-      const miss=roll===1||hit<f.ac;
-      const btn=$("#encRound");
-      if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
-      if(crit){
-        const dmg=dice(8,12)*2; f.hp=Math.max(0,f.hp-dmg);
-        encLog(`> ${a.name} rolls ${roll} — CRITICAL! smites ${f.name} for ${dmg}.`,"crit");
-        Audio.thud(0.18);
-      }else if(miss){
-        encLog(`> ${a.name} rolls ${roll} (${hit} vs AC ${f.ac}) — deflected.`,"miss");
-        Audio.blip(180,0.08,0.08);
-      }else{
-        const dmg=dice(6,11); f.hp=Math.max(0,f.hp-dmg);
-        encLog(`> ${a.name} rolls ${roll} (${hit} vs AC ${f.ac}) — hits for ${dmg}.`,"atk");
-        Audio.thud(0.14);
-      }
-      if(f.hp<=0){ encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,  "die"); EncState.over=true; addCorruption(-8); Audio.glitch(0.2); encRefresh(); return; }
+    const alive=aliveAllies();
+    if(alive.length===0){ encRefresh(); return; }
+    // advance initiative through living allies
+    let next=EncState.initiative;
+    for(let k=0;k<EncState.party.length;k++){
+      next=(next+1)%EncState.party.length;
+      if(EncState.party[next].hp>0) break;
     }
-    // foe retaliates
-    if(f.hp>0){
-      setTimeout(()=>{
-        const roll=d20();
-        const hit=roll+6;
-        const crit=roll===20;
-        const miss=roll===1||hit<a.ac;
-        if(crit){
-          const dmg=dice(10,16)*2; a.hp=Math.max(0,a.hp-dmg);
-          encLog(`> ${f.name} rolls ${roll} — CRITICAL! cleaves ${a.name} for ${dmg}.`,"crit");
-          Audio.thud(0.2);
-        }else if(miss){
-          encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${a.ac}) — parried.`,"miss");
-          Audio.blip(160,0.08,0.08);
-        }else{
-          const dmg=dice(8,15); a.hp=Math.max(0,a.hp-dmg);
-          encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${a.ac}) — strikes for ${dmg}.`,"fatk");
-          Audio.thud(0.16);
-        }
-        if(a.hp<=0){ encLog(`>> ${a.name} has FALLEN. The Mire takes another.`,  "die"); EncState.over=true; addCorruption(10); Audio.glitch(0.25); }
-        encRefresh();
-      },550);
-    }else{ encRefresh(); }
+    if(next<=EncState.initiative){
+      // wrapped → new round
+      EncState.round++;
+      encLog("══ ROUND "+EncState.round+" ══","sys");
+      EncState.party.forEach(p=>p.abUsed=false); // abilities refresh each round
+    }
+    EncState.initiative=next;
+    const p=EncState.party[next];
+    // auto basic-attack for the current ally
+    const ended=allyAttack(next);
+    if(!ended) encRefresh();
   }
   function resetEnc(){
-    EncState.ally.hp=EncState.ally.max; EncState.foe.hp=EncState.foe.max;
-    EncState.round=0; EncState.over=false; EncState.log=[];
-    encLog(">> encounter sim re-initialized. combatants at full strength.","sys");
+    EncState.party.forEach((p,i)=>{ p.hp=PARTY[i].max; p.abUsed=false; });
+    EncState.foe.hp=FOE.max;
+    EncState.round=0; EncState.over=false; EncState.log=[]; EncState.initiative=0;
+    encLog(">> encounter sim re-initialized. party at full strength.","sys");
     encRefresh();
     Audio.blip(660,0.08,0.1);
+    saveStore();
   }
   function wireEncounter(){
-    const r=$("#encRound"); if(r) r.addEventListener("click",()=>{Audio.ensure();runRound();});
+    const r=$("#encRound"); if(r) r.addEventListener("click",()=>{Audio.ensure();nextTurn();});
+    const fr=$("#encFoe"); if(fr) fr.addEventListener("click",foeStrike);
     const rs=$("#encReset"); if(rs) rs.addEventListener("click",resetEnc);
+    $$("[data-ab]").forEach(b=>b.addEventListener("click",()=>allyAbility(parseInt(b.dataset.ab,10))));
   }
 
   /* =========================================================
@@ -1619,10 +1879,11 @@
       ];
       case "encounter": return [
         {t:"booting ENCOUNTER_SIM .............. [ OK ]",c:"ok"},
-        {t:"spawning ally  :: Sir Veylan ...... [ OK ]",c:"ok"},
-        {t:"spawning foe   :: Kaelen Ashbringer [ OK ]",c:"ok"},
+        {t:"spawning party :: 4 adventurers ..... [ OK ]",c:"ok"},
+        {t:"spawning foe   :: Kaelen Ashbringer . [ OK ]",c:"ok"},
+        {t:"initiative ordered. abilities armed.",c:"ok"},
         {t:"threat level: BOSS — caution advised.",c:"warn"},
-        {t:"sim ready. press RUN ROUND to engage.",c:"ok"},
+        {t:"sim ready. NEXT TURN advances initiative.",c:"ok"},
       ];
       case "ritual": return [
         {t:"SUMMON_RITUAL_NET unlocked ......... [ OK ]",c:"ok"},
@@ -1649,8 +1910,7 @@
       case "units": return UNITS_HTML;
       case "lore": return LORE_HTML;
       case "encounter": {
-        // reset log fresh each open if empty
-        if(EncState.log.length===0) encLog(">> encounter sim loaded. combatants at full strength.","sys");
+        if(EncState.log.length===0) encLog(">> encounter sim loaded. party of 4 vs Kaelen Ashbringer.","sys");
         return renderEncounter();
       }
       case "ritual": return renderRitual();
@@ -1765,9 +2025,10 @@
   }
 
   /* =========================================================
-     UNLOCK CODE — type WARDEN to unlock locked items
+     UNLOCK / PURGE CODES — type WARDEN to unlock, PURGE to cleanse
      ========================================================= */
   const UNLOCK_CODE="WARDEN";
+  const PURGE_CODE="PURGE";
   let keyBuffer="";
   const keybufEl=$("#keybuf"), keybufTxt=$("#keybufTxt");
   let keybufTimer=null;
@@ -1782,6 +2043,12 @@
     if(upper.length>=UNLOCK_CODE.length && upper.slice(-UNLOCK_CODE.length)===UNLOCK_CODE){
       unlockAll();
       keyBuffer="";
+      return;
+    }
+    if(upper.length>=PURGE_CODE.length && upper.slice(-PURGE_CODE.length)===PURGE_CODE){
+      purgeOne();
+      keyBuffer="";
+      return;
     }
   }
   function unlockAll(){
@@ -1804,6 +2071,31 @@
     setTimeout(()=>Audio.beep(1100,0.18,0.16),240);
     addCorruption(3);
     setTimeout(()=>ov.classList.remove("show"),2600);
+  }
+  // PURGE: cleanse one corrupted NPC (the currently selected one if corrupted, else the first corrupted)
+  function purgeOne(){
+    const corruptedIdx = NPCS.findIndex(n=>n.corrupt && !State.cleansed.has(n.id));
+    if(corruptedIdx===-1){
+      triggerAlert("NO TARGET","no corrupted records remain to purge.");
+      Audio.glitch(0.1);
+      return;
+    }
+    const target = NPCS[corruptedIdx];
+    State.cleansed.add(target.id);
+    addCorruption(-6); // cleansing reduces corruption
+    saveStore();
+    triggerAlert("RECORD CLEANSED","purge successful. corruption −6%.<br>"+(target.cleanse?.name?.replace(/<[^>]+>/g,"")||target.id)+" restored.");
+    Audio.beep(330,0.1,0.14);
+    setTimeout(()=>Audio.beep(440,0.1,0.14),100);
+    setTimeout(()=>Audio.beep(550,0.12,0.14),200);
+    setTimeout(()=>Audio.beep(660,0.18,0.14),300);
+    // re-render archive if currently viewing
+    if(currentPanel==="archive"){
+      selectedNpc=corruptedIdx;
+      content.innerHTML=renderArchive();
+      $$("#npcList .npc-row").forEach((r,j)=>r.classList.toggle("sel",j===selectedNpc));
+      wirePanel("archive");
+    }
   }
 
   /* ---------- menu wiring ---------- */
@@ -1836,6 +2128,14 @@
 
   /* ---------- audio toggle ---------- */
   const audioBtn=$("#audioBtn");
+  // restore unlocked menu state on load (if previously unlocked)
+  if(State.unlocked.has("ritual")){
+    $$("#menu .menu-item.locked").forEach(b=>{
+      b.classList.remove("locked");
+      const chev=b.querySelector(".chev"); if(chev) chev.textContent="›";
+      const tag=b.querySelector(".tag"); if(tag) tag.textContent="open";
+    });
+  }
   audioBtn.addEventListener("click",()=>{
     Audio.ensure();
     if(Audio.isMuted()){ Audio.setMuted(false); audioBtn.classList.remove("off"); audioBtn.textContent="SOUND:ON"; Audio.beep(660,0.08,0.12); }

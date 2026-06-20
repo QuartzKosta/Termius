@@ -92,3 +92,46 @@ Unresolved / Next-phase recommendations:
 - More NPC sigils (beholder, lich-phylactery, kraken) and a "corrupted→decrypted" path where typing a second code (e.g. "PURGE") cleans one corrupted NPC.
 - Persist state (corruption, unlocked set, encounter HP) to localStorage so refreshes don't reset progress.
 - Consider a subtle screen-power-off animation when the user navigates away / tab hides.
+
+---
+Task ID: 3
+Agent: main (Z.ai Code) — cron webDevReview round 3
+Task: QA the existing console, then implement the next-phase recommendations from Task 2 (localStorage persistence, breathing audio LFO + seal-stress events, PURGE cleanse code, party-based encounter with abilities).
+
+Work Log:
+- Reviewed worklog (Tasks 1 & 2 complete: 5 feature systems — audio, data-driven archive, encounter sim, WARDEN unlock, corruption degradation).
+- QA via agent-browser: boot completes, 6 menu items, 8 NPCs, zero console errors, `node --check` clean, `bun run lint` clean, iframe route works, mobile 390px responsive confirmed. No bugs found → proceeded to feature expansion.
+- Extended `/home/z/my-project/public/dnd-console.html` (~2170 lines) with 5 new systems. All edits surgical (no full rewrite). JS re-verified with `node --check` + `bun run lint` (both clean) after each feature batch.
+
+New features added:
+1. **localStorage persistence** — `STORE_KEY="ashen_codex_v1"`; `loadStore()`/`saveStore()` serialize corruption, soul, signal, unlocked set, cleansed set, selected NPC, encounter HP/round/over, audio mute. `saveStore()` guards `typeof EncState!=="undefined"` so early-init calls don't throw. State restores on reload: corrupted NPCs stay cleansed, locked items stay unlocked (WARDEN), encounter HP persists. Verified: PURGE → reload → cleansed NPC still cleansed; WARDEN → reload → items still unlocked.
+2. **Breathing audio LFO** — two slow sine LFOs added to the `Audio.init()` drone: one (0.08Hz) modulates the noise lowpass filter cutoff (±90Hz) for a "breathing" tonal shift; another (0.05Hz) modulates the hum gain (±0.04) for slow swell. Makes the ambient drone feel alive instead of static.
+3. **Random seal-stress events** — `sealStress()` fires from the 3s drift interval; chance scales with corruption (0.12 + corr/100×0.25). On trigger: spikes corruption 2–(3+corr/20), fires a red pulsing `#alertOverlay` with scrolling striped border ("SEAL STRESS / corruption spike +N% / seal integrity M%"), plays a descending 2-tone warning, and a glitch burst. At high corruption these become near-constant, reinforcing the degradation loop.
+4. **PURGE second code** — typing "PURGE" (case-insensitive, anywhere) triggers `purgeOne()`: finds the first corrupted-and-not-yet-cleansed NPC, adds its id to `State.cleansed`, reduces corruption −6%, fires a green 4-note ascending arpeggio + "RECORD CLEANSED" alert, and re-renders the archive. Each corrupted NPC now carries a hidden `cleanse` block with full reveal data (name, title, class, sigil, CR, chips, desc, attrs, tag). Cleansed NPCs render as amber-accented "CLEANSED" cards with their true hologram sigil (e.g. corrupted NPC-07-??? → "Velkin the Unmourned" with amber eye sigil; NPC-07-?!7 → "The Sallow Regent" with amber crown sigil). The archive list row tag flips from "CORRUPT" to "CLEANSED".
+5. **Party-based encounter with abilities** — replaced the 1v1 encounter with a 4-ally party (Sir Veylan/Paladin, Mirewen/Warlock, Brother Aldric/Cleric, Thistle/Rogue) vs Kaelen Ashbringer. Each ally has HP/AC/atk + a unique once-per-round ability: SMITE (big dmg), ELDRITCH (auto-hit force), HEAL (+18 to all living allies), SNEAK ATTACK (3×dmg). `NEXT TURN` advances initiative through living allies (auto basic-attack), wrapping starts a new round and refreshes abilities. `FOE STRIKE` makes the foe attack a random living ally. Active ally glows amber (`activePulse` animation); fallen allies desaturate. Victory → "VICTORY" alert + corruption −8; party wipe → "PARTY WIPED" alert + corruption +10.
+
+Styling detail pass:
+- New `.alert-overlay` / `.alert-box` with red 2px border, pulsing box-shadow, scrolling striped top border (`stripeScroll`), `alertIn` + `alertPulse` keyframes.
+- Encounter grid changed to `1.4fr 1fr` with `.enc-party` 2-col sub-grid; `.enc-field.ally.active` amber glow pulse; `.enc-field.down` grayscale+opacity; `.enc-btn.ability` amber full-width buttons.
+- Responsive: `.enc-party` → 2-col at 900px, → 1-col at 560px.
+- Boot/loader/menus unchanged (preserved from Tasks 1–2).
+
+Verification (agent-browser + VLM + node --check):
+- Boot: `boot gone` / `stage live`, 6 menu items, 8 NPCs, 2 locked (fresh state), alert overlay present in DOM. Standalone + iframe both verified.
+- Encounter: 4 ally fields + 1 foe field + 4 ability buttons (SMITE/ELDRITCH/HEAL/SNEAK ATTACK) + NEXT TURN/FOE STRIKE/RESET. NEXT TURN advanced initiative to Mirewen, auto-attacked ("Mirewen rolls 8 (14 vs AC 19) — deflected"). HEAL ability consumed + logged ("Brother Aldric channels HEAL — party +18 HP each"). FOE STRIKE works. VLM confirmed all elements + amber active-turn glow on Sir Veylan.
+- PURGE: typing P-U-R-G-E → "RECORD CLEANSED" alert fired, corrupted 2→1, cleansed tag 0→1, detail card shows "Velkin the Unmourned" with amber eye sigil (`#i-eye`) + "CLEANSED" status. VLM confirmed the red alert overlay text.
+- Persistence: after reload, cleansed NPC stays cleansed (1 cleansed, 1 corrupt); after WARDEN+reload, lockedCount=0 with store showing `["ritual","deadgod"]` unlocked.
+- Mobile 390px: encounter party + encounter both single-column, no overflow.
+- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors/warnings across all tests.
+
+Stage Summary:
+- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2170 lines, single self-contained file. All Task 1–2 visuals + features preserved; 5 new systems layered on top (persistence, breathing LFO, seal-stress alerts, PURGE cleanse, party encounter).
+- Preview: live at `/` via iframe; all new features work in the preview.
+- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+
+Unresolved / Next-phase recommendations:
+- Encounter could use a "foe enrage" phase at <40% HP (extra attack per round) and a boss-ability button for asymmetry.
+- The 6 decrypted NPCs could each get a unique "rumor" hook that, when clicked, adds a lore fragment to the WORLD_LORE panel — cross-panel content threading.
+- Add a top-right "WIPE SAVE" hidden button (or type "FORGET") to clear localStorage for demo/reset purposes.
+- Audio: add a rare random "whisper" layer (filtered reversed noise burst) at high corruption for extra unease.
+- Consider a subtle power-down animation on `visibilitychange` (tab hide) — fade CRT + cut audio.
