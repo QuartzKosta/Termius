@@ -678,6 +678,9 @@
   .entry.rumor{border-color:var(--cyan-dim)}
   .entry.rumor h3{color:var(--cyan);text-shadow:0 0 8px rgba(63,214,200,.4)}
   .entry.rumor .meta{color:var(--cyan-dim)}
+  .entry.bosslore{border-color:var(--amber)}
+  .entry.bosslore h3{color:var(--amber);text-shadow:0 0 8px rgba(232,161,58,.5)}
+  .entry.bosslore .meta{color:var(--amber)}
 
   /* ---------- Campaign log ---------- */
   .campaign-log{display:flex;flex-direction:column;gap:8px;max-height:560px;overflow-y:auto}
@@ -726,6 +729,8 @@
   .enc-btn.foe{border-color:var(--red-dim);color:var(--red);background:linear-gradient(180deg,rgba(255,36,36,.1),rgba(255,36,36,.02));text-shadow:0 0 6px rgba(255,36,36,.5)}
   .enc-btn.foe:hover:not(:disabled){background:linear-gradient(180deg,rgba(255,36,36,.22),rgba(255,36,36,.06));box-shadow:0 0 14px rgba(255,36,36,.4)}
   .enc-btn.warn{border-color:var(--amber);color:var(--amber);background:linear-gradient(180deg,rgba(232,161,58,.1),rgba(232,161,58,.02))}
+  .enc-btn.auto{border-color:var(--cyan-dim);color:var(--cyan);background:linear-gradient(180deg,rgba(63,214,200,.1),rgba(63,214,200,.02));text-shadow:0 0 6px rgba(63,214,200,.5)}
+  .enc-btn.auto:hover:not(:disabled){background:linear-gradient(180deg,rgba(63,214,200,.25),rgba(63,214,200,.08));box-shadow:0 0 14px rgba(63,214,200,.4)}
   .enc-info{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;margin-left:auto}
   .enc-info b{color:var(--green)}
 
@@ -812,6 +817,26 @@
   .alert-head{font-family:'MedievalSharp',serif;font-size:24px;color:var(--red);text-shadow:0 0 12px rgba(255,36,36,.8);letter-spacing:3px;margin-bottom:6px;margin-top:4px}
   .alert-msg{font-size:15px;color:var(--text);letter-spacing:1px;line-height:1.4}
 
+  /* ---------- Victory lap overlay ---------- */
+  .victory-overlay{
+    position:fixed;inset:0;z-index:9700;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.75);opacity:0;pointer-events:none;transition:opacity .4s;
+  }
+  .victory-overlay.show{opacity:1;pointer-events:auto}
+  .victory-box{
+    position:relative;border:2px solid var(--amber);background:radial-gradient(circle at 50% 30%,rgba(232,161,58,.12),#0a0805);
+    padding:36px 56px;text-align:center;max-width:520px;
+    box-shadow:0 0 80px rgba(232,161,58,.4),inset 0 0 40px rgba(232,161,58,.1);
+    clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));
+    font-family:'VT323',monospace;
+    animation:victoryIn .5s ease-out;
+  }
+  @keyframes victoryIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+  .victory-glyph{font-size:54px;color:var(--amber);text-shadow:0 0 30px rgba(232,161,58,.9);animation:victoryPulse 2s ease-in-out infinite;line-height:1}
+  @keyframes victoryPulse{0%,100%{opacity:.7;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+  .victory-head{font-family:'MedievalSharp',serif;font-size:28px;color:var(--amber);text-shadow:0 0 16px rgba(232,161,58,.8);letter-spacing:3px;margin:14px 0 10px}
+  .victory-msg{font-size:16px;color:var(--text);letter-spacing:1px;line-height:1.6}
+
   /* key-code indicator (bottom-left, shows typed buffer when typing) */
   .keybuf{
     position:fixed;left:14px;bottom:30px;z-index:9200;
@@ -887,6 +912,16 @@
     <div class="alert-stripe"></div>
     <div class="alert-head" id="alertHead">ALERT</div>
     <div class="alert-msg" id="alertMsg"></div>
+  </div>
+</div>
+
+<!-- VICTORY LAP OVERLAY (all bosses defeated) -->
+<div class="victory-overlay" id="victoryOverlay">
+  <div class="victory-box">
+    <div class="victory-glyph">✦</div>
+    <div class="victory-head">THE MIRE REMEMBERS</div>
+    <div class="victory-msg">all three bosses defeated.<br>the chronicle is complete. the Wardens log this cycle closed.<br><span style="color:var(--text-dim)">// the console will not forget. it never does.</span></div>
+    <button class="enc-btn" id="victoryClose" style="margin-top:14px">CONTINUE</button>
   </div>
 </div>
 
@@ -1296,7 +1331,7 @@
         corruption:State.corruption, soul:State.soul, signal:State.signal,
         unlocked:[...State.unlocked], cleansed:[...State.cleansed],
         rumors:[...State.rumors], campaignLog:State.campaignLog,
-        defeated:[...State.defeated],
+        defeated:[...State.defeated], bossLore:[...State.bossLore],
         selectedNpc:sn, audioMuted:Audio.isMuted(),
       };
       if(enc){
@@ -1318,6 +1353,7 @@
     rumors:     new Set(_saved?.rumors || []),   // NPC ids whose rumor was collected
     campaignLog:_saved?.campaignLog || [],       // array of {t,time,event}
     defeated:   new Set(_saved?.defeated || []),  // foe keys defeated in encounter
+    bossLore:   new Set(_saved?.bossLore || []),  // foe keys whose lore dropped
   };
   function logEvent(event, detail){
     const entry={ time:new Date().toLocaleTimeString("en-GB",{hour12:false}), event, detail:detail||"" };
@@ -1658,6 +1694,12 @@
     {key:"vasska", name:"Vasska, the Coiled Word", max:175, hp:175, ac:17, atk:5, enrageAt:0.45, bossAbility:"BINDING OATH", role:"ABERRATION"},
   ];
   const FOE=FOES[0]; // default for any legacy references
+  // lore fragments dropped by each boss on first defeat
+  const BOSS_LORE={
+    kaelen:{ title:"The Smothering", body:"When Kaelen Ashbringer fell, the Ember Vow did not break — it smothered. The coal behind his ribs is the last lit thing in a faith that once warmed a kingdom. Every year it dims a little more. When it goes out, the Vow inverts: the dead it once protected will rise against the living it failed to save. The party carries the only thing that can relight it — Ysolde's twin coal — and does not yet know it." },
+    cinder:{ title:"The Court of Ash", body:"The Cinder-King's court is not empty. He rules a thousand ash-silhouettes, each a subject who stayed loyal past death. They cannot speak or act, but they remember. When the party entered his throne room, every silhouette turned its head. When the King fell, every silhouette sighed — and the sigh was the names of the party, spoken in the King's voice, which they will hear again, in dreams, for the rest of their lives. He was polite about it. He is always polite about it." },
+    vasska:{ title:"The Oath That Was Never Made", body:"Vasska's riddle — 'What is the oath the dead cannot break?' — has a second answer no one has given: 'the oath that was never made.' Vasska itself is that oath. It was promised a death by the god who buried Ymr-Soth, and the god died before keeping its word. So Vasska waits, coiled, undying, because a god's unkept promise cannot be broken either. When Vasska fell, it did not die. It simply stopped waiting. It is, somewhere, relieved." },
+  };
   // restore from store if present
   const EncState={
     party: PARTY.map(p=>({...p, hp: (_saved && _saved.encAllyHp!=null && p.key==="veylan")?_saved.encAllyHp:p.hp, statuses:[]})),
@@ -1684,8 +1726,8 @@
   // status-effect helpers
   function statusChips(statuses){
     if(!statuses||statuses.length===0) return "";
-    const color={POISON:"var(--green)",STUN:"var(--amber)",BLEED:"var(--red)",BURN:"var(--red)"};
-    return ' <span class="status-chips">'+statuses.map(s=>`<span class="status-chip" style="border-color:${color[s.type]||"var(--text-dim)"};color:${color[s.type]||"var(--text-dim)"}">${s.type}${s.turns>1?" ×"+s.turns:""}</span>`).join("")+'</span>';
+    const color={POISON:"var(--green)",STUN:"var(--amber)",BLEED:"var(--red)",BURN:"var(--red)",SHIELD:"var(--cyan)",HASTE:"var(--green)"};
+    return ' <span class="status-chips">'+statuses.map(s=>`<span class="status-chip" style="border-color:${color[s.type]||"var(--text-dim)"};color:${color[s.type]||"var(--text-dim)"}">${s.type}${s.turns>1?" ×"+s.turns:""}${s.type==="SHIELD"&&s.value?"("+s.value+")":""}</span>`).join("")+'</span>';
   }
   function tickStatuses(combatant){
     if(!combatant.statuses) return;
@@ -1695,7 +1737,20 @@
       if(s.type==="BURN"){ const d=dice(4,8); combatant.hp=Math.max(0,combatant.hp-d); if(combatant.name) encLog(`> ${combatant.name} burns for ${d}.`,  "fatk"); }
       s.turns--;
     });
-    combatant.statuses=combatant.statuses.filter(s=>s.turns>0);
+    combatant.statuses=combatant.statuses.filter(s=>s.turns>0 && !(s.type==="SHIELD"&&s.value<=0));
+  }
+  // apply damage, absorbing from SHIELD first
+  function applyDamage(combatant, dmg){
+    if(!combatant.statuses) { combatant.hp=Math.max(0,combatant.hp-dmg); return dmg; }
+    const shield=combatant.statuses.find(s=>s.type==="SHIELD"&&s.value>0);
+    if(shield){
+      const absorbed=Math.min(shield.value,dmg);
+      shield.value-=absorbed; dmg-=absorbed;
+      if(absorbed>0 && combatant.name) encLog(`   ${combatant.name}'s SHIELD absorbs ${absorbed}.`,  "sys");
+      if(shield.value<=0) combatant.statuses=combatant.statuses.filter(s=>s!==shield);
+    }
+    combatant.hp=Math.max(0,combatant.hp-dmg);
+    return dmg;
   }
   function isStunned(c){ return c.statuses&&c.statuses.some(s=>s.type==="STUN"); }
   function selectFoe(key){
@@ -1706,6 +1761,34 @@
     encLog(">> foe swapped to "+base.name+". field reset.","sys");
     saveStore(); encRefresh();
     Audio.blip(440,0.06,0.1);
+  }
+  // drop a lore fragment on first defeat of a boss → returns true if newly dropped
+  function dropBossLore(fkey){
+    if(!fkey||!BOSS_LORE[fkey]||State.bossLore.has(fkey)) return false;
+    State.bossLore.add(fkey);
+    saveStore();
+    logEvent("LORE_DROP","boss lore archived: "+BOSS_LORE[fkey].title);
+    return true;
+  }
+  // victory lap: when all 3 bosses are defeated, trigger an ending overlay
+  let victoryLapShown=false;
+  function checkVictoryLap(){
+    if(victoryLapShown) return;
+    if(State.defeated.size>=FOES.length){
+      victoryLapShown=true;
+      logEvent("VICTORY_LAP","all bosses defeated. the Mire remembers.");
+      showVictoryLap();
+    }
+  }
+  function showVictoryLap(){
+    const ov=$("#victoryOverlay");
+    if(!ov) return;
+    ov.classList.add("show");
+    Audio.beep(330,0.3,0.16);
+    setTimeout(()=>Audio.beep(440,0.3,0.16),250);
+    setTimeout(()=>Audio.beep(550,0.3,0.16),500);
+    setTimeout(()=>Audio.beep(660,0.3,0.16),750);
+    setTimeout(()=>Audio.beep(880,0.5,0.18),1000);
   }
   function renderEncounter(){
     const f=EncState.foe;
@@ -1754,6 +1837,7 @@
       <div class="enc-ctrl">
         <button class="enc-btn" id="encRound" ${EncState.over?"disabled":""}>${EncState.over?"CONCLUDED":"NEXT TURN"}</button>
         <button class="enc-btn foe" id="encFoe" ${EncState.over?"disabled":""}>FOE STRIKE${en?" ×2":""}</button>
+        <button class="enc-btn auto" id="encAuto" ${EncState.over?"disabled":""}>AUTO ×5</button>
         <button class="enc-btn warn" id="encReset">RESET</button>
         <div class="enc-info">d20+atk vs AC // crit 20 // ${aliveCount} alive${en?" // ENRAGED":""}</div>
       </div>`;
@@ -1802,8 +1886,10 @@
       encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,"die");
       EncState.over=true; addCorruption(-8); Audio.glitch(0.2);
       State.defeated.add(f.key||"foe");
-      triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.`);
-      logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)`);
+      const dropped=dropBossLore(f.key);
+      triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.${dropped?"<br>lore fragment archived.":""}`);
+      logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)${dropped?" + lore":""}`);
+      checkVictoryLap();
       encRefresh(); return true;
     }
     return false;
@@ -1830,8 +1916,8 @@
         break;
       }
       case "HEAL":{
-        EncState.party.forEach(a=>{ if(a.hp>0){ a.hp=Math.min(a.max,a.hp+18); } });
-        encLog(`>> ${p.name} channels HEAL — party +18 HP each.`,"sys");
+        EncState.party.forEach(a=>{ if(a.hp>0){ a.hp=Math.min(a.max,a.hp+18); a.statuses=(a.statuses||[]).concat([{type:"SHIELD",turns:2,value:15}]); } });
+        encLog(`>> ${p.name} channels HEAL — party +18 HP + SHIELD(15) for 2 turns.`,"sys");
         Audio.beep(660,0.15,0.14);
         break;
       }
@@ -1847,8 +1933,10 @@
       encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,"die");
       EncState.over=true; addCorruption(-8); Audio.glitch(0.2);
       State.defeated.add(f.key||"foe");
-      triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.`);
-      logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)`);
+      const dropped=dropBossLore(f.key);
+      triggerAlert("VICTORY",`${f.name} destroyed. corruption −8%.${dropped?"<br>lore fragment archived.":""}`);
+      logEvent("VICTORY",`${f.name} destroyed by ${p.name} (corruption −8%)${dropped?" + lore":""}`);
+      checkVictoryLap();
     }
     encRefresh();
   }
@@ -1873,14 +1961,14 @@
     const btn=$("#encFoe");
     if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
     if(crit){
-      const dmg=dice(10,16)*2; t.hp=Math.max(0,t.hp-dmg);
+      const dmg=dice(10,16)*2; applyDamage(t,dmg);
       encLog(`> ${f.name} rolls ${roll} — CRITICAL! cleaves ${t.name} for ${dmg}.`,"crit");
       Audio.thud(0.2);
     }else if(miss){
       encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${t.ac}) — parried by ${t.name}.`,"miss");
       Audio.blip(160,0.08,0.08);
     }else{
-      const dmg=dice(8,15); t.hp=Math.max(0,t.hp-dmg);
+      const dmg=dice(8,15); applyDamage(t,dmg);
       encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${t.ac}) — strikes ${t.name} for ${dmg}.`,"fatk");
       Audio.thud(0.16);
     }
@@ -1918,7 +2006,7 @@
         Audio.thud(0.26); setTimeout(()=>Audio.glitch(0.15),150);
         EncState.party.forEach(p=>{
           if(p.hp>0){
-            const dmg=dice(12,20); p.hp=Math.max(0,p.hp-dmg);
+            const dmg=dice(12,20); applyDamage(p,dmg);
             encLog(`   ${p.name} takes ${dmg} fire. (now ${p.hp}/${p.max})`,"fatk");
             if(p.hp<=0) killed++;
           }
@@ -1931,7 +2019,7 @@
         Audio.thud(0.24); setTimeout(()=>Audio.glitch(0.12),150);
         EncState.party.forEach(p=>{
           if(p.hp>0){
-            const dmg=dice(8,14); p.hp=Math.max(0,p.hp-dmg);
+            const dmg=dice(8,14); applyDamage(p,dmg);
             p.statuses=(p.statuses||[]).concat([{type:"STUN",turns:1}]);
             encLog(`   ${p.name} takes ${dmg} ash + STUN. (now ${p.hp}/${p.max})`,"fatk");
             if(p.hp<=0) killed++;
@@ -2016,12 +2104,35 @@
     Audio.blip(660,0.08,0.1);
     saveStore();
   }
+  // auto-resolve: run up to 5 rounds automatically (ally turn + foe strike each), fast
+  let autoRunning=false;
+  function autoResolve(rounds){
+    if(EncState.over||autoRunning) return;
+    autoRunning=true;
+    Audio.ensure();
+    encLog(">> AUTO-RESOLVE engaged — "+rounds+" rounds.","sys");
+    Audio.blip(660,0.06,0.1);
+    let n=0;
+    function step(){
+      if(EncState.over||n>=rounds||aliveAllies().length===0){ autoRunning=false; encRefresh(); return; }
+      n++;
+      // ally turn (skip if stunned handled by nextTurn)
+      nextTurn();
+      // foe strike
+      setTimeout(()=>{
+        if(!EncState.over && EncState.foe.hp>0){ foeStrike(); }
+        setTimeout(step, 350);
+      }, 250);
+    }
+    step();
+  }
   function wireEncounter(){
     const r=$("#encRound"); if(r) r.addEventListener("click",()=>{Audio.ensure();nextTurn();});
     const fr=$("#encFoe"); if(fr) fr.addEventListener("click",foeStrike);
     const rs=$("#encReset"); if(rs) rs.addEventListener("click",resetEnc);
     const boss=$("#encBoss"); if(boss) boss.addEventListener("click",bossAbility);
     const fs=$("#foeSelect"); if(fs) fs.addEventListener("change",()=>selectFoe(fs.value));
+    const au=$("#encAuto"); if(au) au.addEventListener("click",()=>autoResolve(5));
     $$("[data-ab]").forEach(b=>b.addEventListener("click",()=>allyAbility(parseInt(b.dataset.ab,10))));
   }
 
@@ -2159,7 +2270,7 @@
         <p>Sworn to catalogue, never to intervene. We record the dying of the world in neat rows so that whatever comes after will know exactly how it ended. This console is one of seven. We are the last wardens still warm.</p>
         <div class="meta">FRAGMENT 06 / 07 // VERIFIED // source: Order charter, article I</div>
       </div>
-      ${rumorEntriesHtml()}
+      ${rumorEntriesHtml()}${bossLoreHtml()}
     </div>
   `; }
   function rumorEntriesHtml(){
@@ -2171,6 +2282,16 @@
         <div class="meta">RUMOR ${String(i+1).padStart(2,"0")} // ARCHIVED // extracted from ${n.id}</div>
       </div>`).join("");
     return `<div class="lore-sep">// ARCHIVED RUMORS — extracted from NPC_ARCHIVE</div>${html}`;
+  }
+  function bossLoreHtml(){
+    const dropped = FOES.filter(f=>State.bossLore.has(f.key));
+    if(dropped.length===0) return "";
+    const html = dropped.map((f,i)=>`<div class="entry bosslore">
+        <h3>${BOSS_LORE[f.key].title}</h3>
+        <p>${BOSS_LORE[f.key].body}</p>
+        <div class="meta">BOSS_LORE ${String(i+1).padStart(2,"0")} // RECOVERED // dropped on defeat of ${f.name}</div>
+      </div>`).join("");
+    return `<div class="lore-sep">// RECOVERED FRAGMENTS — dropped by defeated bosses</div>${html}`;
   }
 
   function buildLogs(name){
@@ -2237,7 +2358,7 @@
   }
   function renderCampaignLog(){
     const entries=State.campaignLog.slice().reverse(); // newest first
-    const eventColor={UNLOCK:"var(--amber)",PURGE:"var(--green)",RUMOR:"var(--cyan)",VICTORY:"var(--green)",WIPE:"var(--red)",SECRET:"var(--amber)"};
+    const eventColor={UNLOCK:"var(--amber)",PURGE:"var(--green)",RUMOR:"var(--cyan)",VICTORY:"var(--green)",WIPE:"var(--red)",SECRET:"var(--amber)",LORE_DROP:"var(--amber)",VICTORY_LAP:"var(--amber)"};
     if(entries.length===0){
       return `<div class="panel-head">
           <h2><span class="g">&gt;</span> CAMPAIGN_LOG <span class="g">::</span> CHRONICLE</h2>
@@ -2254,7 +2375,26 @@
         <h2><span class="g">&gt;</span> CAMPAIGN_LOG <span class="g">::</span> CHRONICLE</h2>
         <div class="sub">${State.campaignLog.length} events recorded // newest first</div>
       </div>
+      <div class="enc-ctrl" style="margin-top:0;margin-bottom:12px">
+        <button class="enc-btn" id="clogExport">EXPORT CHRONICLE</button>
+        <div class="enc-info">copy ${State.campaignLog.length} events to clipboard</div>
+      </div>
       <div class="campaign-log">${html}</div>`;
+  }
+  function exportChronicle(){
+    const lines=State.campaignLog.map(e=>`[${e.time}] ${e.event.padEnd(10)} ${e.detail}`);
+    const text="ASHEN CODEX — CAMPAIGN CHRONICLE\n"+"=".repeat(40)+"\n"+lines.join("\n")+"\n"+"=".repeat(40)+"\n// exported "+new Date().toISOString();
+    try{
+      navigator.clipboard.writeText(text);
+      triggerAlert("CHRONICLE EXPORTED",State.campaignLog.length+" events copied to clipboard.<br>paste anywhere to share.");
+      Audio.beep(660,0.1,0.14);
+    }catch(e){
+      // fallback: create a textarea + select
+      const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); triggerAlert("CHRONICLE EXPORTED","events copied to clipboard."); }catch(e2){ triggerAlert("EXPORT FAILED","clipboard unavailable. select + copy manually."); }
+      ta.remove();
+    }
+    logEvent("EXPORT","chronicle exported ("+State.campaignLog.length+" events)");
   }
 
   function panelHtml(name){
@@ -2326,6 +2466,9 @@
       const rb=$("#rumorBtn"); if(rb) rb.addEventListener("click",()=>collectRumor(rb.dataset.npc));
     }
     if(name==="encounter"){ wireEncounter(); }
+    if(name==="campaign"){
+      const ex=$("#clogExport"); if(ex) ex.addEventListener("click",exportChronicle);
+    }
     if(name==="ritual"){
       const b=$("#ritActivate"); if(b) b.addEventListener("click",()=>{
         addCorruption(5);
@@ -2417,7 +2560,8 @@
     try{ localStorage.removeItem(STORE_KEY); }catch(e){}
     State.corruption=27; State.soul=61; State.signal=88;
     State.unlocked=new Set(); State.cleansed=new Set(); State.rumors=new Set();
-    State.campaignLog=[]; State.defeated=new Set();
+    State.campaignLog=[]; State.defeated=new Set(); State.bossLore=new Set();
+    victoryLapShown=false;
     // remove the secret Zeroth Warden if it was spawned
     const zwIdx=NPCS.findIndex(n=>n.id==="NPC-07-000");
     if(zwIdx!==-1) NPCS.splice(zwIdx,1);
@@ -2537,6 +2681,12 @@
     if(Audio.isMuted()){ Audio.setMuted(false); audioBtn.classList.remove("off"); audioBtn.textContent="SOUND:ON"; Audio.beep(660,0.08,0.12); }
     else { Audio.setMuted(true); audioBtn.classList.add("off"); audioBtn.textContent="SOUND:OFF"; }
   });
+
+  // victory-lap close button
+  const vc=$("#victoryClose");
+  if(vc) vc.addEventListener("click",()=>{ $("#victoryOverlay").classList.remove("show"); });
+  // restore victoryLapShown if all bosses already defeated on load
+  if(State.defeated.size>=FOES.length) victoryLapShown=true;
 
   /* ---------- keyboard: number shortcuts + unlock code + audio toggle ---------- */
   document.addEventListener("keydown",e=>{
