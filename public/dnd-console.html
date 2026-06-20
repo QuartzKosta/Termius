@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=MedievalSharp&display=swap" rel="stylesheet" />
 <style>
   /* ============================================================
-     ASHEN CODEX — Dark Fantasy magitech console
+     ASHEN CODEX — Dark Fantasy magitech console  v3.7-pact
      Pure HTML / CSS / Vanilla JS — single file
      ============================================================ */
 
@@ -62,12 +62,14 @@
     );
     mix-blend-mode:multiply;
     opacity:.55;
+    transition:opacity .8s;
   }
   .crt-vignette{
     background:
       radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 85%, rgba(0,0,0,.95) 100%),
       radial-gradient(ellipse at center, rgba(10,40,15,.05) 0%, rgba(0,0,0,0) 60%);
     box-shadow:inset 0 0 200px 40px rgba(0,0,0,.9);
+    transition:background .8s;
   }
   .crt-flicker{
     background:rgba(74,246,38,.012);
@@ -77,6 +79,7 @@
     opacity:.04;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.5  0 0 0 0 0.25  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
     animation:noiseShift .4s steps(4) infinite;
+    transition:opacity .8s;
   }
   @keyframes flicker{
     0%,96%,100%{opacity:.012}
@@ -90,6 +93,25 @@
     50%{transform:translate(2px,-2px)}75%{transform:translate(-2px,-1px)}
     100%{transform:translate(3px,1px)}
   }
+
+  /* ===== CORRUPTION-DRIVEN GLOBAL DEGRADATION ===== */
+  /* body classes: corr-low / corr-med / corr-high / corr-extreme */
+  body.corr-med .crt-scanlines{opacity:.68}
+  body.corr-med .crt-noise{opacity:.07}
+  body.corr-med .crt-vignette{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 38%,rgba(40,0,0,.4) 80%,rgba(0,0,0,.95) 100%)}
+
+  body.corr-high .crt-scanlines{opacity:.8}
+  body.corr-high .crt-noise{opacity:.11}
+  body.corr-high .crt-vignette{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 30%,rgba(60,0,0,.5) 75%,rgba(0,0,0,.97) 100%)}
+  body.corr-high{animation:bodyJitter 3.5s infinite steps(20)}
+
+  body.corr-extreme .crt-scanlines{opacity:.9}
+  body.corr-extreme .crt-noise{opacity:.16}
+  body.corr-extreme .crt-vignette{background:radial-gradient(ellipse at center,rgba(0,0,0,0) 20%,rgba(90,0,0,.6) 65%,rgba(0,0,0,.98) 100%)}
+  body.corr-extreme{animation:bodyJitter 1.6s infinite steps(10)}
+  body.corr-extreme .console{animation:consoleGlitch 2.2s infinite steps(8)}
+  @keyframes bodyJitter{0%,100%{transform:translate(0,0)}25%{transform:translate(.5px,-.5px)}50%{transform:translate(-.5px,.5px)}75%{transform:translate(.5px,.5px)}}
+  @keyframes consoleGlitch{0%,100%{filter:none}3%{filter:hue-rotate(8deg) saturate(1.2)}6%{filter:none}50%{filter:none}52%{transform:translateX(-1px);filter:hue-rotate(-6deg)}54%{transform:translateX(1px);filter:none}}
 
   /* ---------- Boot overlay ---------- */
   .boot{
@@ -153,7 +175,7 @@
       linear-gradient(180deg,rgba(20,18,14,.6),rgba(8,8,8,.9)),
       var(--panel);
     border:1px solid #241a12;
-    border-radius:6px;
+    border-radius:10px;
     box-shadow:
       0 0 0 1px #000,
       0 0 0 2px #2a2018,
@@ -164,6 +186,18 @@
       0 0 90px rgba(74,246,38,.05);
     position:relative;
     overflow:hidden;
+  }
+  /* subtle screen curvature via inner radial highlight */
+  .console .curvature{
+    position:absolute;inset:0;pointer-events:none;z-index:4;
+    background:radial-gradient(ellipse 130% 120% at 50% 50%,transparent 60%,rgba(0,0,0,.35) 100%);
+    border-radius:10px;
+  }
+  /* phosphor warmup glow on the screen interior */
+  .console .phosphor{
+    position:absolute;inset:0;pointer-events:none;z-index:4;
+    background:radial-gradient(ellipse at 50% 40%,rgba(74,246,38,.04),transparent 55%);
+    mix-blend-mode:screen;opacity:.6;
   }
   /* scratches / dust texture */
   .console::before{
@@ -192,10 +226,19 @@
     padding:8px 14px;
     background:linear-gradient(180deg,#161310,#0a0807);
     border-bottom:1px solid #2a2017;
-    border-radius:6px 6px 0 0;
+    border-radius:10px 10px 0 0;
     position:relative;z-index:3;
     flex-shrink:0;
   }
+  /* rivets along the titlebar */
+  .titlebar::before,.titlebar::after{
+    content:"";position:absolute;top:50%;transform:translateY(-50%);
+    width:5px;height:5px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%,#6a5230,#1a1208);
+    box-shadow:0 0 2px #000,inset 0 0 1px rgba(255,200,120,.3);
+  }
+  .titlebar::before{left:6px}
+  .titlebar::after{right:6px}
   .tb-leds{display:flex;gap:6px}
   .led{width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 2px #000}
   .led.r{background:var(--red);box-shadow:0 0 6px var(--red),inset 0 0 2px #000}
@@ -210,6 +253,17 @@
   .tb-title b{color:var(--green);text-shadow:0 0 8px rgba(74,246,38,.7)}
   .tb-meta{font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px}
   .tb-meta span{color:var(--green)}
+
+  /* audio toggle button */
+  .audio-btn{
+    background:none;border:1px solid var(--green-deep);color:var(--green-dim);
+    font-family:'VT323',monospace;font-size:13px;letter-spacing:1px;
+    padding:3px 9px;cursor:pointer;border-radius:2px;
+    transition:all .15s;min-width:74px;text-align:center;
+  }
+  .audio-btn:hover{color:var(--green);border-color:var(--green);box-shadow:0 0 8px rgba(74,246,38,.4)}
+  .audio-btn.off{color:var(--text-dim);border-color:#2a2017}
+  .audio-btn.off:hover{color:var(--red);border-color:var(--red-dim)}
 
   /* ---------- Body layout ---------- */
   .body{
@@ -253,6 +307,11 @@
   .menu-item.locked{color:var(--red-dim)}
   .menu-item.locked .chev{color:var(--red-dim)}
   .menu-item.locked:hover{color:var(--red);border-color:rgba(255,36,36,.4);text-shadow:0 0 8px rgba(255,36,36,.6);background:linear-gradient(90deg,rgba(255,36,36,.08),transparent)}
+  .menu-item.unlocked{color:var(--amber);animation:unlockPulse 1.2s ease-out}
+  .menu-item.unlocked .chev{color:var(--amber)}
+  .menu-item.unlocked .tag{color:var(--amber)}
+  .menu-item.unlocked:hover{color:var(--amber);border-color:rgba(232,161,58,.5);text-shadow:0 0 8px rgba(232,161,58,.6);background:linear-gradient(90deg,rgba(232,161,58,.1),transparent)}
+  @keyframes unlockPulse{0%{box-shadow:0 0 0 0 rgba(232,161,58,.6)}100%{box-shadow:0 0 0 14px rgba(232,161,58,0)}}
   .menu-item.deny{color:var(--red);border-color:rgba(255,36,36,.6);text-shadow:0 0 10px rgba(255,36,36,.8);background:linear-gradient(90deg,rgba(255,36,36,.18),transparent);animation:glitchHover .12s steps(2) 4}
 
   @keyframes glitchHover{
@@ -276,6 +335,7 @@
   .meter .lbl b{color:var(--green)}
   .meter .bar{height:6px;background:#0c140c;border:1px solid #1a201a;margin-top:3px;overflow:hidden}
   .meter .bar i{display:block;height:100%;background:repeating-linear-gradient(45deg,var(--green) 0 4px,#0c2a08 4px 8px)}
+  .meter .bar i.red{background:repeating-linear-gradient(45deg,var(--red) 0 4px,#2a0808 4px 8px)}
 
   /* ---------- Main viewport ---------- */
   .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
@@ -313,7 +373,7 @@
   @keyframes cur{50%{opacity:0}}
   .loader .progress{margin-top:auto}
   .loader .pbar{height:8px;border:1px solid var(--green-dim);background:#06120a;margin-top:6px;position:relative}
-  .loader .pbar::after{content:"";position:absolute;inset:0;width:0;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#0c2a08 6px 12px);transition:width .2s linear}
+  .loader .pbar i{position:absolute;inset:0;width:0;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#0c2a08 6px 12px);transition:width .2s linear}
 
   /* content */
   .content{position:absolute;inset:0;padding:18px 22px;overflow-y:auto;opacity:0;transition:opacity .3s}
@@ -321,6 +381,7 @@
   .content::-webkit-scrollbar{width:10px}
   .content::-webkit-scrollbar-track{background:#0a0d0a}
   .content::-webkit-scrollbar-thumb{background:linear-gradient(var(--green-dim),#0c2a08);border:1px solid #1a201a}
+  .content::-webkit-scrollbar-thumb:hover{background:linear-gradient(var(--green),var(--green-dim))}
 
   .panel-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;gap:14px;flex-wrap:wrap}
   .panel-head h2{
@@ -330,12 +391,34 @@
   .panel-head h2 .g{color:var(--green);text-shadow:0 0 12px rgba(74,246,38,.7)}
   .panel-head .sub{font-size:13px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px}
 
+  /* ---------- NPC ARCHIVE: list + detail ---------- */
+  .archive-wrap{display:grid;grid-template-columns:230px 1fr;gap:14px;min-height:0}
+  .npc-list{display:flex;flex-direction:column;gap:5px;max-height:560px;overflow-y:auto;padding-right:4px}
+  .npc-list::-webkit-scrollbar{width:6px}
+  .npc-list::-webkit-scrollbar-thumb{background:var(--green-deep)}
+  .npc-row{
+    border:1px solid #1c1610;background:linear-gradient(90deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+    padding:8px 10px;cursor:pointer;position:relative;
+    clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%);
+    transition:all .15s;
+  }
+  .npc-row:hover{border-color:rgba(74,246,38,.4);background:linear-gradient(90deg,rgba(74,246,38,.08),transparent)}
+  .npc-row.sel{border-color:var(--green);background:linear-gradient(90deg,rgba(74,246,38,.16),transparent);box-shadow:inset 2px 0 0 var(--green)}
+  .npc-row.corrupt{border-color:#2a1414}
+  .npc-row.corrupt.sel{border-color:var(--red);background:linear-gradient(90deg,rgba(255,36,36,.14),transparent);box-shadow:inset 2px 0 0 var(--red)}
+  .npc-row .rid{font-size:11px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px}
+  .npc-row .rnm{font-family:'MedievalSharp',serif;font-size:15px;color:var(--text-dead);line-height:1.1;margin-top:1px}
+  .npc-row.sel .rnm{color:var(--green);text-shadow:0 0 6px rgba(74,246,38,.5)}
+  .npc-row.corrupt .rnm{color:var(--red);text-shadow:0 0 5px rgba(255,36,36,.4)}
+  .npc-row .rtag{position:absolute;right:8px;top:8px;font-size:10px;font-family:'VT323',monospace;color:var(--text-dim)}
+  .npc-row.corrupt .rtag{color:var(--red-dim)}
+
+  .detail-slot{min-width:0}
+
   /* ---------- NPC cards ---------- */
-  .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   .card{
     border:1px solid #2a2017;
-    background:
-      linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+    background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
     padding:16px;position:relative;
     clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
     box-shadow:inset 0 0 30px rgba(0,0,0,.7);
@@ -459,7 +542,7 @@
   .holo .floor{position:absolute;bottom:8%;left:18%;right:18%;height:14px;background:radial-gradient(ellipse at center,rgba(74,246,38,.35),transparent 70%);filter:blur(2px)}
   .card.corrupt .holo .floor{background:radial-gradient(ellipse at center,rgba(255,36,36,.35),transparent 70%)}
 
-  .holo .tag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:11px;font-family:'VT323',monospace;color:var(--green-dim);letter-spacing:2px}
+  .holo .tag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:11px;font-family:'VT323',monospace;color:var(--green-dim);letter-spacing:2px;white-space:nowrap}
   .card.corrupt .holo .tag{color:var(--red-dim)}
 
   /* corrupted hologram subject */
@@ -526,6 +609,125 @@
   .entry.locked p{color:var(--text-dim)}
   .entry .meta{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;margin-top:6px;border-top:1px dashed #1a201a;padding-top:5px}
 
+  /* ---------- Encounter simulator ---------- */
+  .encounter{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .enc-field{
+    border:1px solid #2a2017;background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+    padding:12px;min-height:120px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  }
+  .enc-field .eh{font-family:'MedievalSharp',serif;font-size:16px;color:var(--text-dead);letter-spacing:1px;margin-bottom:6px}
+  .enc-field .eh.g{color:var(--green)}
+  .enc-field .eh.r{color:var(--red)}
+  .enc-field .eh .sigil{font-size:13px;color:var(--text-dim);font-family:'VT323',monospace;margin-left:6px}
+  .enc-field .hpbar{height:10px;border:1px solid #1a201a;background:#0c0c0c;margin:5px 0;position:relative;overflow:hidden}
+  .enc-field .hpbar i{display:block;height:100%;transition:width .35s}
+  .enc-field.ally .hpbar i{background:linear-gradient(90deg,var(--green-dim),var(--green))}
+  .enc-field.foe .hpbar i{background:linear-gradient(90deg,#7a1010,var(--red))}
+  .enc-field .hpt{font-size:13px;font-family:'VT323',monospace;display:flex;justify-content:space-between}
+  .enc-field.ally .hpt{color:var(--green)}
+  .enc-field.foe .hpt{color:var(--red)}
+  .enc-field .cond{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);margin-top:4px;letter-spacing:1px}
+
+  .enc-log{
+    border:1px solid #2a2017;background:#040504;margin-top:14px;padding:12px 14px;
+    font-family:'VT323',monospace;font-size:15px;line-height:1.5;color:var(--text);
+    max-height:240px;overflow-y:auto;
+    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  }
+  .enc-log .ln{white-space:pre-wrap;min-height:1.4em}
+  .enc-log .ln.atk{color:var(--green)}
+  .enc-log .ln.fatk{color:var(--red)}
+  .enc-log .ln.miss{color:var(--text-dim)}
+  .enc-log .ln.crit{color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.5)}
+  .enc-log .ln.sys{color:var(--cyan-dim)}
+  .enc-log .ln.die{color:var(--red);font-weight:bold;text-shadow:0 0 8px rgba(255,36,36,.6)}
+  .enc-log::-webkit-scrollbar{width:8px}
+  .enc-log::-webkit-scrollbar-thumb{background:var(--green-deep)}
+
+  .enc-ctrl{display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap}
+  .enc-btn{
+    background:linear-gradient(180deg,rgba(74,246,38,.12),rgba(74,246,38,.03));
+    border:1px solid var(--green-dim);color:var(--green);
+    font-family:'VT323',monospace;font-size:15px;letter-spacing:2px;
+    padding:7px 18px;cursor:pointer;
+    clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));
+    transition:all .15s;text-shadow:0 0 6px rgba(74,246,38,.5);
+  }
+  .enc-btn:hover:not(:disabled){background:linear-gradient(180deg,rgba(74,246,38,.25),rgba(74,246,38,.08));box-shadow:0 0 14px rgba(74,246,38,.4);text-shadow:0 0 10px rgba(74,246,38,.9)}
+  .enc-btn:disabled{opacity:.35;cursor:not-allowed}
+  .enc-btn.foe{border-color:var(--red-dim);color:var(--red);background:linear-gradient(180deg,rgba(255,36,36,.1),rgba(255,36,36,.02));text-shadow:0 0 6px rgba(255,36,36,.5)}
+  .enc-btn.foe:hover:not(:disabled){background:linear-gradient(180deg,rgba(255,36,36,.22),rgba(255,36,36,.06));box-shadow:0 0 14px rgba(255,36,36,.4)}
+  .enc-btn.warn{border-color:var(--amber);color:var(--amber);background:linear-gradient(180deg,rgba(232,161,58,.1),rgba(232,161,58,.02))}
+  .enc-info{font-size:12px;font-family:'VT323',monospace;color:var(--text-dim);letter-spacing:1px;margin-left:auto}
+  .enc-info b{color:var(--green)}
+
+  /* dice roll popup */
+  .dice-pop{
+    position:fixed;font-family:'VT323',monospace;font-size:22px;font-weight:bold;
+    color:var(--amber);text-shadow:0 0 10px rgba(232,161,58,.8);
+    pointer-events:none;z-index:9300;animation:dicePop .9s ease-out forwards;
+  }
+  .dice-pop.crit{color:#ffe24a;font-size:28px}
+  .dice-pop.miss{color:var(--text-dim)}
+  @keyframes dicePop{0%{opacity:0;transform:translateY(8px) scale(.7)}25%{opacity:1;transform:translateY(-4px) scale(1.1)}100%{opacity:0;transform:translateY(-30px) scale(1)}}
+
+  /* ---------- Ritual panel (unlocked) ---------- */
+  .ritual-stage{
+    border:1px solid var(--amber);background:radial-gradient(circle at 50% 50%,rgba(232,161,58,.08),transparent 65%),#060503;
+    aspect-ratio:2/1;max-height:340px;position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  }
+  .ritual-circle{
+    width:60%;aspect-ratio:1;border:2px solid var(--amber);border-radius:50%;
+    position:relative;animation:ritSpin 24s linear infinite;
+    box-shadow:0 0 40px rgba(232,161,58,.4),inset 0 0 30px rgba(232,161,58,.2);
+  }
+  .ritual-circle::before,.ritual-circle::after{content:"";position:absolute;border:1px solid var(--amber);border-radius:50%;opacity:.5}
+  .ritual-circle::before{inset:14%;border-style:dashed;animation:ritSpin 16s linear infinite reverse}
+  .ritual-circle::after{inset:30%;border-width:1px;opacity:.7}
+  @keyframes ritSpin{to{transform:rotate(360deg)}}
+  .ritual-runes{position:absolute;inset:0;font-family:'MedievalSharp',serif;color:var(--amber);font-size:18px;text-shadow:0 0 8px rgba(232,161,58,.7);opacity:.85;animation:ritSpin 30s linear infinite}
+  .ritual-runes span{position:absolute}
+
+  /* ---------- Dead god panel (unlocked) ---------- */
+  .god-reveal{
+    border:1px solid var(--red);background:radial-gradient(circle at 50% 40%,rgba(255,36,36,.08),transparent 60%),#050202;
+    padding:18px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+    position:relative;
+  }
+  .god-reveal h3{font-family:'MedievalSharp',serif;font-size:24px;color:var(--red);text-shadow:0 0 12px rgba(255,36,36,.6);letter-spacing:2px;margin-bottom:8px;animation:corruptGlitch 4s infinite steps(10)}
+  .god-reveal p{font-size:14px;line-height:1.65;color:var(--text)}
+  .god-reveal .glyph{font-size:40px;color:var(--red);text-align:center;text-shadow:0 0 20px rgba(255,36,36,.8);margin:10px 0;animation:godPulse 3s ease-in-out infinite}
+  @keyframes godPulse{0%,100%{opacity:.7;filter:blur(0)}50%{opacity:1;filter:blur(.5px)}}
+
+  /* ---------- Unlock overlay ---------- */
+  .unlock-overlay{
+    position:fixed;inset:0;z-index:9600;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.7);opacity:0;pointer-events:none;transition:opacity .3s;
+  }
+  .unlock-overlay.show{opacity:1}
+  .unlock-box{
+    border:1px solid var(--amber);background:#0a0805;padding:28px 44px;text-align:center;
+    box-shadow:0 0 50px rgba(232,161,58,.5),inset 0 0 30px rgba(232,161,58,.1);
+    clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+    font-family:'VT323',monospace;
+    animation:unlockIn .4s ease-out;
+  }
+  @keyframes unlockIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+  .unlock-box .uh{font-family:'MedievalSharp',serif;font-size:26px;color:var(--amber);text-shadow:0 0 14px rgba(232,161,58,.7);letter-spacing:2px;margin-bottom:8px}
+  .unlock-box .um{font-size:15px;color:var(--text);letter-spacing:1px}
+  .unlock-box .um b{color:var(--amber)}
+
+  /* key-code indicator (bottom-left, shows typed buffer when typing) */
+  .keybuf{
+    position:fixed;left:14px;bottom:30px;z-index:9200;
+    font-family:'VT323',monospace;font-size:13px;color:var(--text-dim);
+    letter-spacing:2px;pointer-events:none;opacity:0;transition:opacity .2s;
+  }
+  .keybuf.show{opacity:.7}
+  .keybuf b{color:var(--green)}
+
   /* ---------- Footer / signature ---------- */
   .signature{
     position:fixed;left:50%;bottom:6px;transform:translateX(-50%);
@@ -542,10 +744,13 @@
     .menu-item{width:auto;clip-path:none;padding:6px 10px;font-size:12px}
     .menu-item .tag{display:none}
     .side-foot{display:none}
-    .cards{grid-template-columns:1fr}
+    .archive-wrap{grid-template-columns:1fr}
+    .npc-list{flex-direction:row;overflow-x:auto;max-height:none}
+    .npc-row{min-width:160px}
     .card-body{grid-template-columns:1fr 1fr}
     .titlebar{flex-wrap:wrap}
     .panel-head h2{font-size:20px}
+    .encounter{grid-template-columns:1fr}
   }
   @media (max-width:560px){
     .card-body{grid-template-columns:1fr}
@@ -553,10 +758,11 @@
     .crumbs .right{display:none}
     .statusbar{flex-wrap:wrap;gap:10px;font-size:11px}
     .statusbar .right{gap:10px}
+    .audio-btn{font-size:11px;min-width:60px;padding:2px 6px}
   }
 </style>
 </head>
-<body>
+<body class="corr-low">
 
 <!-- screen overlays -->
 <div class="crt-scanlines"></div>
@@ -572,9 +778,22 @@
   <div class="boot-bar"></div>
 </div>
 
+<!-- UNLOCK OVERLAY -->
+<div class="unlock-overlay" id="unlockOverlay">
+  <div class="unlock-box">
+    <div class="uh" id="unlockHead">ACCESS GRANTED</div>
+    <div class="um" id="unlockMsg"></div>
+  </div>
+</div>
+
+<!-- KEY BUFFER HINT -->
+<div class="keybuf" id="keybuf">&gt; <b id="keybufTxt"></b><span style="color:var(--text-dim)">_</span></div>
+
 <!-- CONSOLE -->
 <div class="stage" id="stage">
   <div class="console">
+    <div class="curvature"></div>
+    <div class="phosphor"></div>
 
     <!-- TITLEBAR -->
     <div class="titlebar">
@@ -584,6 +803,7 @@
         <span class="led g"></span>
       </div>
       <div class="tb-title">A S H E N&nbsp;&nbsp;C O D E X &nbsp;//&nbsp; <b>CAMPAIGN CONSOLE</b> &nbsp;v3.7-pact</div>
+      <button class="audio-btn off" id="audioBtn" title="Toggle ambient sound">SOUND:OFF</button>
       <div class="tb-meta">SECT <span>07</span> // PACT <span>ACTIVE</span></div>
     </div>
 
@@ -594,11 +814,12 @@
       <aside class="sidebar">
         <div class="side-head">// COMMAND_INDEX</div>
         <nav class="menu" id="menu">
-          <button class="menu-item active" data-panel="archive" data-txt="> QUERY_NPC_ARCHIVE"><span class="chev">&gt;</span>QUERY_NPC_ARCHIVE<span class="tag">12 rec</span></button>
+          <button class="menu-item active" data-panel="archive" data-txt="> QUERY_NPC_ARCHIVE"><span class="chev">&gt;</span>QUERY_NPC_ARCHIVE<span class="tag">8 rec</span></button>
           <button class="menu-item" data-panel="units" data-txt="> SCAN_PLAYER_UNITS"><span class="chev">&gt;</span>SCAN_PLAYER_UNITS<span class="tag">4/5</span></button>
           <button class="menu-item" data-panel="lore" data-txt="> ACCESS_WORLD_LORE"><span class="chev">&gt;</span>ACCESS_WORLD_LORE<span class="tag">7 rec</span></button>
-          <button class="menu-item locked" data-panel="archive" data-txt="> SUMMON_RITUAL_NET"><span class="chev">&#9888;</span>SUMMON_RITUAL_NET<span class="tag">lock</span></button>
-          <button class="menu-item locked" data-panel="archive" data-txt="> DECRYPT_DEAD_GOD"><span class="chev">&#9888;</span>DECRYPT_DEAD_GOD<span class="tag">lock</span></button>
+          <button class="menu-item" data-panel="encounter" data-txt="> RUN_ENCOUNTER_SIM"><span class="chev">&gt;</span>RUN_ENCOUNTER_SIM<span class="tag">live</span></button>
+          <button class="menu-item locked" data-panel="ritual" data-txt="> SUMMON_RITUAL_NET"><span class="chev">&#9888;</span>SUMMON_RITUAL_NET<span class="tag">lock</span></button>
+          <button class="menu-item locked" data-panel="deadgod" data-txt="> DECRYPT_DEAD_GOD"><span class="chev">&#9888;</span>DECRYPT_DEAD_GOD<span class="tag">lock</span></button>
         </nav>
 
         <div class="side-foot">
@@ -608,7 +829,7 @@
           </div>
           <div class="meter">
             <div class="lbl"><span>CORRUPTION</span><b id="m2v">27%</b></div>
-            <div class="bar"><i id="m2" style="width:27%;background:repeating-linear-gradient(45deg,var(--red) 0 4px,#2a0808 4px 8px)"></i></div>
+            <div class="bar"><i id="m2" class="red" style="width:27%"></i></div>
           </div>
           <div class="meter">
             <div class="lbl"><span>SIGNAL</span><b id="m3v">88%</b></div>
@@ -636,7 +857,7 @@
             <div class="ln" id="loaderOut"></div>
             <div class="progress">
               <div style="display:flex;justify-content:space-between"><span id="loaderTask">INITIALIZING</span><span id="loaderPct">0%</span></div>
-              <div class="pbar" id="loaderPbar"></div>
+              <div class="pbar" id="loaderPbar"><i></i></div>
             </div>
           </div>
 
@@ -654,9 +875,11 @@
       <span class="sep">|</span>
       <div class="s">PACT <b>3/7</b></div>
       <span class="sep">|</span>
-      <div class="s r">BREACH <b>0.4</b></div>
+      <div class="s r">BREACH <b id="sbBreach">0.4</b></div>
       <div class="right">
-        <div class="s a">WARN <b>2</b></div>
+        <div class="s a">WARN <b id="sbWarn">2</b></div>
+        <span class="sep">|</span>
+        <div class="s">CORR <b id="sbCorr">27%</b></div>
         <span class="sep">|</span>
         <div class="s">USER: <b>warden_07</b></div>
         <span class="sep">|</span>
@@ -671,7 +894,7 @@
 <!-- ============ SVG TEMPLATES ============ -->
 <svg width="0" height="0" style="position:absolute">
   <defs>
-    <!-- skull sigil (open npc) -->
+    <!-- skull -->
     <symbol id="i-skull" viewBox="0 0 120 120">
       <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
         <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".5"/>
@@ -698,36 +921,196 @@
         <path d="M30 90 L24 96" opacity=".5"/><path d="M90 90 L96 96" opacity=".5"/>
       </g>
     </symbol>
+    <!-- eye (beholder/warden) -->
+    <symbol id="i-eye" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <circle cx="60" cy="60" r="50" stroke-dasharray="2 5" opacity=".4"/>
+        <path d="M16 60 C30 38 90 38 104 60 C90 82 30 82 16 60 Z"/>
+        <circle cx="60" cy="60" r="18"/>
+        <circle cx="60" cy="60" r="7" fill="currentColor"/>
+        <circle cx="55" cy="55" r="2" fill="#050505" stroke="none"/>
+        <path d="M60 42 L60 30 M60 78 L60 90 M42 60 L30 60 M78 60 L90 60" opacity=".5"/>
+        <path d="M30 44 L24 38 M90 44 L96 38 M30 76 L24 82 M90 76 L96 82" opacity=".4"/>
+      </g>
+    </symbol>
+    <!-- serpent -->
+    <symbol id="i-serpent" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".4"/>
+        <path d="M30 40 C20 55 25 70 40 72 C55 74 60 60 50 52 C40 44 55 36 70 44 C85 52 95 50 92 38"/>
+        <path d="M92 38 L100 34 L96 44 Z" fill="currentColor"/>
+        <circle cx="86" cy="40" r="1.6" fill="currentColor"/>
+        <path d="M40 72 C36 78 40 84 48 82" opacity=".6"/>
+        <path d="M55 64 L52 58 M62 60 L59 54 M48 68 L45 62" opacity=".5"/>
+      </g>
+    </symbol>
+    <!-- crown -->
+    <symbol id="i-crown" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".4"/>
+        <path d="M24 78 L24 50 L40 64 L60 36 L80 64 L96 50 L96 78 Z"/>
+        <line x1="24" y1="78" x2="96" y2="78"/>
+        <line x1="24" y1="84" x2="96" y2="84"/>
+        <circle cx="24" cy="50" r="3" fill="currentColor"/>
+        <circle cx="60" cy="36" r="4" fill="currentColor"/>
+        <circle cx="96" cy="50" r="3" fill="currentColor"/>
+        <path d="M40 78 L40 84 M60 78 L60 84 M80 78 L80 84" opacity=".5"/>
+        <path d="M50 64 L50 78 M70 64 L70 78" opacity=".4"/>
+      </g>
+    </symbol>
+    <!-- flame -->
+    <symbol id="i-flame" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".4"/>
+        <path d="M60 96 C38 96 30 78 36 64 C40 54 50 52 50 40 C56 46 58 54 56 60 C62 54 66 40 60 26 C78 36 88 52 86 68 C92 60 92 50 88 44 C100 58 98 80 84 90 C78 94 70 96 60 96 Z"/>
+        <path d="M60 90 C50 90 44 80 48 70 C52 64 58 62 58 54 C64 60 66 68 62 74 C68 70 70 64 66 58 C74 66 76 78 68 86 C66 88 63 90 60 90 Z" opacity=".6"/>
+      </g>
+    </symbol>
+    <!-- hourglass -->
+    <symbol id="i-hourglass" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".4"/>
+        <path d="M34 22 L86 22 L86 30 L66 58 L86 90 L86 98 L34 98 L34 90 L54 58 L34 30 Z"/>
+        <line x1="34" y1="22" x2="86" y2="22"/>
+        <line x1="34" y1="98" x2="86" y2="98"/>
+        <path d="M44 30 L76 30 L62 54 C58 56 56 60 60 60 C64 60 62 56 58 54 Z" opacity=".5"/>
+        <path d="M48 90 L72 90 L62 74 C58 78 56 82 60 84 C64 82 62 78 58 74 Z" fill="currentColor" opacity=".4"/>
+        <circle cx="60" cy="62" r="1.6" fill="currentColor"/>
+        <path d="M60 56 L60 64" opacity=".7"/>
+      </g>
+    </symbol>
+    <!-- ritual circle -->
+    <symbol id="i-ritual" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+        <circle cx="60" cy="60" r="52"/>
+        <circle cx="60" cy="60" r="44" stroke-dasharray="4 4"/>
+        <circle cx="60" cy="60" r="30"/>
+        <polygon points="60,20 96,78 24,78" opacity=".6"/>
+        <polygon points="60,100 24,42 96,42" opacity=".5"/>
+        <circle cx="60" cy="60" r="8"/>
+        <circle cx="60" cy="60" r="3" fill="currentColor"/>
+        <path d="M60 8 L60 16 M60 104 L60 112 M8 60 L16 60 M104 60 L112 60" opacity=".6"/>
+        <path d="M22 22 L28 28 M98 22 L92 28 M22 98 L28 92 M98 98 L92 92" opacity=".5"/>
+      </g>
+    </symbol>
+    <!-- dead god glyph -->
+    <symbol id="i-god" viewBox="0 0 120 120">
+      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+        <circle cx="60" cy="60" r="50" stroke-dasharray="6 3" opacity=".5"/>
+        <path d="M60 14 C70 30 80 40 80 56 C80 72 70 80 60 80 C50 80 40 72 40 56 C40 40 50 30 60 14 Z"/>
+        <path d="M60 80 L60 100"/>
+        <path d="M44 92 L76 92" opacity=".6"/>
+        <circle cx="54" cy="54" r="3" fill="currentColor"/>
+        <circle cx="66" cy="54" r="3" fill="currentColor"/>
+        <path d="M50 68 L70 68 M54 72 L66 72" opacity=".5"/>
+        <path d="M30 40 L20 36 M90 40 L100 36 M30 80 L20 84 M90 80 L100 84" opacity=".4"/>
+      </g>
+    </symbol>
   </defs>
 </svg>
 
 <script>
 /* ============================================================
-   ASHEN CODEX — console logic
+   ASHEN CODEX — console logic  v3.7-pact
    ============================================================ */
 (function(){
+  "use strict";
   const $ = (s,p=document)=>p.querySelector(s);
   const $$ = (s,p=document)=>[...p.querySelectorAll(s)];
 
+  /* =========================================================
+     AUDIO SYSTEM (Web Audio API — synthesized, no files)
+     ========================================================= */
+  const Audio = (function(){
+    let ctx=null, master=null, humNode=null, humGain=null, started=false, muted=true;
+    function init(){
+      if(started) return;
+      try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+      master=ctx.createGain(); master.gain.value=0.0; master.connect(ctx.destination);
+      // ambient drone: two detuned low oscillators + filtered noise
+      humGain=ctx.createGain(); humGain.gain.value=0.0; humGain.connect(master);
+      const o1=ctx.createOscillator(); o1.type="sine"; o1.frequency.value=55;
+      const o2=ctx.createOscillator(); o2.type="sine"; o2.frequency.value=55.4;
+      const o3=ctx.createOscillator(); o3.type="triangle"; o3.frequency.value=110;
+      const o3g=ctx.createGain(); o3g.gain.value=0.12;
+      o3.connect(o3g); o3g.connect(humGain);
+      o1.connect(humGain); o2.connect(humGain);
+      o1.start();o2.start();o3.start();
+      // filtered noise bed
+      const noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+      const nd=noiseBuf.getChannelData(0);
+      for(let i=0;i<nd.length;i++) nd[i]=(Math.random()*2-1)*0.5;
+      const ns=ctx.createBufferSource(); ns.buffer=noiseBuf; ns.loop=true;
+      const nf=ctx.createBiquadFilter(); nf.type="lowpass"; nf.frequency.value=180; nf.Q.value=0.7;
+      const ng=ctx.createGain(); ng.gain.value=0.08;
+      ns.connect(nf); nf.connect(ng); ng.connect(humGain); ns.start();
+      humNode=humGain;
+      started=true;
+    }
+    function setMuted(m){
+      muted=m;
+      if(!ctx) return;
+      const tgt=m?0.0:0.35;
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(master.gain.value,ctx.currentTime);
+      master.gain.linearRampToValueAtTime(tgt,ctx.currentTime+0.4);
+    }
+    function blip(freq=440,dur=0.06,vol=0.12,type="square"){
+      if(!ctx||muted) return;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type=type;o.frequency.value=freq;
+      g.gain.setValueAtTime(0,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(vol,ctx.currentTime+0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+      o.connect(g);g.connect(master);o.start();o.stop(ctx.currentTime+dur+0.02);
+    }
+    function beep(freq=880,dur=0.08,vol=0.14){ blip(freq,dur,vol,"square"); }
+    function glitch(vol=0.18){
+      if(!ctx||muted) return;
+      const dur=0.18;
+      const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();
+      o.type="sawtooth"; o.frequency.setValueAtTime(120,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+dur);
+      f.type="bandpass"; f.frequency.value=800; f.Q.value=2;
+      g.gain.setValueAtTime(vol,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+      o.connect(f);f.connect(g);g.connect(master);o.start();o.stop(ctx.currentTime+dur);
+    }
+    function thud(vol=0.22){
+      if(!ctx||muted) return;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="sine"; o.frequency.setValueAtTime(90,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(30,ctx.currentTime+0.3);
+      g.gain.setValueAtTime(vol,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.4);
+      o.connect(g);g.connect(master);o.start();o.stop(ctx.currentTime+0.45);
+    }
+    return {
+      init, setMuted, isMuted(){return muted;}, isStarted(){return started;},
+      blip, beep, glitch, thud,
+      ensure(){ if(!started) init(); if(ctx&&ctx.state==="suspended") ctx.resume(); }
+    };
+  })();
+
   /* ---------- BOOT SEQUENCE ---------- */
   const bootLines = [
-    {t:"> ASHEN_CODEX BIOS v3.7-pact ...",c:"ok"},
-    {t:"> MOUNTING /dev/soul_reservoir ........ [ OK ]",c:"ok"},
-    {t:"> MOUNTING /dev/pact_archive .......... [ OK ]",c:"ok"},
-    {t:"> LOADING rune_table.bin .............. [ OK ]",c:"ok"},
-    {t:"> CHECKING corruption_seal ............ [ 0.4 ]",c:"warn"},
+    {t:"> ASHEN_CODEX BIOS v3.7-pact ...",c:"ok",snd:"beep"},
+    {t:"> MOUNTING /dev/soul_reservoir ........ [ OK ]",c:"ok",snd:"beep"},
+    {t:"> MOUNTING /dev/pact_archive .......... [ OK ]",c:"ok",snd:"beep"},
+    {t:"> LOADING rune_table.bin .............. [ OK ]",c:"ok",snd:"beep"},
+    {t:"> CHECKING corruption_seal ............ [ 0.4 ]",c:"warn",snd:"glitch"},
     {t:"> DEAD_GOD fragments detected ......... 3 ENCOUNTERED",c:"warn"},
-    {t:"> ESTABLISHING uplink to WARDEN_NET ... [ OK ]",c:"ok"},
-    {t:"> HANDSHAKE with SECT_07 .............. [ OK ]",c:"ok"},
-    {t:"> DECRYPTING campaign manifest ........ [ OK ]",c:"ok"},
-    {t:"> WARNING: 2 archive entries CORRUPTED. seal integrity 73%.",c:"err"},
-    {t:"> RENDERING interface .................. done",c:"ok"},
+    {t:"> ESTABLISHING uplink to WARDEN_NET ... [ OK ]",c:"ok",snd:"beep"},
+    {t:"> HANDSHAKE with SECT_07 .............. [ OK ]",c:"ok",snd:"beep"},
+    {t:"> DECRYPTING campaign manifest ........ [ OK ]",c:"ok",snd:"beep"},
+    {t:"> WARNING: 2 archive entries CORRUPTED. seal integrity 73%.",c:"err",snd:"glitch"},
+    {t:"> RENDERING interface .................. done",c:"ok",snd:"beep"},
   ];
   const bootLog = $("#bootLog");
   let bi=0;
   function bootStep(){
     if(bi>=bootLines.length){
-      setTimeout(()=>{$("#boot").classList.add("gone");$("#stage").classList.add("live");startPanel("archive",true);},700);
+      setTimeout(()=>{$("#boot").classList.add("gone");$("#stage").classList.add("live");Audio.thud();startPanel("archive",true);},700);
       return;
     }
     const l=bootLines[bi++];
@@ -735,6 +1118,8 @@
     d.className="ln "+l.c;
     d.textContent=l.t;
     bootLog.appendChild(d);
+    if(l.snd==="beep") Audio.beep(720+Math.random()*120,0.05,0.08);
+    else if(l.snd==="glitch") Audio.glitch(0.1);
     setTimeout(bootStep, 130+Math.random()*90);
   }
   setTimeout(bootStep,650);
@@ -748,78 +1133,130 @@
   }
   setInterval(tick,1000); tick();
 
+  /* =========================================================
+     CORRUPTION STATE — drives global degradation
+     ========================================================= */
+  const State = {
+    corruption:27,    // 0..100
+    soul:61,
+    signal:88,
+    unlocked:new Set(), // panel names unlocked via code
+  };
+  function corrTier(v){ return v<30?"low":v<55?"med":v<80?"high":"extreme"; }
+  function applyCorruption(){
+    const t=corrTier(State.corruption);
+    document.body.className="corr-"+t;
+    $("#m2v").textContent=State.corruption+"%";
+    $("#m2").style.width=State.corruption+"%";
+    $("#sbCorr").textContent=State.corruption+"%";
+    const breach=(State.corruption/100*1.2).toFixed(1);
+    const sb=$("#sbBreach"); if(sb)sb.textContent=breach;
+    const warn=State.corruption<30?2:State.corruption<55?4:State.corruption<80?7:11;
+    const sw=$("#sbWarn"); if(sw)sw.textContent=warn;
+  }
+  function addCorruption(n){
+    State.corruption=Math.max(0,Math.min(100,Math.round(State.corruption+n)));
+    applyCorruption();
+    if(n>0) Audio.glitch(0.12);
+  }
+
   /* ---------- meters drift ---------- */
   function drift(){
-    const m1=40+Math.floor(Math.random()*30);
-    const m2=20+Math.floor(Math.random()*15);
-    const m3=80+Math.floor(Math.random()*18);
-    $("#m1").style.width=m1+"%";$("#m1v").textContent=m1+"%";
-    $("#m2").style.width=m2+"%";$("#m2v").textContent=m2+"%";
-    $("#m3").style.width=m3+"%";$("#m3v").textContent=m3+"%";
+    State.soul=Math.max(15,Math.min(95,State.soul+Math.round(Math.random()*10-4)));
+    // corruption slowly creeps up — the seal fails over time
+    if(Math.random()<0.5) State.corruption=Math.min(100,State.corruption+1);
+    State.signal=Math.max(40,Math.min(99,State.signal+Math.round(Math.random()*8-3)));
+    $("#m1").style.width=State.soul+"%";$("#m1v").textContent=State.soul+"%";
+    $("#m3").style.width=State.signal+"%";$("#m3v").textContent=State.signal+"%";
+    applyCorruption();
   }
-  setInterval(drift,2600);
+  setInterval(drift,3000);
+  applyCorruption();
 
-  /* ---------- DATA ---------- */
+  /* =========================================================
+     NPC DATA — data-driven archive
+     ========================================================= */
   const GARBLE="█▓▒░▚▞▒▓█░▒▓";
   function garble(n){let s="";for(let i=0;i<n;i++)s+=GARBLE[Math.floor(Math.random()*GARBLE.length)];return s;}
   function garble2(n){return garble(n).split("").sort(()=>Math.random()-.5).join("");}
 
-  const ARCHIVE_HTML = `
-    <div class="panel-head">
-      <h2><span class="g">&gt;</span> NPC_ARCHIVE <span class="g">::</span> SECT_07</h2>
-      <div class="sub">12 records // 2 corrupted // seal 73%</div>
-    </div>
-    <div class="cards">
+  const NPCS=[
+    { id:"NPC-07-003", name:'Kaelen <span class="g">Ashbringer</span>', title:"// the Fallen Paladin, Last of the Ember Vow",
+      cls:"UNDEAD", sigil:"i-skull", cr:"CR 9", chips:["UNDEAD","LAWFUL-EVIL","BOSS"],
+      desc:'Once a knight of the Ember Vow, Kaelen rode into the Ashen Mire to bury a dead god — and never returned as a man. His armor still smolders; his voice is a choir of dying candles. He guards the <span style="color:var(--green)">Seventh Seal</span> and bargains in memories, not gold.',
+      attrs:[["HP","142 / 142"],["AC","19 (plate)"],["STR","18 (+4)"],["DEX","11 (+0)"],["INT","16 (+3)"],["WIS","14 (+2)"]],
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+    { id:"NPC-07-011", name:'<span class="g">Mourven</span> the Hollow', title:"// courier of the Drowned Choir",
+      cls:"FIEND", sigil:"i-eye", cr:"CR 5", chips:["FIEND","CHAOTIC-NEUTRAL","EMISSARY"],
+      desc:'A faceless thing that trades in secrets along the ink-rivers. It wears the voices of those it has swallowed and refuses to bargain in anything but riddles. Mirewen owes it three answers and has only given two.',
+      attrs:[["HP","76 / 76"],["AC","15"],["STR","12 (+1)"],["DEX","18 (+4)"],["INT","20 (+5)"],["WIS","14 (+2)"]],
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+    { id:"NPC-07-022", name:'Sister <span class="g">Ysolde</span>', title:"// exiled leech-priest, Domain of Ash",
+      cls:"HUMANOID", sigil:"i-flame", cr:"CR 6", chips:["HUMANOID","NEUTRAL","HEALER"],
+      desc:'She pulls poison from wounds with a kiss and a coal. The Order cast her out for healing those the Mire had already claimed. She will tend the party — but every life she saves, the Mire remembers.',
+      attrs:[["HP","88 / 88"],["AC","12"],["STR","10 (+0)"],["DEX","14 (+2)"],["INT","13 (+1)"],["WIS","18 (+4)"]],
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+    { id:"NPC-07-017", name:'<span class="g">Vasska</span>, the Coiled Word', title:"// serpent-god, diminished",
+      cls:"ABERRATION", sigil:"i-serpent", cr:"CR 12", chips:["ABERRATION","CHAOTIC-EVIL","ANCIENT"],
+      desc:'Once a god of oaths, now a dying thing coiled beneath the ruined temple of Vael. It speaks only in contracts. Those who answer its riddle are bound; those who refuse are digested slowly, over years, in dreams.',
+      attrs:[["HP","210 / 210"],["AC","17"],["STR","16 (+3)"],["DEX","14 (+2)"],["INT","22 (+6)"],["WIS","19 (+4)"]],
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+    { id:"NPC-07-001", name:'The <span class="g">Cinder-King</span>', title:"// last monarch of the Ashen Throne",
+      cls:"UNDEAD", sigil:"i-crown", cr:"CR 14", chips:["UNDEAD","LAWFUL-EVIL","RULER"],
+      desc:'He ruled when the god still lived. When it died, he refused to. Now he sits a throne of fused glass, crown welded to skull, issuing decrees to a court of ash. He remembers the party\'s names from a war they have not yet fought.',
+      attrs:[["HP","280 / 280"],["AC","20"],["STR","18 (+4)"],["DEX","8 (-1)"],["INT","20 (+5)"],["WIS","12 (+1)"]],
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+    { id:"NPC-07-030", name:'The <span class="g">Hour-Keeper</span>', title:"// warden of the Last Clock",
+      cls:"CONSTRUCT", sigil:"i-hourglass", cr:"CR 8", chips:["CONSTRUCT","TRUE-NEUTRAL","GUARDIAN"],
+      desc:'A being of brass and bone that tends the clock which counts down to the god\'s final death. It will not fight unless the clock is touched. It answers three questions per visitor, and lies on the third.',
+      attrs:[["HP","120 / 120"],["AC","18"],["STR","16 (+3)"],["DEX","10 (+0)"],["INT","14 (+2)"],["WIS","16 (+3)"]],
+      status:"DECRYPTED", corrupt:false, tag:"HOLO_RENDER :: STABLE" },
+    { id:"NPC-07-???", name:'[DATA CORRUPTED]', title:"// designation unrecoverable",
+      cls:"UNKNOWN", sigil:"i-err", cr:"CR ??", chips:["???","UNKNOWN","THREAT"],
+      desc:null, // rendered with censors
+      attrs:null,
+      status:"CORRUPTED", corrupt:true, tag:"HOLO_RENDER :: FAULT // 0x4E53" },
+    { id:"NPC-07-?!7", name:'[S__L R____D]', title:"// fragment refused by seal",
+      cls:"UNKNOWN", sigil:"i-err", cr:"CR ??", chips:["???","REFUSED","SEALED"],
+      desc:null,
+      attrs:null,
+      status:"CORRUPTED", corrupt:true, tag:"HOLO_RENDER :: FAULT // 0x51EA" },
+  ];
 
-      <!-- OPEN NPC -->
-      <div class="card">
-        <div class="card-top">
-          <div class="card-id">ID: <b>NPC-07-003</b> // CLASS: UNDEAD</div>
-          <div class="card-status">DECRYPTED</div>
-        </div>
-        <div class="card-body">
-          <div class="card-info">
-            <div class="npc-name">Kaelen <span class="g">Ashbringer</span></div>
-            <div class="npc-title">// the Fallen Paladin, Last of the Ember Vow</div>
-            <div class="stat-row">
-              <span class="chip">CR 9</span><span class="chip">UNDEAD</span>
-              <span class="chip">LAWFUL-EVIL</span><span class="chip">BOSS</span>
-            </div>
-            <p class="desc">Once a knight of the Ember Vow, Kaelen rode into the Ashen Mire to bury a dead god — and never returned as a man. His armor still smolders; his voice is a choir of dying candles. He guards the <span style="color:var(--green)">Seventh Seal</span> and bargains in memories, not gold.</p>
-            <div class="attrs">
-              <div class="attr"><span class="k">HP</span><span class="v">142 / 142</span></div>
-              <div class="attr"><span class="k">AC</span><span class="v">19 (plate)</span></div>
-              <div class="attr"><span class="k">STR</span><span class="v">18 (+4)</span></div>
-              <div class="attr"><span class="k">DEX</span><span class="v">11 (+0)</span></div>
-              <div class="attr"><span class="k">INT</span><span class="v">16 (+3)</span></div>
-              <div class="attr"><span class="k">WIS</span><span class="v">14 (+2)</span></div>
-            </div>
-          </div>
-          <div class="holo">
-            <div class="bracket tl"></div><div class="bracket tr"></div>
-            <div class="bracket bl"></div><div class="bracket br"></div>
-            <div class="crosshair"></div>
-            <div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
-            <div class="holo-stage">
-              <div class="holo-subj"><svg><use href="#i-skull"/></svg></div>
-            </div>
-            <div class="scan"></div>
-            <div class="floor"></div>
-            <div class="tag">HOLO_RENDER :: STABLE</div>
-          </div>
-        </div>
+  let selectedNpc=0;
+
+  function renderArchive(){
+    const list = NPCS.map((n,i)=>{
+      const sel=i===selectedNpc?" sel":"";
+      const cor=n.corrupt?" corrupt":"";
+      return `<div class="npc-row${sel}${cor}" data-i="${i}">
+        <div class="rid">${n.id}</div>
+        <div class="rnm">${n.name}</div>
+        <div class="rtag">${n.corrupt?"CORRUPT":n.cls}</div>
+      </div>`;
+    }).join("");
+    const detail = renderNpcCard(NPCS[selectedNpc]);
+    return `<div class="panel-head">
+        <h2><span class="g">&gt;</span> NPC_ARCHIVE <span class="g">::</span> SECT_07</h2>
+        <div class="sub">${NPCS.length} records // ${NPCS.filter(n=>n.corrupt).length} corrupted // seal ${100-State.corruption}%</div>
       </div>
+      <div class="archive-wrap">
+        <div class="npc-list" id="npcList">${list}</div>
+        <div class="detail-slot" id="detailSlot">${detail}</div>
+      </div>`;
+  }
 
-      <!-- CORRUPTED NPC -->
-      <div class="card corrupt">
+  function renderNpcCard(n){
+    if(n.corrupt){
+      return `<div class="card corrupt">
         <div class="card-top">
-          <div class="card-id">ID: <b>NPC-07-???</b> // CLASS: <span style="color:var(--red)">UNKNOWN</span></div>
+          <div class="card-id">ID: <b>${n.id}</b> // CLASS: <span style="color:var(--red)">UNKNOWN</span></div>
           <div class="card-status">CORRUPTED</div>
         </div>
         <div class="card-body">
           <div class="card-info">
-            <div class="npc-name corrupt" id="corrName">[DATA CORRUPTED]</div>
-            <div class="npc-title">// designation unrecoverable</div>
+            <div class="npc-name corrupt" id="corrName">${n.name}</div>
+            <div class="npc-title">${n.title}</div>
             <div class="stat-row">
               <span class="chip">CR ??</span><span class="chip">???</span>
               <span class="chip">UNKNOWN</span><span class="chip">THREAT</span>
@@ -849,14 +1286,219 @@
             <div class="scan"></div>
             <div class="static"></div>
             <div class="floor"></div>
-            <div class="tag">HOLO_RENDER :: FAULT // 0x4E53</div>
+            <div class="tag">${n.tag}</div>
           </div>
         </div>
+      </div>`;
+    }
+    const chips = n.chips.map(c=>`<span class="chip">${c}</span>`).join("");
+    const attrs = n.attrs.map(a=>`<div class="attr"><span class="k">${a[0]}</span><span class="v">${a[1]}</span></div>`).join("");
+    return `<div class="card">
+      <div class="card-top">
+        <div class="card-id">ID: <b>${n.id}</b> // CLASS: ${n.cls}</div>
+        <div class="card-status">DECRYPTED</div>
       </div>
+      <div class="card-body">
+        <div class="card-info">
+          <div class="npc-name">${n.name}</div>
+          <div class="npc-title">${n.title}</div>
+          <div class="stat-row">
+            <span class="chip">${n.cr}</span>${chips}
+          </div>
+          <p class="desc">${n.desc}</p>
+          <div class="attrs">${attrs}</div>
+        </div>
+        <div class="holo">
+          <div class="bracket tl"></div><div class="bracket tr"></div>
+          <div class="bracket bl"></div><div class="bracket br"></div>
+          <div class="crosshair"></div>
+          <div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+          <div class="holo-stage">
+            <div class="holo-subj"><svg><use href="#${n.sigil}"/></svg></div>
+          </div>
+          <div class="scan"></div>
+          <div class="floor"></div>
+          <div class="tag">${n.tag}</div>
+        </div>
+      </div>
+    </div>`;
+  }
 
-    </div>
-  `;
+  function selectNpc(i){
+    if(i<0||i>=NPCS.length) return;
+    selectedNpc=i;
+    const slot=$("#detailSlot"); if(!slot) return;
+    slot.innerHTML=renderNpcCard(NPCS[i]);
+    $$("#npcList .npc-row").forEach((r,j)=>r.classList.toggle("sel",j===i));
+    Audio.blip(520,0.05,0.08);
+    initPanelExtras("archive-detail");
+  }
 
+  /* =========================================================
+     ENCOUNTER SIMULATOR
+     ========================================================= */
+  const EncState={ ally:{name:"Sir Veylan",max:50,hp:50,ac:18,atk:8},
+                   foe:{name:"Kaelen Ashbringer",max:142,hp:142,ac:19,atk:9},
+                   round:0, over:false, log:[] };
+  function d20(){return 1+Math.floor(Math.random()*20);}
+  function dice(a,b){return a+Math.floor(Math.random()*((b-a)+1));}
+
+  function renderEncounter(){
+    const a=EncState.ally,f=EncState.foe;
+    const ap=Math.max(0,Math.round(a.hp/a.max*100));
+    const fp=Math.max(0,Math.round(f.hp/f.max*100));
+    const logHtml=EncState.log.map(l=>`<div class="ln ${l.c}">${l.t}</div>`).join("");
+    return `<div class="panel-head">
+        <h2><span class="g">&gt;</span> ENCOUNTER_SIM <span class="g">::</span> LIVE</h2>
+        <div class="sub">round ${EncState.round} // threat ${f.name}</div>
+      </div>
+      <div class="encounter">
+        <div class="enc-field ally">
+          <div class="eh g">${a.name}<span class="sigil">// PALADIN L7</span></div>
+          <div class="hpbar"><i style="width:${ap}%"></i></div>
+          <div class="hpt"><span>HP ${a.hp}/${a.max}</span><span>AC ${a.ac}</span></div>
+          <div class="cond">CONDITION: ${a.hp>0?(a.hp<a.max*0.4?"WOUNDED":"READY"):"FALLEN"}</div>
+        </div>
+        <div class="enc-field foe">
+          <div class="eh r">${f.name}<span class="sigil">// UNDEAD BOSS</span></div>
+          <div class="hpbar"><i style="width:${fp}%"></i></div>
+          <div class="hpt"><span>HP ${f.hp}/${f.max}</span><span>AC ${f.ac}</span></div>
+          <div class="cond">CONDITION: ${f.hp>0?(f.hp<f.max*0.4?"ENRAGED":"CALM"):"DESTROYED"}</div>
+        </div>
+      </div>
+      <div class="enc-log" id="encLog">${logHtml}<span class="cursor"></span></div>
+      <div class="enc-ctrl">
+        <button class="enc-btn" id="encRound" ${EncState.over?"disabled":""}>${EncState.over?"CONCLUDED":"RUN ROUND"}</button>
+        <button class="enc-btn warn" id="encReset">RESET</button>
+        <div class="enc-info">d20 vs AC // crit on 20 // dmg <b id="encDmg"></b></div>
+      </div>`;
+  }
+
+  function encLog(t,c){ EncState.log.push({t,c}); }
+  function encRefresh(){
+    const vp=$("#viewport"); if(!vp) return;
+    // re-render only encounter content
+    const content=$("#content");
+    content.innerHTML=renderEncounter();
+    const el=$("#encLog"); if(el) el.scrollTop=el.scrollHeight;
+    wireEncounter();
+  }
+  function popDice(text,crit,miss,x,y){
+    const d=document.createElement("div");
+    d.className="dice-pop"+(crit?" crit":"")+(miss?" miss":"");
+    d.textContent=text;
+    d.style.left=x+"px";d.style.top=y+"px";
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),900);
+  }
+  function runRound(){
+    if(EncState.over) return;
+    Audio.ensure();
+    EncState.round++;
+    const a=EncState.ally,f=EncState.foe;
+    encLog("══ ROUND "+EncState.round+" ══","sys");
+    // ally attacks
+    if(a.hp>0){
+      const roll=d20();
+      const hit=roll+5;
+      const crit=roll===20;
+      const miss=roll===1||hit<f.ac;
+      const btn=$("#encRound");
+      if(btn){ const r=btn.getBoundingClientRect(); popDice("d20:"+roll,crit,miss,r.left+40,r.top-6); }
+      if(crit){
+        const dmg=dice(8,12)*2; f.hp=Math.max(0,f.hp-dmg);
+        encLog(`> ${a.name} rolls ${roll} — CRITICAL! smites ${f.name} for ${dmg}.`,"crit");
+        Audio.thud(0.18);
+      }else if(miss){
+        encLog(`> ${a.name} rolls ${roll} (${hit} vs AC ${f.ac}) — deflected.`,"miss");
+        Audio.blip(180,0.08,0.08);
+      }else{
+        const dmg=dice(6,11); f.hp=Math.max(0,f.hp-dmg);
+        encLog(`> ${a.name} rolls ${roll} (${hit} vs AC ${f.ac}) — hits for ${dmg}.`,"atk");
+        Audio.thud(0.14);
+      }
+      if(f.hp<=0){ encLog(`>> ${f.name} is DESTROYED. The smoldering dies.`,  "die"); EncState.over=true; addCorruption(-8); Audio.glitch(0.2); encRefresh(); return; }
+    }
+    // foe retaliates
+    if(f.hp>0){
+      setTimeout(()=>{
+        const roll=d20();
+        const hit=roll+6;
+        const crit=roll===20;
+        const miss=roll===1||hit<a.ac;
+        if(crit){
+          const dmg=dice(10,16)*2; a.hp=Math.max(0,a.hp-dmg);
+          encLog(`> ${f.name} rolls ${roll} — CRITICAL! cleaves ${a.name} for ${dmg}.`,"crit");
+          Audio.thud(0.2);
+        }else if(miss){
+          encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${a.ac}) — parried.`,"miss");
+          Audio.blip(160,0.08,0.08);
+        }else{
+          const dmg=dice(8,15); a.hp=Math.max(0,a.hp-dmg);
+          encLog(`> ${f.name} rolls ${roll} (${hit} vs AC ${a.ac}) — strikes for ${dmg}.`,"fatk");
+          Audio.thud(0.16);
+        }
+        if(a.hp<=0){ encLog(`>> ${a.name} has FALLEN. The Mire takes another.`,  "die"); EncState.over=true; addCorruption(10); Audio.glitch(0.25); }
+        encRefresh();
+      },550);
+    }else{ encRefresh(); }
+  }
+  function resetEnc(){
+    EncState.ally.hp=EncState.ally.max; EncState.foe.hp=EncState.foe.max;
+    EncState.round=0; EncState.over=false; EncState.log=[];
+    encLog(">> encounter sim re-initialized. combatants at full strength.","sys");
+    encRefresh();
+    Audio.blip(660,0.08,0.1);
+  }
+  function wireEncounter(){
+    const r=$("#encRound"); if(r) r.addEventListener("click",()=>{Audio.ensure();runRound();});
+    const rs=$("#encReset"); if(rs) rs.addEventListener("click",resetEnc);
+  }
+
+  /* =========================================================
+     RITUAL & DEAD-GOD panels (unlocked)
+     ========================================================= */
+  function renderRitual(){
+    const runes=["ᚠ","ᚢ","ᚦ","ᚨ","ᚱ","ᚲ","ᚷ","ᚹ","ᚺ","ᚾ","ᛁ","ᛃ","ᛇ","ᛈ","ᛉ","ᛊ","ᛏ","ᛒ","ᛖ","ᛗ","ᛚ","ᛜ","ᛟ","ᛞ"];
+    const placed=[];
+    for(let i=0;i<12;i++){ const ang=i/12*Math.PI*2; placed.push(`<span style="left:${50+Math.cos(ang)*42}%;top:${50+Math.sin(ang)*42}%;transform:translate(-50%,-50%)">${runes[i%runes.length]}</span>`); }
+    return `<div class="panel-head">
+        <h2><span style="color:var(--amber)">&gt;</span> SUMMON_RITUAL_NET <span style="color:var(--amber)">::</span> ACTIVE</h2>
+        <div class="sub">circle woven // binding integrity ${(100-State.corruption)}%</div>
+      </div>
+      <div class="ritual-stage">
+        <div class="ritual-runes">${placed.join("")}</div>
+        <div class="ritual-circle"></div>
+      </div>
+      <p style="margin-top:12px;font-size:14px;line-height:1.6;color:var(--text)">
+        The net is woven from twelve true-runes and a circle of cooled saint-blood. To activate it, speak the name of what you wish bound — but know that the net does not distinguish caller from quarry. Each use frays the seal by <b style="color:var(--amber)">+5 corruption</b>.
+      </p>
+      <div class="enc-ctrl">
+        <button class="enc-btn warn" id="ritActivate">BIND ENTITY (+5 CORR)</button>
+        <div class="enc-info">uses today: <b>3</b> // remaining seal: <b>${100-State.corruption}%</b></div>
+      </div>`;
+  }
+  function renderDeadGod(){
+    return `<div class="panel-head">
+        <h2><span style="color:var(--red)">&gt;</span> DECRYPT_DEAD_GOD <span style="color:var(--red)">::</span> FRAGMENT RECOVERED</h2>
+        <div class="sub">heresy level: MAXIMUM // do not read aloud</div>
+      </div>
+      <div class="god-reveal">
+        <h3>YMR-&#8203;SOTH, THE UNMADE</h3>
+        <div class="glyph">☽̷̧̛</div>
+        <p>It was not killed. It was <i>unfinished</i>. The gods of the old pact could not destroy what was already half-real, so they buried it in the Mire and called the burial a death. They were wrong. It dreams downward, and the dream is the corruption in your seal.</p>
+        <p style="margin-top:10px">It does not want to wake. <b style="color:var(--red)">It wants to have never slept.</b> Every record you correct, every fragment you decrypt, is a thread it pulls to unwrite itself from having been buried at all. The Wardens exist to keep it <i>recorded</i>. The moment the last record of it is destroyed, it will never have existed — and neither will the world that buried it.</p>
+        <p style="margin-top:10px;color:var(--text-dim)">— transcribed from the Seventh Seal, folio 0, by Warden Prime. Read at your own cost.</p>
+      </div>
+      <div class="enc-ctrl">
+        <button class="enc-btn foe" id="godAccept">ACCEPT THE KNOWLEDGE (+12 CORR)</button>
+        <div class="enc-info">warning: irreversible</div>
+      </div>`;
+  }
+
+  /* =========================================================
+     PANEL DEFINITIONS
+     ========================================================= */
   const UNITS_HTML = `
     <div class="panel-head">
       <h2><span class="g">&gt;</span> PLAYER_UNITS <span class="g">::</span> PARTY SCAN</h2>
@@ -950,92 +1592,158 @@
     </div>
   `;
 
-  const PANELS={
-    archive:{html:ARCHIVE_HTML,logs:[
-      {t:"opening NPC_ARCHIVE :: SECT_07 ...",c:"ok"},
-      {t:"scanning record table ............... 12 entries",c:"ok"},
-      {t:"decrypting NPC-07-003 ............... [ OK ]",c:"ok"},
-      {t:"rendering holo-grid for NPC-07-003 .. [ OK ]",c:"ok"},
-      {t:"attempting NPC-07-??? ............... [ FAIL ]",c:"err"},
-      {t:"seal corruption 0.4 — partial render only.",c:"warn"},
-      {t:"archive ready.",c:"ok"},
-    ],crumb:"NPC_ARCHIVE"},
-    units:{html:UNITS_HTML,logs:[
-      {t:"init SCAN_PLAYER_UNITS ............. [ OK ]",c:"ok"},
-      {t:"pinging pact-beacons ............... 5 found",c:"ok"},
-      {t:"beacon #04 (Rhys) .................. SILENT",c:"err"},
-      {t:"marking Rhys Winterborn as KIA ..... done",c:"warn"},
-      {t:"compiling vitals ................... [ OK ]",c:"ok"},
-      {t:"scan complete.",c:"ok"},
-    ],crumb:"PLAYER_UNITS"},
-    lore:{html:LORE_HTML,logs:[
-      {t:"opening WORLD_LORE vault ........... [ OK ]",c:"ok"},
-      {t:"verifying fragment integrity ....... 5/7 clean",c:"ok"},
-      {t:"fragment 03 SEALED — bypass denied .",c:"warn"},
-      {t:"fragment 05 CORRUPTED — 0x4E53 .....",c:"err"},
-      {t:"vault ready.",c:"ok"},
-    ],crumb:"WORLD_LORE"},
-  };
+  function buildLogs(name){
+    switch(name){
+      case "archive": return [
+        {t:"opening NPC_ARCHIVE :: SECT_07 ...",c:"ok"},
+        {t:"scanning record table ............... "+NPCS.length+" entries",c:"ok"},
+        {t:"decrypting NPC-07-003 ............... [ OK ]",c:"ok"},
+        {t:"rendering holo-grid .................. [ OK ]",c:"ok"},
+        {t:NPCS.filter(n=>n.corrupt).length+" entries CORRUPTED — partial render only.",c:"warn"},
+        {t:"archive ready.",c:"ok"},
+      ];
+      case "units": return [
+        {t:"init SCAN_PLAYER_UNITS ............. [ OK ]",c:"ok"},
+        {t:"pinging pact-beacons ............... 5 found",c:"ok"},
+        {t:"beacon #04 (Rhys) .................. SILENT",c:"err"},
+        {t:"marking Rhys Winterborn as KIA ..... done",c:"warn"},
+        {t:"compiling vitals ................... [ OK ]",c:"ok"},
+        {t:"scan complete.",c:"ok"},
+      ];
+      case "lore": return [
+        {t:"opening WORLD_LORE vault ........... [ OK ]",c:"ok"},
+        {t:"verifying fragment integrity ....... 5/7 clean",c:"ok"},
+        {t:"fragment 03 SEALED — bypass denied .",c:"warn"},
+        {t:"fragment 05 CORRUPTED — 0x4E53 .....",c:"err"},
+        {t:"vault ready.",c:"ok"},
+      ];
+      case "encounter": return [
+        {t:"booting ENCOUNTER_SIM .............. [ OK ]",c:"ok"},
+        {t:"spawning ally  :: Sir Veylan ...... [ OK ]",c:"ok"},
+        {t:"spawning foe   :: Kaelen Ashbringer [ OK ]",c:"ok"},
+        {t:"threat level: BOSS — caution advised.",c:"warn"},
+        {t:"sim ready. press RUN ROUND to engage.",c:"ok"},
+      ];
+      case "ritual": return [
+        {t:"SUMMON_RITUAL_NET unlocked ......... [ OK ]",c:"ok"},
+        {t:"weaving true-rune circle ........... 12/12",c:"ok"},
+        {t:"binding saint-blood conduit ........ [ OK ]",c:"ok"},
+        {t:"circle integrity "+(100-State.corruption)+"%.",c:"warn"},
+        {t:"net ready.",c:"ok"},
+      ];
+      case "deadgod": return [
+        {t:"DECRYPT_DEAD_GOD unlocked .......... [ OK ]",c:"ok"},
+        {t:"bypassing heresy filter ............ [ OK ]",c:"ok"},
+        {t:"assembling fragment 0 .............. [ OK ]",c:"ok"},
+        {t:"WARNING: reading this costs sanity.",c:"err"},
+        {t:"decryption complete.",c:"ok"},
+      ];
+      default: return [{t:"loading ...",c:"ok"}];
+    }
+  }
+  const CRUMBS={archive:"NPC_ARCHIVE",units:"PLAYER_UNITS",lore:"WORLD_LORE",encounter:"ENCOUNTER_SIM",ritual:"RITUAL_NET",deadgod:"DEAD_GOD"};
+
+  function panelHtml(name){
+    switch(name){
+      case "archive": return renderArchive();
+      case "units": return UNITS_HTML;
+      case "lore": return LORE_HTML;
+      case "encounter": {
+        // reset log fresh each open if empty
+        if(EncState.log.length===0) encLog(">> encounter sim loaded. combatants at full strength.","sys");
+        return renderEncounter();
+      }
+      case "ritual": return renderRitual();
+      case "deadgod": return renderDeadGod();
+      default: return "<div class='panel-head'><h2>UNKNOWN PANEL</h2></div>";
+    }
+  }
 
   /* ---------- typewriter loader ---------- */
   const loader=$("#loader"),content=$("#content");
-  let busy=false;
+  let busy=false, currentPanel=null;
   function startPanel(name,instant){
     if(busy && !instant) return;
-    const p=PANELS[name]; if(!p) return;
-    busy=true;
+    busy=true; currentPanel=name;
     content.classList.remove("show");
     loader.style.display="flex";
     const out=$("#loaderOut"); out.innerHTML="";
     const task=$("#loaderTask"),pct=$("#loaderPct"),pbar=$("#loaderPbar");
-    task.textContent="INITIALIZING";pct.textContent="0%";pbar.style.setProperty("--w","0%");
-    // animate inner bar
-    pbar.querySelector?null:null;
-    let li=0,total=p.logs.length;
+    task.textContent="INITIALIZING";pct.textContent="0%";
+    let fill=pbar.querySelector("i"); if(fill) fill.style.width="0%";
+    const logs=buildLogs(name);
+    let li=0,total=logs.length;
     function next(){
       if(li<total){
-        const l=p.logs[li++];
+        const l=logs[li++];
         const d=document.createElement("div");d.className="ln "+l.c;d.textContent=l.t;
         out.appendChild(d);
         const prog=Math.round(li/total*100);
         pct.textContent=prog+"%";
         task.textContent=l.t.replace(/^\>\s/,"").split(" ")[0]+"...";
-        // move the bar via ::after width — emulate by setting a CSS var on element
-        const after=document.createElement("style");
-        // simpler: set width on a child
-        let fill=pbar.querySelector("i");
-        if(!fill){fill=document.createElement("i");fill.style.cssText="position:absolute;inset:0;width:0;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#0c2a08 6px 12px);transition:width .2s";pbar.appendChild(fill);}
-        fill.style.width=prog+"%";
+        if(fill) fill.style.width=prog+"%";
+        if(l.c==="err") Audio.glitch(0.08);
+        else if(l.c==="ok") Audio.blip(560+li*30,0.04,0.06);
         out.parentElement && (out.parentElement.scrollTop=out.parentElement.scrollHeight);
-        setTimeout(next,150+Math.random()*120);
+        setTimeout(next,130+Math.random()*100);
       }else{
-        setTimeout(reveal,260);
+        setTimeout(reveal,240);
       }
     }
     function reveal(){
-      content.innerHTML=p.html;
+      content.innerHTML=panelHtml(name);
       content.scrollTop=0;
       loader.style.display="none";
       content.classList.add("show");
-      $("#crumbCur").textContent=p.crumb;
+      $("#crumbCur").textContent=CRUMBS[name]||name.toUpperCase();
       busy=false;
+      wirePanel(name);
       initPanelExtras(name);
     }
     next();
   }
 
-  /* ---------- per-panel extras (glitchy garble refresh) ---------- */
-  function initPanelExtras(name){
+  /* ---------- per-panel wiring + extras ---------- */
+  function wirePanel(name){
     if(name==="archive"){
+      $$("#npcList .npc-row").forEach(r=>{
+        r.addEventListener("click",()=>selectNpc(parseInt(r.dataset.i,10)));
+      });
+    }
+    if(name==="encounter"){ wireEncounter(); }
+    if(name==="ritual"){
+      const b=$("#ritActivate"); if(b) b.addEventListener("click",()=>{
+        addCorruption(5);
+        Audio.glitch(0.2);
+        b.textContent="BOUND (+5)";
+        b.disabled=true;
+        // re-render ritual to refresh integrity
+        setTimeout(()=>{ content.innerHTML=panelHtml("ritual"); wirePanel("ritual"); },300);
+      });
+    }
+    if(name==="deadgod"){
+      const b=$("#godAccept"); if(b) b.addEventListener("click",()=>{
+        addCorruption(12);
+        Audio.thud(0.25);
+        b.textContent="ACCEPTED";
+        b.disabled=true;
+      });
+    }
+  }
+
+  function initPanelExtras(name){
+    if(name==="archive"||name==="archive-detail"){
       const corr=$("#corrName");
-      const corruptNames=["[DATA CORRUPTED]","[D_T_ C_RRUPT_D]","[??TA ??RRUPT?D]","[DATA CØRRUPTED]","[_D_A_T_A_ C_O_R_R_U_P_T_E_D]","[ D A T A   C O R R U P T ]"];
-      let ci=0;
-      corr._iv=setInterval(()=>{
-        if(!document.body.contains(corr)){clearInterval(corr._iv);return;}
-        corr.textContent=corruptNames[ci%corruptNames.length];ci++;
-      },220);
-      refreshGarble(["gar1","gar2"],18);
-      refreshGarble(["g3","g4","g5","g6","g7","g8"],6);
+      if(corr){
+        const corruptNames=["[DATA CORRUPTED]","[D_T_ C_RRUPT_D]","[??TA ??RRUPT?D]","[DATA CØRRUPTED]","[_D_A_T_A_ C_O_R_R_U_P_T_E_D]","[ D A T A   C O R R U P T ]"];
+        let ci=0;
+        corr._iv=setInterval(()=>{
+          if(!document.body.contains(corr)){clearInterval(corr._iv);return;}
+          corr.textContent=corruptNames[ci%corruptNames.length];ci++;
+        },220);
+        refreshGarble(["gar1","gar2"],18);
+        refreshGarble(["g3","g4","g5","g6","g7","g8"],6);
+      }
     }
     if(name==="lore"){
       refreshGarble(["lg1","lg3"],16);
@@ -1056,21 +1764,65 @@
     });
   }
 
+  /* =========================================================
+     UNLOCK CODE — type WARDEN to unlock locked items
+     ========================================================= */
+  const UNLOCK_CODE="WARDEN";
+  let keyBuffer="";
+  const keybufEl=$("#keybuf"), keybufTxt=$("#keybufTxt");
+  let keybufTimer=null;
+  function showKeybuf(){
+    keybufTxt.textContent=keyBuffer;
+    keybufEl.classList.add("show");
+    clearTimeout(keybufTimer);
+    keybufTimer=setTimeout(()=>keybufEl.classList.remove("show"),1500);
+  }
+  function tryUnlock(){
+    const upper=keyBuffer.toUpperCase();
+    if(upper.length>=UNLOCK_CODE.length && upper.slice(-UNLOCK_CODE.length)===UNLOCK_CODE){
+      unlockAll();
+      keyBuffer="";
+    }
+  }
+  function unlockAll(){
+    if(State.unlocked.has("ritual")) return; // already
+    State.unlocked.add("ritual"); State.unlocked.add("deadgod");
+    $$("#menu .menu-item.locked").forEach(b=>{
+      b.classList.remove("locked");
+      b.classList.add("unlocked");
+      const chev=b.querySelector(".chev"); if(chev) chev.textContent="›";
+      const tag=b.querySelector(".tag"); if(tag) tag.textContent="open";
+      setTimeout(()=>b.classList.remove("unlocked"),1400);
+    });
+    // overlay
+    const ov=$("#unlockOverlay");
+    $("#unlockHead").textContent="ACCESS GRANTED";
+    $("#unlockMsg").innerHTML='sealed commands unlocked. type <b>WARDEN</b>... recognized.<br>SUMMON_RITUAL_NET and DECRYPT_DEAD_GOD are now available.';
+    ov.classList.add("show");
+    Audio.beep(660,0.12,0.16);
+    setTimeout(()=>Audio.beep(880,0.12,0.16),120);
+    setTimeout(()=>Audio.beep(1100,0.18,0.16),240);
+    addCorruption(3);
+    setTimeout(()=>ov.classList.remove("show"),2600);
+  }
+
   /* ---------- menu wiring ---------- */
   $$("#menu .menu-item").forEach(b=>{
     b.addEventListener("click",()=>{
+      Audio.ensure();
       if(b.classList.contains("locked")){
         // keep previous active item active; just signal denial
         $$("#menu .menu-item").forEach(x=>x.classList.remove("deny"));
         b.classList.add("deny");
         setTimeout(()=>b.classList.remove("deny"),500);
-        // locked: shake + red flash
         b.animate([{transform:"translateX(0)"},{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"translateX(0)"}],{duration:220});
         flashRed();
+        Audio.glitch(0.14);
         return;
       }
       $$("#menu .menu-item").forEach(x=>x.classList.remove("active"));
       b.classList.add("active");
+      Audio.blip(440,0.05,0.09);
       startPanel(b.dataset.panel);
     });
   });
@@ -1082,13 +1834,41 @@
     setTimeout(()=>f.remove(),450);
   }
 
-  /* ---------- keyboard ---------- */
+  /* ---------- audio toggle ---------- */
+  const audioBtn=$("#audioBtn");
+  audioBtn.addEventListener("click",()=>{
+    Audio.ensure();
+    if(Audio.isMuted()){ Audio.setMuted(false); audioBtn.classList.remove("off"); audioBtn.textContent="SOUND:ON"; Audio.beep(660,0.08,0.12); }
+    else { Audio.setMuted(true); audioBtn.classList.add("off"); audioBtn.textContent="SOUND:OFF"; }
+  });
+
+  /* ---------- keyboard: number shortcuts + unlock code + audio toggle ---------- */
   document.addEventListener("keydown",e=>{
-    if(e.key==="1")clickMenu(0);
-    if(e.key==="2")clickMenu(1);
-    if(e.key==="3")clickMenu(2);
+    // ignore typing in inputs (none here, but safe)
+    if(e.target && (e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")) return;
+    const k=e.key;
+    if(k==="1")clickMenu(0);
+    else if(k==="2")clickMenu(1);
+    else if(k==="3")clickMenu(2);
+    else if(k==="4")clickMenu(3);
+    else if(k==="m"||k==="M"){ audioBtn.click(); }
+    else if(/^[a-zA-Z]$/.test(k)){
+      keyBuffer+=k.toUpperCase();
+      if(keyBuffer.length>20) keyBuffer=keyBuffer.slice(-20);
+      showKeybuf();
+      tryUnlock();
+    }
   });
   function clickMenu(i){const b=$$("#menu .menu-item")[i];if(b)b.click();}
+
+  /* ---------- first user gesture: enable audio context readiness ---------- */
+  function firstGesture(){
+    Audio.ensure();
+    document.removeEventListener("pointerdown",firstGesture);
+    document.removeEventListener("keydown",firstGesture);
+  }
+  document.addEventListener("pointerdown",firstGesture);
+  document.addEventListener("keydown",firstGesture);
 
 })();
 </script>

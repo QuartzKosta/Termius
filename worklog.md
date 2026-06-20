@@ -44,3 +44,51 @@ Unresolved / Next-phase recommendations:
 - Add a 4th interactive command (e.g. `RUN_ENCOUNTER_SIM`) with a turn-based mini log, and make the locked items unlockable via a hidden code typed on the keyboard.
 - Add more NPCs to the archive (scrollable list + detail view) and per-NPC hologram variants (different SVG sigils).
 - Persist the "corruption" meter and let high corruption visually degrade the whole console (more glitch, red bleed).
+
+---
+Task ID: 2
+Agent: main (Z.ai Code) — cron webDevReview round 2
+Task: QA the existing console, then expand with new features + styling detail per mandatory requirements (audio, encounter sim, unlock-by-code, more NPCs, corruption degradation).
+
+Work Log:
+- Reviewed worklog (Task ID 1 complete; previous round's planned feature expansion was NOT saved before interruption).
+- QA re-confirm via agent-browser: boot completes (`boot gone` / `stage live`), 5 menu items, 2 NPC cards, zero console errors, lint clean. Mobile (390×844) verified: sidebar/menu/npc-list wrap horizontal, cards single-column, no overflow.
+- Rewrote `/home/z/my-project/public/dnd-console.html` (~1400 lines) preserving all Task-1 visuals and adding 5 major feature systems + a styling detail pass. Verified JS with `node --check` (clean) and `bun run lint` (clean).
+
+New features added:
+1. **Web Audio system (synthesized, no files)** — `Audio` IIFE module using Web Audio API: ambient drone (two detuned 55Hz sines + 110Hz triangle + lowpass-filtered noise bed), `beep()` for boot/UI, `glitch()` sawtooth bandpass burst, `thud()` for damage hits. AudioContext lazily inits on first user gesture (autoplay-policy safe). Mute toggle button in titlebar (`SOUND:OFF`/`SOUND:ON`, key `M`). Default muted. Boot lines, menu clicks, loader steps, damage, and corruption events all emit sounds.
+2. **Data-driven NPC archive (8 NPCs)** — replaced the static 2-card layout with a list+detail split: left scrollable NPC list (8 entries: Kaelen Ashbringer, Mourven the Hollow, Sister Ysolde, Vasska the Coiled Word, the Cinder-King, the Hour-Keeper, + 2 corrupted), right detail card. Clicking a list row swaps the detail + hologram. 6 new inline-SVG hologram sigils (`i-eye`, `i-serpent`, `i-crown`, `i-flame`, `i-hourglass`, `i-ritual`, `i-god`) so each NPC gets a unique rotating hologram. Corrupted NPCs keep the red error sigil + censors + garble.
+3. **RUN_ENCOUNTER_SIM (4th command)** — turn-based combat: ally (Sir Veylan, HP 50/AC 18) vs foe (Kaelen Ashbringer, HP 142/AC 19). `RUN ROUND` button does d20+mod vs AC, crit on nat 20 (×2 damage), fumble on nat 1, with animated dice-roll popup, HP bars that transition, color-coded log lines (atk green / fatk red / crit amber / die red). Foe retaliates after 550ms delay. `RESET` button. Destroying the foe reduces corruption −8; ally falling adds +10.
+4. **Unlockable locked items (type WARDEN)** — keyboard buffer captures alpha keys; typing "WARDEN" (case-insensitive) triggers `unlockAll()`: removes `.locked`, adds `.unlocked` pulse animation on the two sealed commands, shows a golden "ACCESS GRANTED" overlay, plays a 3-note ascending arpeggio, +3 corruption cost. A live key-buffer hint appears bottom-left while typing. Once unlocked, SUMMON_RITUAL_NET renders an animated 12-rune summoning circle with a `BIND ENTITY (+5 CORR)` button; DECRYPT_DEAD_GOD renders a heresy reveal ("YMR-SOTH, THE UNMADE") with an `ACCEPT THE KNOWLEDGE (+12 CORR)` button.
+5. **Corruption-driven global degradation** — a `State` object tracks corruption (0–100, starts 27). `applyCorruption()` sets `body.className` to `corr-low`/`corr-med`/`corr-high`/`corr-extreme`. Each tier progressively intensifies scanline opacity, CRT noise opacity, and red vignette bleed; `high` adds whole-body micro-jitter; `extreme` adds `consoleGlitch` (hue-rotate + translate). Corruption drifts +1 every ~3s (the seal fails over time) and spikes from in-app actions (unlock +3, ritual bind +5, god-accept +12, ally death +10; foe kill −8). Status bar shows live `CORR %` and `BREACH` (derived from corruption).
+
+Styling detail pass:
+- Added `.curvature` (radial inner shadow) + `.phosphor` (green phosphor afterglow) layers inside the console frame for CRT depth.
+- Titlebar now has metallic rivets (`.titlebar::before/::after` radial-gradient bolts) at left/right edges; border-radius bumped to 10px.
+- Boot progress bar uses a real `<i>` fill child (was a broken `::after` CSS-var hack) that animates width cleanly.
+- Encounter/ritual/god panels use consistent clipped-corner `clip-path` geometry + amber/red accent variants.
+- Scrollbars styled green; NPC-list horizontal scroll on mobile; richer hologram (rings + crosshair + floor glow + tag) reused across all sigils.
+- Added `dice-pop` floating animation for combat rolls, `unlockPulse` ring, `godPulse` glyph glow.
+- Status bar gained live CORR + BREACH + WARN metrics wired to corruption tier.
+
+Verification (agent-browser + VLM + node --check):
+- Boot: `boot gone` / `stage live`, 11 boot-log lines, audio button present, body `corr-low`. Standalone (`/dnd-console.html`) AND iframe (`/`) both verified — 6 menu items, 8 NPCs in list, detail card renders.
+- NPC selection: clicking list row index 2 → detail swaps to "Sister Ysolde"; clicking index 3 → "Vasska, the Coiled Word" with serpent hologram (VLM confirmed serpent sigil + brackets + scan lines + rings + green-on-black).
+- Encounter sim: `RUN ROUND` → "══ ROUND 1 ══", nat-20 crit logged ("CRITICAL! smites... for 18"), foe retaliates ("strikes for 11"), HP updates (ally 50→39, foe 142→124). VLM confirmed both combatant fields + log + buttons.
+- Unlock: dispatching keydown W-A-R-D-E-N → locked count drops 2→0, "ACCESS GRANTED" overlay fires, ritual + deadgod panels become clickable and render (ritual circle + BIND button; deadgod "YMR-SOTH, THE UNMADE" + ACCEPT button).
+- Corruption: accepting dead-god knowledge → corruption 46→58, body class flips `corr-low`→`corr-high` (global glitch/red-bleed intensifies).
+- Mobile 390×844: sidebar/menu/npc-list all `flex-direction:row`, archive single-column, no overflow (VLM: "no overflow/cutoff issues").
+- `node --check` on extracted JS: clean. `bun run lint`: clean. Browser console: zero errors/warnings (only React DevTools + HMR from the Next wrapper).
+
+Stage Summary:
+- Deliverable updated: `/home/z/my-project/public/dnd-console.html` now ~1400 lines, still a single self-contained file (no external deps beyond Google Fonts). All Task-1 visuals preserved; 5 new interactive systems layered on top.
+- Preview: live at `/` via iframe; all new features work in the preview.
+- Cron job `webDevReview` (job_id 220566, every 15 min) continues to drive autonomous QA + expansion.
+
+Unresolved / Next-phase recommendations:
+- The audio ambient drone could use a slow LFO on the filter cutoff for a more "breathing" feel; currently static.
+- Corruption currently only drifts up passively + via explicit actions; could add random "seal stress" events that spike it with a red alert overlay.
+- Encounter sim is a single 1v1; could expand to full party (4 allies) vs a boss with initiative ordering and spell/ability buttons.
+- More NPC sigils (beholder, lich-phylactery, kraken) and a "corrupted→decrypted" path where typing a second code (e.g. "PURGE") cleans one corrupted NPC.
+- Persist state (corruption, unlocked set, encounter HP) to localStorage so refreshes don't reset progress.
+- Consider a subtle screen-power-off animation when the user navigates away / tab hides.
