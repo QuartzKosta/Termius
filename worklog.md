@@ -471,3 +471,55 @@ Next steps for user:
 2. Visit / to browse the archive.
 3. Visit /admin (password: WARDEN) to manage records.
 4. Change ADMIN_PASSWORD in .env for production.
+
+---
+Task ID: 11
+Agent: main (Z.ai Code) — Russian localization + 3D hologram upgrade
+Task: Translate the entire site to Russian and make the hologram a true 3D rotating object when a character/NPC/lore is selected.
+
+Work Log:
+- Translated dnd-console.html fully to Russian:
+  - Boot sequence (МОНТИРОВАНИЕ, ПОДКЛЮЧЕНИЕ, ПРОВЕРКА, etc.)
+  - Title bar: "АШЕНОВ КОДЕКС // БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ v4.1"
+  - Sidebar: АРХИВНЫЙ_ИНДЕКС, ЗАПРОС_АРХИВ_НПС, БАЗА_ЛОРА, РЕЕСТР_ПРАВИТЕЛЕЙ
+  - Meters: ЦЕЛОСТНОСТЬ_АРХИВА, ПОРЧА, СИГНАЛ
+  - Crumbs: КОРЕНЬ > СЕКТОР_07, КАНАЛ, ИСТОЧНИК
+  - Status bar: В СЕТИ, ЗАПИСЕЙ, ОПЕЧАТАНО, СТРАЖ
+  - Cards: РАСШИФРОВАНО, ПОВРЕЖДЕНО, ИД, ИСТ, КЛАСС, ГОЛО_ПРОЕКЦИЯ
+  - Empty states: "хранилище молчит", "проверьте подключение к Supabase"
+  - Corrupt names: [ДАННЫЕ ПОВРЕЖДЕНЫ], [Д_Н_Ы_ П_ВР_Ж_Н_], etc.
+  - Audio button: ЗВУК:ВКЛ / ЗВУК:ВЫКЛ
+  - Signature: "НЕ ДОВЕРЯЙ СВЕТУ"
+  - Loader logs: "открытие", "запрос SUPABASE хранилища", "получено N записей", "архив готов"
+- Upgraded hologram to true 3D:
+  - Wireframe energy cage: 6 transparent cube faces rotating on X/Y/Z axes (cageSpin 16s)
+  - Depth-extruded subject: 5 layers at Z = -28/-14/0/+14/+28px with progressive blur+opacity (creates 3D volume)
+  - Floating data motes: 8 particles drifting in Z-depth with fade in/out
+  - holoSpin3D: rotateY(360deg) + rotateX(-8deg) for cinematic angle
+  - holoFloat: vertical bobbing for "hovering" feel
+  - perspective:900px for strong depth
+  - All 3 card variants use the new holo3d() helper (image, corrupted, sigil)
+- Translated /admin page fully to Russian:
+  - Login: ДОСТУП СТРАЖА, "введите сигил", ПАРОЛЬ, ВОЙТИ
+  - Header: АШЕНОВ КОДЕКС // СТРАЖ, ВЫЙТИ
+  - Tabs: НПС / ЛОР / ПРАВИТ
+  - "записей // опечатано", "+ НОВАЯ ЗАПИСЬ", "↻ ОБНОВИТЬ АРХИВ"
+  - Record cards: ОПЕЧАТАНО/ОТКРЫТО, РАСПЕЧАТАТЬ/ОТПЕЧАТАТЬ, №ID
+  - Upload form: ИМЯ, КАТЕГОРИЯ, ТИТУЛ/ЭПИТЕТ, ОПИСАНИЕ/ЛОР, ССЫЛКА НА КАРТИНКУ, СИГИЛА, ЗАГРУЗИТЬ В АРХИВ
+  - Toasts: ОТПЕЧАТАНО, РАСПЕЧАТАНО, ЗАГРУЖЕНО В АРХИВ
+  - Errors: "сетевая ошибка", "сбой переключения", "Имя обязательно"
+- Updated layout.tsx metadata to Russian.
+- Bumped version to v4.1-archive.
+
+Verification (agent-browser + lint):
+- Main page: boot in Russian, 3 menu items (ЗАПРОС_АРХИВ_НПС, БАЗА_ЛОРА, РЕЕСТР_ПРАВИТЕЛЕЙ), meters (ЦЕЛОСТНОСТЬ_АРХИВА, ПОРЧА, СИГНАЛ), status bar (СТРАЖ, ОПЕЧАТАНО), empty state ("хранилище молчит"). Zero console errors.
+- /admin login: ДОСТУП СТРАЖА, ПАРОЛЬ, ВОЙТИ.
+- /admin panel: НПС/ЛОР/ПРАВИТ tabs, "записей // опечатано", "+ НОВАЯ ЗАПИСЬ", "↻ ОБНОВИТЬ АРХИВ".
+- Upload form: all 6 fields in Russian (ИМЯ, КАТЕГОРИЯ, ТИТУЛ, ОПИСАНИЕ, ССЫЛКА, СИГИЛА), ЗАГРУЗИТЬ В АРХИВ.
+- bun run lint: clean. node --check: clean.
+- 3D hologram CSS in place (holo-cage, holo-layer l1-l5, holo-motes). Will render once Supabase tables are created.
+
+Stage Summary:
+- Site is now fully Russian (main console + admin panel + metadata).
+- Hologram upgraded to true 3D: wireframe cage + 5-layer depth extrusion + floating motes + cinematic rotation.
+- Note: 3D hologram only visible when records exist in Supabase. Run supabase-migration.sql to populate tables.

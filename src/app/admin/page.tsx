@@ -22,9 +22,9 @@ interface ArchiveRecord {
 type AllData = { npcs: ArchiveRecord[]; lore: ArchiveRecord[]; rulers: ArchiveRecord[] };
 
 const TABS: { key: RecordType; label: string }[] = [
-  { key: "npcs", label: "NPC" },
-  { key: "lore", label: "LORE" },
-  { key: "rulers", label: "RULERS" },
+  { key: "npcs", label: "НПС" },
+  { key: "lore", label: "ЛОР" },
+  { key: "rulers", label: "ПРАВИТ" },
 ];
 
 const SIGILS = ["i-skull", "i-eye", "i-serpent", "i-crown", "i-flame", "i-hourglass", "i-ritual", "i-god"];
@@ -66,7 +66,7 @@ export default function AdminPage() {
   if (checking) {
     return (
       <div style={styles.shell}>
-        <div style={styles.boot}>CHECKING WARDEN CREDENTIALS…</div>
+        <div style={styles.boot}>ПРОВЕРКА ВЕДОМОСТЕЙ СТРАЖА…</div>
       </div>
     );
   }
@@ -76,18 +76,18 @@ export default function AdminPage() {
       <div style={styles.shell}>
         <form onSubmit={handleLogin} style={styles.loginBox}>
           <div style={styles.loginGlyph}>⚠</div>
-          <h1 style={styles.loginTitle}>WARDEN ACCESS</h1>
-          <p style={styles.loginSub}>{"// enter sigil to unlock the archive"}</p>
+          <h1 style={styles.loginTitle}>ДОСТУП СТРАЖА</h1>
+          <p style={styles.loginSub}>{"// введите сигил, чтобы открыть архив"}</p>
           <input
             type="password"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
-            placeholder="PASSWORD"
+            placeholder="ПАРОЛЬ"
             autoFocus
             style={styles.input}
           />
           {loginErr && <div style={styles.err}>{loginErr}</div>}
-          <button type="submit" style={styles.btn}>ENTER</button>
+          <button type="submit" style={styles.btn}>ВОЙТИ</button>
         </form>
       </div>
     );
@@ -110,13 +110,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/list?type=all");
       if (!res.ok) {
-        setErr("Failed to load — session may have expired.");
+        setErr("Не удалось загрузить — сессия могла истечь.");
         return;
       }
       const j = await res.json();
       setData(j.data || { npcs: [], lore: [], rulers: [] });
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "network error");
+      setErr(e instanceof Error ? e.message : "сетевая ошибка");
     } finally {
       setLoading(false);
     }
@@ -139,16 +139,16 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        flash(j.error || "toggle failed");
+        flash(j.error || "сбой переключения");
         setData((d) => ({
           ...d,
           [type]: d[type].map((r) => (r.id === id ? { ...r, is_locked: currentLocked } : r)),
         }));
       } else {
-        flash(currentLocked ? "UNLOCKED" : "LOCKED");
+        flash(currentLocked ? "ОТПЕЧАТАНО" : "РАСПЕЧАТАНО");
       }
     } catch {
-      flash("network error");
+      flash("сетевая ошибка");
       setData((d) => ({
         ...d,
         [type]: d[type].map((r) => (r.id === id ? { ...r, is_locked: currentLocked } : r)),
@@ -169,9 +169,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       <header style={styles.header}>
         <div style={styles.headerTitle}>
           <span style={styles.headerDot} />
-          ASHEN CODEX <span style={{ color: "#4af626" }}>{"// WARDEN"}</span>
+          АШЕНОВ КОДЕКС <span style={{ color: "#4af626" }}>{"// СТРАЖ"}</span>
         </div>
-        <button onClick={onLogout} style={styles.logoutBtn}>LOGOUT</button>
+        <button onClick={onLogout} style={styles.logoutBtn}>ВЫЙТИ</button>
       </header>
 
       <nav style={styles.tabs}>
@@ -192,10 +192,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
       <div style={styles.subHeader}>
         <span style={{ color: "#5d685c" }}>
-          {records.length}{" records // "}{lockedCount}{" locked"}
+          {records.length}{" записей // "}{lockedCount}{" опечатано"}
         </span>
         <button onClick={() => setShowUpload((s) => !s)} style={styles.uploadToggle}>
-          {showUpload ? "× CLOSE" : "+ NEW RECORD"}
+          {showUpload ? "× ЗАКРЫТЬ" : "+ НОВАЯ ЗАПИСЬ"}
         </button>
       </div>
 
@@ -214,12 +214,12 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
       <div style={styles.listWrap}>
         {loading ? (
-          <div style={styles.empty}>LOADING ARCHIVE…</div>
+          <div style={styles.empty}>ЗАГРУЗКА АРХИВА…</div>
         ) : records.length === 0 ? (
           <div style={styles.empty}>
-            {"// no records in "}{tab}{"."}
+            {"// нет записей в "}{tab}{"."}
             <br />
-            {"// tap \"+ NEW RECORD\" to add."}
+            {"// нажмите \"+ НОВАЯ ЗАПИСЬ\" для добавления."}
           </div>
         ) : (
           records.map((r) => (
@@ -232,7 +232,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         )}
       </div>
 
-      <button onClick={load} style={styles.refreshBtn}>↻ REFRESH ARCHIVE</button>
+      <button onClick={load} style={styles.refreshBtn}>↻ ОБНОВИТЬ АРХИВ</button>
 
       {toast && <div style={styles.toast}>{toast}</div>}
     </div>
@@ -247,17 +247,17 @@ function RecordCard({ rec, onToggle }: { rec: ArchiveRecord; onToggle: () => voi
       ...(rec.is_locked ? styles.cardLocked : {}),
     }}>
       <div style={styles.cardHead}>
-        <span style={styles.cardId}>#{idShort}</span>
+        <span style={styles.cardId}>№{idShort}</span>
         <span style={{
           ...styles.cardStatus,
           ...(rec.is_locked ? styles.statusLocked : styles.statusOpen),
         }}>
-          {rec.is_locked ? "🔒 LOCKED" : "🔓 OPEN"}
+          {rec.is_locked ? "🔒 ОПЕЧАТАНО" : "🔓 ОТКРЫТО"}
         </span>
       </div>
-      <div style={styles.cardName}>{rec.is_locked ? "[DATA CORRUPTED]" : (rec.name || "[unnamed]")}</div>
+      <div style={styles.cardName}>{rec.is_locked ? "[ДАННЫЕ ПОВРЕЖДЕНЫ]" : (rec.name || "[без имени]")}</div>
       {rec.title && !rec.is_locked && <div style={styles.cardTitle}>{rec.title}</div>}
-      <div style={styles.cardCat}>{rec.category || "UNCATEGORIZED"}</div>
+      <div style={styles.cardCat}>{rec.category || "БЕЗ КАТЕГОРИИ"}</div>
       {rec.description && !rec.is_locked && (
         <div style={styles.cardDesc}>
           {rec.description.length > 120 ? rec.description.slice(0, 120) + "…" : rec.description}
@@ -270,7 +270,7 @@ function RecordCard({ rec, onToggle }: { rec: ArchiveRecord; onToggle: () => voi
           ...(rec.is_locked ? styles.toggleUnlock : styles.toggleLock),
         }}
       >
-        {rec.is_locked ? "🔓 UNLOCK" : "🔒 LOCK"}
+        {rec.is_locked ? "🔓 РАСПЕЧАТАТЬ" : "🔒 ОТПЕЧАТАТЬ"}
       </button>
     </div>
   );
@@ -296,7 +296,7 @@ function UploadForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { setErr("Name is required."); return; }
+    if (!name.trim()) { setErr("Имя обязательно."); return; }
     setSubmitting(true);
     setErr("");
     try {
@@ -315,13 +315,13 @@ function UploadForm({
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setErr(j.error || "upload failed");
+        setErr(j.error || "сбой загрузки");
         return;
       }
-      flash("UPLOADED TO ARCHIVE");
+      flash("ЗАГРУЖЕНО В АРХИВ");
       onDone();
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "network error");
+      setErr(e instanceof Error ? e.message : "сетевая ошибка");
     } finally {
       setSubmitting(false);
     }
@@ -329,24 +329,24 @@ function UploadForm({
 
   return (
     <form onSubmit={submit} style={styles.uploadForm}>
-      <div style={styles.uploadTitle}>+ NEW {type.toUpperCase().slice(0, -1)} RECORD</div>
+      <div style={styles.uploadTitle}>+ НОВАЯ ЗАПИСЬ: {type === "npcs" ? "НПС" : type === "lore" ? "ЛОР" : "ПРАВИТЕЛЬ"}</div>
 
-      <label style={styles.fieldLabel}>NAME *</label>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Kaelen Ashbringer" style={styles.input} />
+      <label style={styles.fieldLabel}>ИМЯ *</label>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="напр. Каэлен Пепельный" style={styles.input} />
 
-      <label style={styles.fieldLabel}>CATEGORY</label>
-      <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. UNDEAD, FIEND, LORE…" style={styles.input} />
+      <label style={styles.fieldLabel}>КАТЕГОРИЯ</label>
+      <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="напр. НЕЖИТЬ, ДЕМОН, ЛОР…" style={styles.input} />
 
-      <label style={styles.fieldLabel}>TITLE / EPITHET</label>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. // the Fallen Paladin" style={styles.input} />
+      <label style={styles.fieldLabel}>ТИТУЛ / ЭПИТЕТ</label>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. // павший паладин" style={styles.input} />
 
-      <label style={styles.fieldLabel}>DESCRIPTION / LORE</label>
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="The lore text…" rows={4} style={{ ...styles.input, resize: "vertical" }} />
+      <label style={styles.fieldLabel}>ОПИСАНИЕ / ЛОР</label>
+      <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Текст лора…" rows={4} style={{ ...styles.input, resize: "vertical" }} />
 
-      <label style={styles.fieldLabel}>IMAGE URL (optional)</label>
+      <label style={styles.fieldLabel}>ССЫЛКА НА КАРТИНКУ (необязательно)</label>
       <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…/image.png" style={styles.input} type="url" />
 
-      <label style={styles.fieldLabel}>SIGIL</label>
+      <label style={styles.fieldLabel}>СИГИЛА</label>
       <select value={sigil} onChange={(e) => setSigil(e.target.value)} style={styles.select}>
         {SIGILS.map((s) => (<option key={s} value={s}>{s}</option>))}
       </select>
@@ -354,7 +354,7 @@ function UploadForm({
       {err && <div style={styles.err}>{err}</div>}
 
       <button type="submit" disabled={submitting} style={{ ...styles.btn, ...(submitting ? styles.btnDisabled : {}) }}>
-        {submitting ? "UPLOADING…" : "UPLOAD TO ARCHIVE"}
+        {submitting ? "ЗАГРУЗКА…" : "ЗАГРУЗИТЬ В АРХИВ"}
       </button>
     </form>
   );
