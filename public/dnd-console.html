@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ASHEN CODEX // LIBRARY OF LOST KNOWLEDGE v4.0</title>
+<title>АШЕНОВ КОДЕКС // БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ v4.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=MedievalSharp&display=swap" rel="stylesheet" />
 <style>
   /* ============================================================
-     ASHEN CODEX — Library of Lost Knowledge  v4.0-archive
+     АШЕНОВ КОДЕКС — Библиотека утраченных знаний  v4.1-archive
      Pure HTML / CSS / Vanilla JS — single file
-     A dark-fantasy lore archive reader.
+     Атмосферная читалка-архив тёмного фэнтези.
      ============================================================ */
 
   :root{
@@ -471,37 +471,80 @@
   .ring.r2{width:58%;height:58%;border-style:dashed}
   .ring.r3{width:38%;height:38%}
 
+  /* ---------- 3D Hologram stage ---------- */
   .holo-stage{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    perspective:700px;
-  }
-  .holo-subj{
-    width:62%;height:62%;display:flex;align-items:center;justify-content:center;
+    perspective:900px;
     transform-style:preserve-3d;
-    animation:holoSpin 9s linear infinite, holoSway 5s ease-in-out infinite;
+  }
+  /* 3D wireframe cage — rotating cube of energy */
+  .holo-cage{
+    position:absolute;width:76%;height:76%;
+    transform-style:preserve-3d;
+    animation:cageSpin 16s linear infinite;
+    pointer-events:none;
+  }
+  .holo-cage .cage-face{
+    position:absolute;inset:0;
+    border:1px solid rgba(74,246,38,.16);
+    background:linear-gradient(135deg,rgba(74,246,38,.022),transparent 50%,rgba(63,214,200,.022));
+    box-shadow:inset 0 0 24px rgba(74,246,38,.04);
+  }
+  .holo-cage .cage-face.f1{transform:translateZ(38%)}
+  .holo-cage .cage-face.f2{transform:rotateY(180deg) translateZ(38%)}
+  .holo-cage .cage-face.f3{transform:rotateY(90deg) translateZ(38%)}
+  .holo-cage .cage-face.f4{transform:rotateY(-90deg) translateZ(38%)}
+  .holo-cage .cage-face.f5{transform:rotateX(90deg) translateZ(38%)}
+  .holo-cage .cage-face.f6{transform:rotateX(-90deg) translateZ(38%)}
+  .card.corrupt .holo-cage .cage-face{border-color:rgba(255,36,36,.16);background:linear-gradient(135deg,rgba(255,36,38,.022),transparent 50%,rgba(255,36,38,.02));box-shadow:inset 0 0 24px rgba(255,36,38,.04)}
+  @keyframes cageSpin{
+    0%{transform:rotateX(20deg) rotateY(0) rotateZ(0)}
+    50%{transform:rotateX(-20deg) rotateY(180deg) rotateZ(180deg)}
+    100%{transform:rotateX(20deg) rotateY(360deg) rotateZ(360deg)}
+  }
+  /* 3D rotating subject — extruded depth layers create volume */
+  .holo-subj{
+    width:56%;height:56%;display:flex;align-items:center;justify-content:center;
+    transform-style:preserve-3d;
+    animation:holoSpin3D 8s linear infinite, holoFloat 4s ease-in-out infinite;
     color:var(--cyan);
-    filter:drop-shadow(0 0 8px rgba(63,214,200,.6));
+    filter:drop-shadow(0 0 12px rgba(63,214,200,.7));
+    position:relative;z-index:2;
   }
-  @keyframes holoSpin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
-  @keyframes holoSway{0%,100%{translate:0 -2px}50%{translate:0 4px}}
-  .holo-subj svg{width:100%;height:100%;opacity:.85}
-  .holo-subj img{width:100%;height:100%;object-fit:cover;border-radius:4px;opacity:.9;filter:contrast(1.1) brightness(.85) hue-rotate(-10deg)}
-
-  .holo .scan{
-    position:absolute;left:0;right:0;height:14px;top:-14px;
-    background:linear-gradient(180deg,transparent,rgba(74,246,38,.0),rgba(74,246,38,.55),transparent);
-    box-shadow:0 0 14px rgba(74,246,38,.4);
-    animation:holoScan 3.4s linear infinite;
+  @keyframes holoSpin3D{
+    from{transform:rotateY(0) rotateX(-8deg)}
+    to{transform:rotateY(360deg) rotateX(-8deg)}
   }
-  @keyframes holoScan{0%{top:-14px}100%{top:100%}}
-  .card.corrupt .holo .scan{background:linear-gradient(180deg,transparent,rgba(255,36,36,.5),transparent);box-shadow:0 0 14px rgba(255,36,36,.4);animation-duration:1.3s}
-
-  .holo .floor{position:absolute;bottom:8%;left:18%;right:18%;height:14px;background:radial-gradient(ellipse at center,rgba(74,246,38,.35),transparent 70%);filter:blur(2px)}
-  .card.corrupt .holo .floor{background:radial-gradient(ellipse at center,rgba(255,36,36,.35),transparent 70%)}
-
-  .holo .tag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:11px;font-family:'VT323',monospace;color:var(--green-dim);letter-spacing:2px;white-space:nowrap}
-  .card.corrupt .holo .tag{color:var(--red-dim)}
-
+  @keyframes holoFloat{0%,100%{translate:0 -3px}50%{translate:0 5px}}
+  /* depth-extruded layers — 5 copies at different Z create 3D volume */
+  .holo-layer{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  }
+  .holo-layer svg,.holo-layer img{width:100%;height:100%}
+  .holo-layer.l1{transform:translateZ(-28px);opacity:.14;filter:blur(1.5px)}
+  .holo-layer.l2{transform:translateZ(-14px);opacity:.3;filter:blur(.5px)}
+  .holo-layer.l3{transform:translateZ(0);opacity:.95}
+  .holo-layer.l4{transform:translateZ(14px);opacity:.3;filter:blur(.5px)}
+  .holo-layer.l5{transform:translateZ(28px);opacity:.14;filter:blur(1.5px)}
+  .holo-layer img{object-fit:cover;border-radius:4px;filter:contrast(1.15) brightness(.78) hue-rotate(-12deg) drop-shadow(0 0 8px rgba(63,214,200,.5))}
+  /* floating data motes inside hologram — 3D depth particles */
+  .holo-motes{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none;z-index:3}
+  .holo-motes .mote{
+    position:absolute;width:3px;height:3px;border-radius:50%;
+    background:var(--green);box-shadow:0 0 6px var(--green);
+    left:var(--x);top:var(--y);
+    animation:moteFloat 7s ease-in-out infinite;
+    animation-delay:var(--d);
+    transform-style:preserve-3d;
+  }
+  @keyframes moteFloat{
+    0%,100%{transform:translateZ(-35px) translateY(0);opacity:0}
+    20%{opacity:.7}
+    50%{transform:translateZ(35px) translateY(-12px);opacity:1}
+    80%{opacity:.5}
+  }
+  .card.corrupt .holo-motes .mote{background:var(--red);box-shadow:0 0 6px var(--red)}
+  /* legacy single-subj compat (corrupt err icon) */
   .holo-subj.err{
     color:var(--red);
     filter:drop-shadow(0 0 10px rgba(255,36,36,.7));
@@ -510,6 +553,22 @@
   @keyframes errSpin{from{transform:rotateY(0) rotateZ(0)}to{transform:rotateY(360deg) rotateZ(8deg)}}
   @keyframes errJit{0%{translate:0 0}50%{translate:2px -1px}100%{translate:-2px 1px}}
   .holo-subj.err svg{opacity:.9}
+
+  .holo .scan{
+    position:absolute;left:0;right:0;height:14px;top:-14px;
+    background:linear-gradient(180deg,transparent,rgba(74,246,38,.0),rgba(74,246,38,.55),transparent);
+    box-shadow:0 0 14px rgba(74,246,38,.4);
+    animation:holoScan 3.4s linear infinite;
+    z-index:5;
+  }
+  @keyframes holoScan{0%{top:-14px}100%{top:100%}}
+  .card.corrupt .holo .scan{background:linear-gradient(180deg,transparent,rgba(255,36,36,.5),transparent);box-shadow:0 0 14px rgba(255,36,36,.4);animation-duration:1.3s}
+
+  .holo .floor{position:absolute;bottom:8%;left:18%;right:18%;height:14px;background:radial-gradient(ellipse at center,rgba(74,246,38,.35),transparent 70%);filter:blur(2px);z-index:1}
+  .card.corrupt .holo .floor{background:radial-gradient(ellipse at center,rgba(255,36,36,.35),transparent 70%)}
+
+  .holo .tag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:11px;font-family:'VT323',monospace;color:var(--green-dim);letter-spacing:2px;white-space:nowrap;z-index:6}
+  .card.corrupt .holo .tag{color:var(--red-dim)}
 
   .holo .static{position:absolute;inset:0;mix-blend-mode:screen;opacity:.18;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.2  0 0 0 0 0.2  0 0 0 0.8 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
@@ -660,9 +719,9 @@
         <span class="led a"></span>
         <span class="led g"></span>
       </div>
-      <div class="tb-title">A S H E N&nbsp;&nbsp;C O D E X &nbsp;//&nbsp; <b>LIBRARY OF LOST KNOWLEDGE</b> &nbsp;v4.0-archive</div>
-      <button class="audio-btn off" id="audioBtn" title="Toggle ambient sound">SOUND:OFF</button>
-      <div class="tb-meta">SECT <span>07</span> // ARCHIVE <span>ONLINE</span></div>
+      <div class="tb-title">А&nbsp;Ш&nbsp;Е&nbsp;Н&nbsp;О&nbsp;В&nbsp;&nbsp;К&nbsp;О&nbsp;Д&nbsp;Е&nbsp;К&nbsp;С &nbsp;//&nbsp; <b>БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ</b> &nbsp;v4.1-archive</div>
+      <button class="audio-btn off" id="audioBtn" title="Включить звук">ЗВУК:ВЫКЛ</button>
+      <div class="tb-meta">СЕКТОР <span>07</span> // АРХИВ <span>В СЕТИ</span></div>
     </div>
 
     <!-- BODY -->
@@ -670,24 +729,24 @@
 
       <!-- SIDEBAR -->
       <aside class="sidebar">
-        <div class="side-head">// ARCHIVE_INDEX</div>
+        <div class="side-head">// АРХИВНЫЙ_ИНДЕКС</div>
         <nav class="menu" id="menu">
-          <button class="menu-item active" data-panel="npcs" data-txt="> QUERY_NPC_ARCHIVE"><span class="chev">&gt;</span>QUERY_NPC_ARCHIVE<span class="tag" id="tag-npcs">…</span></button>
-          <button class="menu-item" data-panel="lore" data-txt="> LORE_DATABASE"><span class="chev">&gt;</span>LORE_DATABASE<span class="tag" id="tag-lore">…</span></button>
-          <button class="menu-item" data-panel="rulers" data-txt="> REGISTRY_OF_RULERS"><span class="chev">&gt;</span>REGISTRY_OF_RULERS<span class="tag" id="tag-rulers">…</span></button>
+          <button class="menu-item active" data-panel="npcs" data-txt="> ЗАПРОС_АРХИВ_НПС"><span class="chev">&gt;</span>ЗАПРОС_АРХИВ_НПС<span class="tag" id="tag-npcs">…</span></button>
+          <button class="menu-item" data-panel="lore" data-txt="> БАЗА_ЛОРА"><span class="chev">&gt;</span>БАЗА_ЛОРА<span class="tag" id="tag-lore">…</span></button>
+          <button class="menu-item" data-panel="rulers" data-txt="> РЕЕСТР_ПРАВИТЕЛЕЙ"><span class="chev">&gt;</span>РЕЕСТР_ПРАВИТЕЛЕЙ<span class="tag" id="tag-rulers">…</span></button>
         </nav>
 
         <div class="side-foot">
           <div class="meter">
-            <div class="lbl"><span>ARCHIVE_INTEGRITY</span><b id="m1v">--%</b></div>
+            <div class="lbl"><span>ЦЕЛОСТНОСТЬ_АРХИВА</span><b id="m1v">--%</b></div>
             <div class="bar"><i id="m1" style="width:--%"></i></div>
           </div>
           <div class="meter">
-            <div class="lbl"><span>CORRUPTION</span><b id="m2v">--%</b></div>
+            <div class="lbl"><span>ПОРЧА</span><b id="m2v">--%</b></div>
             <div class="bar"><i id="m2" class="red" style="width:--%"></i></div>
           </div>
           <div class="meter">
-            <div class="lbl"><span>SIGNAL</span><b id="m3v">--%</b></div>
+            <div class="lbl"><span>СИГНАЛ</span><b id="m3v">--%</b></div>
             <div class="bar"><i id="m3" style="width:--%"></i></div>
           </div>
         </div>
@@ -696,12 +755,12 @@
       <!-- MAIN -->
       <main class="main">
         <div class="crumbs">
-          <span>ROOT</span><span class="sep">&gt;</span>
-          <span>SECT_07</span><span class="sep">&gt;</span>
-          <b id="crumbCur">NPC_ARCHIVE</b>
+          <span>КОРЕНЬ</span><span class="sep">&gt;</span>
+          <span>СЕКТОР_07</span><span class="sep">&gt;</span>
+          <b id="crumbCur">АРХИВ_НПС</b>
           <div class="right">
-            <span>UPLINK: <b style="color:var(--green)">STABLE</b></span>
-            <span>SOURCE: <b style="color:var(--cyan)">SUPABASE</b></span>
+            <span>КАНАЛ: <b style="color:var(--green)">СТАБИЛЕН</b></span>
+            <span>ИСТОЧНИК: <b style="color:var(--cyan)">SUPABASE</b></span>
             <span id="clock">--:--:--</span>
           </div>
         </div>
@@ -721,17 +780,17 @@
 
     <!-- STATUSBAR -->
     <div class="statusbar">
-      <div class="s"><span class="dot"></span> ONLINE</div>
+      <div class="s"><span class="dot"></span> В СЕТИ</div>
       <span class="sep">|</span>
-      <div class="s">DB <b>SUPABASE</b></div>
+      <div class="s">БД <b>SUPABASE</b></div>
       <span class="sep">|</span>
-      <div class="s">RECORDS <b id="sbRecords">0</b></div>
+      <div class="s">ЗАПИСЕЙ <b id="sbRecords">0</b></div>
       <span class="sep">|</span>
-      <div class="s r">LOCKED <b id="sbLocked">0</b></div>
+      <div class="s r">ОПЕЧАТАНО <b id="sbLocked">0</b></div>
       <div class="right">
-        <div class="s">CORR <b id="sbCorr">--%</b></div>
+        <div class="s">ПОРЧА <b id="sbCorr">--%</b></div>
         <span class="sep">|</span>
-        <div class="s">USER: <b>warden_07</b></div>
+        <div class="s">СТРАЖ: <b>страж_07</b></div>
         <span class="sep">|</span>
         <div class="s" id="sbClock">--:--:--</div>
       </div>
@@ -739,7 +798,7 @@
   </div>
 </div>
 
-<div class="signature">// ASHEN_CODEX — LIBRARY OF LOST KNOWLEDGE — DO NOT TRUST THE LIGHT</div>
+<div class="signature">// АШЕНОВ_КОДЕКС — БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ — НЕ ДОВЕРЯЙ СВЕТУ</div>
 
 <!-- ============ SVG TEMPLATES ============ -->
 <svg width="0" height="0" style="position:absolute">
@@ -822,7 +881,7 @@
 
 <script>
 /* ============================================================
-   ASHEN CODEX — Library logic  v4.0-archive
+   АШЕНОВ КОДЕКС — логика библиотеки  v4.1-archive
    Fetches from /api/archive (Supabase-backed).
    ============================================================ */
 (function(){
@@ -939,16 +998,16 @@
 
   /* ---------- BOOT SEQUENCE ---------- */
   const bootLines = [
-    {t:"> ASHEN_CODEX ARCHIVE v4.0 ...",c:"ok",snd:"beep"},
-    {t:"> MOUNTING /dev/lore_reservoir ...... [ OK ]",c:"ok",snd:"beep"},
-    {t:"> MOUNTING /dev/archive_index ....... [ OK ]",c:"ok",snd:"beep"},
-    {t:"> LOADING rune_table.bin ............ [ OK ]",c:"ok",snd:"beep"},
-    {t:"> CONNECTING to SUPABASE vault ..... [ OK ]",c:"ok",snd:"beep"},
-    {t:"> VERIFYING archive integrity ....... [ OK ]",c:"ok",snd:"beep"},
-    {t:"> ESTABLISHING uplink to WARDEN_NET . [ OK ]",c:"ok",snd:"beep"},
-    {t:"> HANDSHAKE with SECT_07 ........... [ OK ]",c:"ok",snd:"beep"},
-    {t:"> WARNING: some records CORRUPTED or SEALED.",c:"warn",snd:"glitch"},
-    {t:"> RENDERING interface ............... done",c:"ok",snd:"beep"},
+    {t:"> АШЕНОВ КОДЕКС АРХИВ v4.1 ...",c:"ok",snd:"beep"},
+    {t:"> МОНТИРОВАНИЕ /dev/lore_reservoir ... [ OK ]",c:"ok",snd:"beep"},
+    {t:"> МОНТИРОВАНИЕ /dev/archive_index .... [ OK ]",c:"ok",snd:"beep"},
+    {t:"> ЗАГРУЗКА rune_table.bin ............ [ OK ]",c:"ok",snd:"beep"},
+    {t:"> ПОДКЛЮЧЕНИЕ к хранилищу SUPABASE .. [ OK ]",c:"ok",snd:"beep"},
+    {t:"> ПРОВЕРКА целостности архива ....... [ OK ]",c:"ok",snd:"beep"},
+    {t:"> УСТАНОВКА канала к WARDEN_NET ..... [ OK ]",c:"ok",snd:"beep"},
+    {t:"> РУКОПОЖАТИЕ с СЕКТОР_07 ........... [ OK ]",c:"ok",snd:"beep"},
+    {t:"> ПРЕДУПРЕЖДЕНИЕ: некоторые записи ПОВРЕЖДЕНЫ или ОПЕЧАТАНЫ.",c:"warn",snd:"glitch"},
+    {t:"> РЕНДЕРИНГ интерфейса ............. готово",c:"ok",snd:"beep"},
   ];
   const bootLog = $("#bootLog");
   let bi=0;
@@ -992,9 +1051,9 @@
     selectedIdx: { npcs:0, lore:0, rulers:0 },
   };
   const META={
-    npcs:{ label:"NPC_ARCHIVE", crumb:"NPC_ARCHIVE", tag:"npcs" },
-    lore:{ label:"LORE_DATABASE", crumb:"WORLD_LORE", tag:"lore" },
-    rulers:{ label:"REGISTRY_OF_RULERS", crumb:"RULERS", tag:"rulers" },
+    npcs:{ label:"АРХИВ_НПС", crumb:"АРХИВ_НПС", tag:"npcs" },
+    lore:{ label:"БАЗА_ЛОРА", crumb:"МИРОВОЙ_ЛОР", tag:"lore" },
+    rulers:{ label:"РЕЕСТР_ПРАВИТЕЛЕЙ", crumb:"ПРАВИТЕЛИ", tag:"rulers" },
   };
   let corruptionLevel=27; // decorative — drives CRT degradation
 
@@ -1043,13 +1102,14 @@
     $("#alertMsg").innerHTML=msg;
     // color: green for info, red for warning
     const box=ov.querySelector(".alert-box");
-    box.style.borderColor = /FAIL|ERROR|DENIED|CORRUPT/i.test(title) ? "var(--red)" : "var(--green)";
-    box.style.boxShadow = /FAIL|ERROR|DENIED|CORRUPT/i.test(title)
+    const isErr = /СБОЙ|ОШИБКА|ОТКАЗ|ПОВРЕЖД|ОПЕЧАТА/i.test(title);
+    box.style.borderColor = isErr ? "var(--red)" : "var(--green)";
+    box.style.boxShadow = isErr
       ? "0 0 50px rgba(255,36,36,.5),inset 0 0 30px rgba(255,36,36,.15)"
       : "0 0 50px rgba(74,246,38,.4),inset 0 0 30px rgba(74,246,38,.12)";
     const head=$("#alertHead");
-    head.style.color = /FAIL|ERROR|DENIED|CORRUPT/i.test(title) ? "var(--red)" : "var(--green)";
-    head.style.textShadow = /FAIL|ERROR|DENIED|CORRUPT/i.test(title) ? "0 0 12px rgba(255,36,36,.8)" : "0 0 12px rgba(74,246,38,.8)";
+    head.style.color = isErr ? "var(--red)" : "var(--green)";
+    head.style.textShadow = isErr ? "0 0 12px rgba(255,36,36,.8)" : "0 0 12px rgba(74,246,38,.8)";
     ov.classList.add("show");
     Audio.beep(440,0.1,0.14);
     clearTimeout(alertTimer);
@@ -1063,11 +1123,11 @@
     if(recs.length===0){
       return `<div class="panel-head">
           <h2><span class="g">&gt;</span> ${meta.label}</h2>
-          <div class="sub">no records in vault // archive empty or unreachable</div>
+          <div class="sub">нет записей в хранилище // архив пуст или недоступен</div>
         </div>
         <div class="empty-state">
-          // the vault is silent.<br>// no records were recovered from this archive.<br><br>
-          <b>// check Supabase connection or add records via /admin.</b>
+          // хранилище молчит.<br>// ни одна запись не была восстановлена из этого архива.<br><br>
+          <b>// проверьте подключение к Supabase или добавьте записи через /admin.</b>
         </div>`;
     }
     const sel=STORE.selectedIdx[type]||0;
@@ -1075,8 +1135,8 @@
       const isSel=i===sel;
       const isLocked=r.is_locked;
       const cls = (isSel?" sel":"")+(isLocked?" corrupt":"");
-      const name = isLocked ? "[DATA CORRUPTED]" : (r.name||"[unnamed]");
-      const tag = isLocked ? "LOCKED" : (r.category||"?");
+      const name = isLocked ? "[ДАННЫЕ ПОВРЕЖДЕНЫ]" : (r.name||"[без имени]");
+      const tag = isLocked ? "ОПЕЧАТАНО" : (r.category||"?");
       return `<div class="npc-row${cls}" data-i="${i}">
         <div class="rid">${(r.id||"").toString().slice(0,8).toUpperCase()||"—"}</div>
         <div class="rnm">${name}</div>
@@ -1085,8 +1145,8 @@
     }).join("");
     const detail = renderRecordCard(recs[sel], type);
     return `<div class="panel-head">
-        <h2><span class="g">&gt;</span> ${meta.label} <span class="g">::</span> SECT_07</h2>
-        <div class="sub">${recs.length} records // ${recs.filter(r=>r.is_locked).length} corrupted/sealed // source: SUPABASE</div>
+        <h2><span class="g">&gt;</span> ${meta.label} <span class="g">::</span> СЕКТОР_07</h2>
+        <div class="sub">${recs.length} записей // ${recs.filter(r=>r.is_locked).length} повреждено/опечатано // источник: SUPABASE</div>
       </div>
       <div class="archive-wrap">
         <div class="npc-list" id="npcList">${list}</div>
@@ -1095,37 +1155,54 @@
   }
 
   function renderRecordCard(r, type){
-    if(!r) return `<div class="empty-state">// select a record from the list.</div>`;
+    if(!r) return `<div class="empty-state">// выберите запись из списка.</div>`;
     const isLocked=r.is_locked;
     const sigil = r.sigil || (type==="rulers"?"i-crown":type==="lore"?"i-flame":"i-skull");
     const idShort = (r.id||"").toString().slice(0,8).toUpperCase()||"—";
 
-    // If has image_url and not locked — render image card
+    // 3D hologram helper: builds wireframe cage + depth-extruded subject + floating motes
+    function holo3d(innerSvgOrImg, tagText, isCorrupt){
+      const cageFaces = ['f1','f2','f3','f4','f5','f6'].map(f=>`<div class="cage-face ${f}"></div>`).join("");
+      // 8 floating motes at random positions
+      const motes = Array.from({length:8},(_,i)=>{
+        const x=10+Math.random()*80, y=10+Math.random()*80, d=(Math.random()*7).toFixed(2)+"s";
+        return `<span class="mote" style="--x:${x}%;--y:${y}%;--d:${d}"></span>`;
+      }).join("");
+      // 5 depth layers for 3D volume
+      const layers = ['l1','l2','l3','l4','l5'].map(l=>`<div class="holo-layer ${l}">${innerSvgOrImg}</div>`).join("");
+      const cageStyle = isCorrupt ? ' style="filter:hue-rotate(0deg)"' : '';
+      return `<div class="holo-stage">
+        <div class="holo-cage"${cageStyle}>${cageFaces}</div>
+        <div class="holo-subj${isCorrupt?' err':''}">${layers}</div>
+        <div class="holo-motes">${motes}</div>
+      </div>
+      <div class="scan"></div>${isCorrupt?'<div class="static"></div>':''}
+      <div class="floor"></div>
+      <div class="tag">${tagText}</div>`;
+    }
+
+    // If has image_url and not locked — render image card with 3D hologram
     if(!isLocked && r.image_url){
-      const chips = [r.category||"UNKNOWN"].map(c=>`<span class="chip">${c}</span>`).join("");
+      const chips = [r.category||"НЕИЗВЕСТНО"].map(c=>`<span class="chip">${c}</span>`).join("");
+      const imgTag = `<img src="${escapeAttr(r.image_url)}" alt="${escapeAttr(r.name||"")}" />`;
       return `<div class="card image-card">
         <div class="card-top">
-          <div class="card-id">ID: <b>${idShort}</b> // SRC: ${type.toUpperCase()}</div>
-          <div class="card-status">DECRYPTED</div>
+          <div class="card-id">ИД: <b>${idShort}</b> // ИСТ: ${type==="npcs"?"НПС":type==="lore"?"ЛОР":"ПРАВ"}</div>
+          <div class="card-status">РАСШИФРОВАНО</div>
         </div>
         <div class="card-body">
           <div class="card-info">
             <div class="npc-name">${escapeHtml(r.name)}</div>
             ${r.title?`<div class="npc-title">${escapeHtml(r.title)}</div>`:""}
             <div class="stat-row">${chips}</div>
-            <p class="desc">${escapeHtml(r.description||"// no description archived.")}</p>
+            <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
           </div>
           <div class="holo">
             <div class="bracket tl"></div><div class="bracket tr"></div>
             <div class="bracket bl"></div><div class="bracket br"></div>
             <div class="crosshair"></div>
             <div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
-            <div class="holo-stage">
-              <div class="holo-subj"><img src="${escapeAttr(r.image_url)}" alt="${escapeAttr(r.name||"")}" /></div>
-            </div>
-            <div class="scan"></div>
-            <div class="floor"></div>
-            <div class="tag">HOLO_RENDER :: IMAGE</div>
+            ${holo3d(imgTag, "ГОЛО_ПРОЕКЦИЯ :: ИЗОБРАЖЕНИЕ", false)}
           </div>
         </div>
       </div>`;
@@ -1133,21 +1210,22 @@
 
     // Locked / corrupted card
     if(isLocked){
+      const errSvg = `<svg><use href="#i-err"/></svg>`;
       return `<div class="card corrupt">
         <div class="card-top">
-          <div class="card-id">ID: <b>${idShort}</b> // CLASS: <span style="color:var(--red)">UNKNOWN</span></div>
-          <div class="card-status locked">CORRUPTED</div>
+          <div class="card-id">ИД: <b>${idShort}</b> // КЛАСС: <span style="color:var(--red)">НЕИЗВЕСТНО</span></div>
+          <div class="card-status locked">ПОВРЕЖДЕНО</div>
         </div>
         <div class="card-body">
           <div class="card-info">
-            <div class="npc-name corrupt" id="corrName">${escapeHtml(r.name||"[DATA CORRUPTED]")}</div>
-            <div class="npc-title">${escapeHtml(r.title||"// designation unrecoverable")}</div>
+            <div class="npc-name corrupt" id="corrName">${escapeHtml(r.name||"[ДАННЫЕ ПОВРЕЖДЕНЫ]")}</div>
+            <div class="npc-title">${escapeHtml(r.title||"// обозначение невосстановимо")}</div>
             <div class="stat-row">
-              <span class="chip">???</span><span class="chip">UNKNOWN</span><span class="chip">SEALED</span>
+              <span class="chip">???</span><span class="chip">НЕИЗВЕСТНО</span><span class="chip">ОПЕЧАТАНО</span>
             </div>
             <p class="desc desc-block">
               <span class="garble" id="gar1"></span><br>
-              The <span class="censor" style="width:64px"></span> walked the <span class="censor" style="width:90px"></span> before the <span class="censor" style="width:48px"></span> fell. It speaks in <span class="censor" style="width:72px"></span> and trades in <span class="censor" style="width:54px"></span>. Do not <span class="censor" style="width:40px"></span> its name.<br>
+              Некто <span class="censor" style="width:64px"></span> шёл по <span class="censor" style="width:90px"></span> до того, как <span class="censor" style="width:48px"></span> пал. Он говорит <span class="censor" style="width:72px"></span> и торгует <span class="censor" style="width:54px"></span>. Не <span class="censor" style="width:40px"></span> его имя.<br>
               <span class="garble" id="gar2"></span>
             </p>
           </div>
@@ -1156,50 +1234,40 @@
             <div class="bracket bl"></div><div class="bracket br"></div>
             <div class="crosshair"></div>
             <div class="rings"><div class="ring r1" style="border-color:var(--red-dim)"></div><div class="ring r2" style="border-color:var(--red-dim)"></div><div class="ring r3" style="border-color:var(--red-dim)"></div></div>
-            <div class="holo-stage">
-              <div class="holo-subj err"><svg><use href="#i-err"/></svg></div>
-            </div>
-            <div class="scan"></div>
-            <div class="static"></div>
-            <div class="floor"></div>
-            <div class="tag">HOLO_RENDER :: FAULT // 0x4E53</div>
+            ${holo3d(errSvg, "ГОЛО_ПРОЕКЦИЯ :: СБОЙ // 0x4E53", true)}
           </div>
         </div>
       </div>`;
     }
 
-    // Normal decrypted card with sigil hologram
-    const chips = [r.category||"UNKNOWN"].map(c=>`<span class="chip">${c}</span>`).join("");
+    // Normal decrypted card with sigil 3D hologram
+    const chips = [r.category||"НЕИЗВЕСТНО"].map(c=>`<span class="chip">${c}</span>`).join("");
+    const sigilSvg = `<svg><use href="#${sigil}"/></svg>`;
     return `<div class="card">
       <div class="card-top">
-        <div class="card-id">ID: <b>${idShort}</b> // SRC: ${type.toUpperCase()}</div>
-        <div class="card-status">DECRYPTED</div>
+        <div class="card-id">ИД: <b>${idShort}</b> // ИСТ: ${type==="npcs"?"НПС":type==="lore"?"ЛОР":"ПРАВ"}</div>
+        <div class="card-status">РАСШИФРОВАНО</div>
       </div>
       <div class="card-body">
         <div class="card-info">
           <div class="npc-name">${formatName(r.name)}</div>
           ${r.title?`<div class="npc-title">${escapeHtml(r.title)}</div>`:""}
-          <div class="stat-row"><span class="chip">${r.category||"UNKNOWN"}</span>${chips}</div>
-          <p class="desc">${escapeHtml(r.description||"// no description archived.")}</p>
+          <div class="stat-row"><span class="chip">${r.category||"НЕИЗВЕСТНО"}</span>${chips}</div>
+          <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
         </div>
         <div class="holo">
           <div class="bracket tl"></div><div class="bracket tr"></div>
           <div class="bracket bl"></div><div class="bracket br"></div>
           <div class="crosshair"></div>
           <div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
-          <div class="holo-stage">
-            <div class="holo-subj"><svg><use href="#${sigil}"/></svg></div>
-          </div>
-          <div class="scan"></div>
-          <div class="floor"></div>
-          <div class="tag">HOLO_RENDER :: STABLE</div>
+          ${holo3d(sigilSvg, "ГОЛО_ПРОЕКЦИЯ :: СТАБИЛЬНА", false)}
         </div>
       </div>
     </div>`;
   }
 
   function formatName(name){
-    if(!name) return "[unnamed]";
+    if(!name) return "[без имени]";
     // Highlight the last word in green (the "epithet")
     const parts = escapeHtml(name).split(" ");
     if(parts.length>1){
@@ -1277,8 +1345,8 @@
   async function buildLogs(name){
     const meta=META[name];
     const logs=[
-      {t:"opening "+meta.label+" :: SECT_07 ...",c:"ok"},
-      {t:"querying SUPABASE vault ............ /api/archive?type="+name,c:"ok"},
+      {t:"открытие "+meta.label+" :: СЕКТОР_07 ...",c:"ok"},
+      {t:"запрос SUPABASE хранилища ......... /api/archive?type="+name,c:"ok"},
     ];
     // fetch if not yet loaded
     if(STORE[name].length===0){
@@ -1286,15 +1354,15 @@
       STORE[name]=recs;
     }
     if(STORE[name].length===0){
-      logs.push({t:"vault returned 0 records ........... [WARN]",c:"warn"});
-      logs.push({t:"check Supabase tables or seed data.",c:"err"});
+      logs.push({t:"хранилище вернуло 0 записей ...... [ВНИМАНИЕ]",c:"warn"});
+      logs.push({t:"проверьте таблицы Supabase или сид-данные.",c:"err"});
     }else{
       const locked=STORE[name].filter(r=>r.is_locked).length;
-      logs.push({t:"received "+STORE[name].length+" records ....... [ OK ]",c:"ok"});
-      if(locked>0) logs.push({t:locked+" records CORRUPTED/SEALED — partial render.",c:"warn"});
-      logs.push({t:"rendering holo-grid ................. [ OK ]",c:"ok"});
+      logs.push({t:"получено "+STORE[name].length+" записей ........ [ OK ]",c:"ok"});
+      if(locked>0) logs.push({t:locked+" записей ПОВРЕЖДЕНО/ОПЕЧАТАНО — частичный рендер.",c:"warn"});
+      logs.push({t:"рендеринг голо-сетки ................ [ OK ]",c:"ok"});
     }
-    logs.push({t:"archive ready.",c:"ok"});
+    logs.push({t:"архив готов.",c:"ok"});
     updateTags();
     return logs;
   }
@@ -1309,7 +1377,7 @@
     if(name==="detail"||name==="npcs"||name==="lore"||name==="rulers"){
       const corr=$("#corrName");
       if(corr){
-        const corruptNames=["[DATA CORRUPTED]","[D_T_ C_RRUPT_D]","[??TA ??RRUPT?D]","[DATA CØRRUPTED]","[_D_A_T_A_ C_O_R_R_U_P_T_E_D_]","[ D A T A   C O R R U P T ]"];
+        const corruptNames=["[ДАННЫЕ ПОВРЕЖДЕНЫ]","[Д_Н_Ы_ П_ВР_Ж_Н_]","[??Н? ??ВР?Ж??]","[ДАННЫЕ ПØВРЕЖДЕНЫ]","[_Д_А_Н_Н_Ы_Е_ П_О_В_Р_Е_Ж_Д_Е_Н_Ы_]","[ Д А Н Н Ы Е   П О В Р Е Ж Д ]"];
         let ci=0;
         corr._iv=setInterval(()=>{
           if(!document.body.contains(corr)){clearInterval(corr._iv);return;}
@@ -1345,8 +1413,8 @@
   const audioBtn=$("#audioBtn");
   audioBtn.addEventListener("click",()=>{
     Audio.ensure();
-    if(Audio.isMuted()){ Audio.setMuted(false); audioBtn.classList.remove("off"); audioBtn.textContent="SOUND:ON"; Audio.beep(660,0.08,0.12); }
-    else { Audio.setMuted(true); audioBtn.classList.add("off"); audioBtn.textContent="SOUND:OFF"; }
+    if(Audio.isMuted()){ Audio.setMuted(false); audioBtn.classList.remove("off"); audioBtn.textContent="ЗВУК:ВКЛ"; Audio.beep(660,0.08,0.12); }
+    else { Audio.setMuted(true); audioBtn.classList.add("off"); audioBtn.textContent="ЗВУК:ВЫКЛ"; }
   });
 
   /* ---------- ambient particles ---------- */
