@@ -419,3 +419,55 @@ Unresolved / Next-phase recommendations:
 - NPC cards could be expanded on click to show a larger detail view (instead of the list+card split).
 - Bestiary could track per-boss defeat count and fastest kill time across NG+ tiers.
 - Campaign log could support a full-text search filter.
+
+---
+Task ID: 10
+Agent: main (Z.ai Code) — major refactor
+Task: Pivot ASHEN CODEX from battle simulator to "Library of Lost Knowledge" lore archive with Supabase backend and mobile admin panel.
+
+Work Log:
+- Installed @supabase/supabase-js.
+- Created .env with VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_SERVICE_KEY, ADMIN_PASSWORD.
+- Created src/lib/supabase.ts — public + admin client factories.
+- Created 5 API routes:
+  - GET /api/archive?type=npcs|lore|rulers — public, uses anon key.
+  - POST /api/admin/login — password auth, sets HTTP-only cookie.
+  - GET /api/admin/login — session check.
+  - DELETE /api/admin/login — logout.
+  - GET /api/admin/list?type=all|npcs|lore|rulers — admin, uses service key.
+  - POST /api/admin/toggle — flips is_locked, uses service key.
+  - POST /api/admin/upload — creates new record, uses service key.
+- Created supabase-migration.sql — schema for npcs, lore, rulers tables + RLS policies + seed data (20 initial records).
+- Completely rewrote public/dnd-console.html (~1100 lines, down from ~3246):
+  - REMOVED: combat system, encounter sim, DPS meters, status effects, NG+ mode, bestiary combat, battle recaps, secret boss ending, victory overlays, FOES array, PARTY array, boss abilities, auto-resolve.
+  - KEPT: CRT effects (scanlines, vignette, noise, flicker), boot sequence, console frame (scratched metal/cracked glass), title bar with LEDs, sidebar menu, typewriter loader, holographic cards, corrupted/locked card visuals, Web Audio API (ambient hum, blips, glitches, whispers), ambient particles, visibility power-down/up.
+  - ADDED: 3 menu items (QUERY_NPC_ARCHIVE, LORE_DATABASE, REGISTRY_OF_RULERS). Data fetched from /api/archive (Supabase). Locked records (is_locked=true) render as corrupted cards with glitch effects. Unlocked records render as holographic cards with sigil SVGs or images. Archive integrity / corruption / signal meters in sidebar.
+- Created src/app/admin/page.tsx — mobile-first admin panel:
+  - Password login (WARDEN) → HTTP-only cookie session.
+  - 3 tabs: NPC / LORE / RULERS with record counts.
+  - List of records with LOCK/UNLOCK toggle buttons (optimistic updates).
+  - Upload form: Name, Category, Title, Description, Image URL, Sigil selector.
+  - Dark-fantasy themed (green-on-black, MedievalSharp headers, VT323 mono).
+  - Responsive, max-width 640px, sticky header.
+- Updated src/app/layout.tsx metadata (title, description).
+- Updated src/app/page.tsx — keeps iframe to /dnd-console.html.
+
+Verification (agent-browser + lint):
+- Main page: boot sequence completes, 3 menu items, "CONNECTING to SUPABASE vault [OK]", empty state shows "// the vault is silent. // check Supabase connection or add records via /admin." Zero console errors.
+- /admin: login form with WARDEN ACCESS. Password "WARDEN" → enters admin panel. 3 tabs (NPC/LORE/RULERS), empty list, "+ NEW RECORD" button, "REFRESH ARCHIVE" button, LOGOUT.
+- Upload form: all 6 fields present (NAME, CATEGORY, TITLE, DESCRIPTION, IMAGE URL, SIGIL). Submitting shows Supabase error "Could not find the table 'public.npcs'" (expected — tables not yet created).
+- bun run lint: clean. node --check: clean.
+- Iframe route / works correctly.
+
+Stage Summary:
+- Deliverable: ASHEN CODEX is now a lore archive reader, not a battle sim.
+- Main page (/): atmospheric CRT console that reads from Supabase. 3 archive categories. Locked files show as corrupted. Unlocked files show holographic cards.
+- Admin page (/admin): mobile-first password-gated panel for the DM. Lock/unlock records, add new lore.
+- SQL migration (supabase-migration.sql): ready to run in Supabase SQL Editor. Creates 3 tables + RLS + 20 seed records.
+- All Supabase operations go through API routes. Service key NEVER exposed to client. Anon key used for public reads.
+
+Next steps for user:
+1. Run supabase-migration.sql in Supabase Dashboard → SQL Editor.
+2. Visit / to browse the archive.
+3. Visit /admin (password: WARDEN) to manage records.
+4. Change ADMIN_PASSWORD in .env for production.
