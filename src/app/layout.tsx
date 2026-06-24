@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "АШЕНОВ КОДЕКС — Библиотека утраченных знаний",
-  description: "Тёмно-фэнтезийный лор-архив D&D. Просматривайте НПС, мировой лор и правителей забытых эпох.",
-  keywords: ["D&D", "лор", "архив", "АШЕНОВ КОДЕКС", "тёмное фэнтези"],
-  authors: [{ name: "Орден Стражей" }],
+  title: "ASHEN CODEX — Library of Lost Knowledge",
+  description: "A dark-fantasy D&D lore archive. Browse NPCs, world lore, and rulers of forgotten epochs.",
+  keywords: ["D&D", "lore", "archive", "Ashen Codex", "dark fantasy"],
+  authors: [{ name: "Warden Order" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
