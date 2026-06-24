@@ -748,6 +748,28 @@
   .cooldown-text{font-family:'MedievalSharp',serif;font-size:24px;color:var(--cyan);text-shadow:0 0 16px rgba(63,214,200,.8);letter-spacing:4px;animation:cooldownPulse 1s ease-in-out infinite;text-align:center}
   @keyframes cooldownPulse{0%,100%{opacity:.5}50%{opacity:1}}
 
+  /* ============ ACHIEVEMENTS ============ */
+  .achievement-toast{position:fixed;top:20px;right:20px;z-index:9900;background:linear-gradient(180deg,rgba(12,14,12,.98),rgba(6,8,6,.98));border:2px solid var(--amber);padding:14px 20px;min-width:280px;max-width:360px;box-shadow:0 0 30px rgba(232,161,58,.4),0 10px 30px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));font-family:'VT323',monospace;animation:achIn .5s ease-out,achOut .5s ease-in 4s forwards;display:flex;gap:12px;align-items:center}
+  @keyframes achIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+  @keyframes achOut{to{transform:translateX(120%);opacity:0}}
+  .ach-icon{font-size:36px;text-shadow:0 0 12px var(--amber);flex-shrink:0}
+  .ach-title{font-family:'MedievalSharp',serif;font-size:16px;color:var(--amber);text-shadow:0 0 8px rgba(232,161,58,.6);letter-spacing:2px;margin-bottom:2px}
+  .ach-desc{font-size:13px;color:var(--text);letter-spacing:1px;line-height:1.3}
+  .ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:10px}
+  .ach-card{border:1px solid #1a201a;background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));padding:12px;opacity:.5;transition:all .3s;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+  .ach-card.unlocked{opacity:1;border-color:var(--amber);box-shadow:0 0 12px rgba(232,161,58,.2)}
+  .ach-card-icon{font-size:28px;text-align:center;margin-bottom:6px;color:var(--text-dim)}
+  .ach-card.unlocked .ach-card-icon{color:var(--amber);text-shadow:0 0 8px rgba(232,161,58,.6)}
+  .ach-card-name{font-family:'MedievalSharp',serif;font-size:14px;color:var(--text-dead);text-align:center;letter-spacing:1px;margin-bottom:4px}
+  .ach-card.unlocked .ach-card-name{color:var(--amber)}
+  .ach-card-desc{font-size:11px;color:var(--text-dim);text-align:center;line-height:1.4}
+
+  /* ============ SHARD LOG ============ */
+  .shard-log{margin:8px;padding:8px;border:1px dashed var(--amber);background:rgba(232,161,58,.03);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+  .shard-log-title{font-size:11px;color:var(--amber);letter-spacing:2px;font-family:'VT323',monospace;margin-bottom:4px}
+  .shard-word{display:inline-block;font-family:'MedievalSharp',serif;font-size:14px;color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.5);margin:2px 4px;letter-spacing:1px}
+  .shard-progress{font-size:10px;color:var(--text-dim);font-family:'VT323',monospace;margin-top:4px}
+
   /* ---------- Responsive ---------- */
   @media (max-width:900px){
     .body{flex-direction:column}
@@ -821,6 +843,9 @@
   </div>
 </div>
 
+<!-- ACHIEVEMENT TOAST CONTAINER -->
+<div id="achToastContainer"></div>
+
 <!-- BOOT -->
 <div class="boot" id="boot">
   <div class="boot-flash"></div>
@@ -872,9 +897,11 @@
           <button class="menu-item active" data-panel="npcs" data-txt="> ЗАПРОС_АРХИВ_НПС"><span class="chev">&gt;</span>ЗАПРОС_АРХИВ_НПС<span class="tag" id="tag-npcs">…</span></button>
           <button class="menu-item" data-panel="lore" data-txt="> БАЗА_ЛОРА"><span class="chev">&gt;</span>БАЗА_ЛОРА<span class="tag" id="tag-lore">…</span></button>
           <button class="menu-item" data-panel="rulers" data-txt="> РЕЕСТР_ПРАВИТЕЛЕЙ"><span class="chev">&gt;</span>РЕЕСТР_ПРАВИТЕЛЕЙ<span class="tag" id="tag-rulers">…</span></button>
+          <button class="menu-item" data-panel="achievements" data-txt="> ДОСТИЖЕНИЯ"><span class="chev">&gt;</span>ДОСТИЖЕНИЯ<span class="tag" id="tag-ach">0</span></button>
         </nav>
 
         <div class="side-foot">
+          <div class="shard-log" id="shardLog"></div>
           <div class="meter">
             <div class="lbl"><span>ЦЕЛОСТНОСТЬ_АРХИВА</span><b id="m1v">--%</b></div>
             <div class="bar"><i id="m1" style="width:--%"></i></div>
@@ -1187,14 +1214,153 @@
     lore: [],
     rulers: [],
     selectedIdx: { npcs:0, lore:0, rulers:0 },
-    collectedFragments: new Set(), // shard words collected by player (stage 6 will populate)
+    collectedFragments: new Set(), // shard words collected by player
+    achievements: new Set(), // achievement IDs unlocked
+    readRecords: new Set(), // record IDs the player has opened (for ARCHIVIST)
   };
 
-  // Stubs for features arriving in later stages — safe no-ops until then.
-  // Stage 5 (achievements) will replace unlockAchievement with real logic.
-  function unlockAchievement(id){ /* stub — stage 5 */ }
-  // Stage 7 (God's Gaze) will replace addGaze with real logic.
+  // Stub for God's Gaze (stage 7 will replace with real logic).
   function addGaze(amount){ /* stub — stage 7 */ }
+
+  /* =========================================================
+     ACHIEVEMENTS — 10 unlocks, synced to server when logged in
+     ========================================================= */
+  const ACHIEVEMENTS=[
+    {id:"FIRST_BREACH",icon:"🥇",name:"Первый взлом",desc:"Решить первую головоломку"},
+    {id:"ARCHIVIST",icon:"📚",name:"Архивариус",desc:"Прочитать все открытые записи"},
+    {id:"SEALBREAKER",icon:"🔓",name:"Взломщик Печатей",desc:"Открыть все закрытые файлы"},
+    {id:"SHARD_COLLECTOR",icon:"🧩",name:"Собиратель Осколков",desc:"Найти первый осколок памяти"},
+    {id:"PROPHECY_FULFILLED",icon:"🔮",name:"Исполнитель Пророчества",desc:"Открыть Пророчество дня"},
+    {id:"WITCHING_HOUR",icon:"🌙",name:"Полуночный Свидетель",desc:"Зайти в Час Ведьмы"},
+    {id:"FINAL_REVELATION",icon:"💀",name:"Окончательное Откровение",desc:"Пройти мета-головоломку"},
+    {id:"RESEAL",icon:"🔒",name:"Страж Печати",desc:"Запечатать обратно запись"},
+    {id:"VOICE_OF_GOD",icon:"🎧",name:"Голос Мёртвого Бога",desc:"Прослушать TTS-озвучку"},
+    {id:"CARTOGRAPHER",icon:"🗺",name:"Картограф",desc:"Переключиться в режим карты"},
+  ];
+
+  async function syncAchievementsFromServer(){
+    if(!_player) return;
+    try{
+      const r = await fetch("/api/auth/achievements");
+      if(r.ok){
+        const j = await r.json();
+        if(j.ok && j.achievements){
+          STORE.achievements = new Set(j.achievements);
+          const ta = $("#tag-ach");
+          if(ta) ta.textContent = STORE.achievements.size;
+        }
+      }
+    }catch(e){}
+  }
+
+  async function unlockAchievementServer(id){
+    if(!_player) return;
+    try{
+      await fetch("/api/auth/achievements", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ achievement_id: id })
+      });
+    }catch(e){}
+  }
+
+  function loadAchievements(){
+    if(_player){ syncAchievementsFromServer(); return; }
+    try{
+      STORE.achievements = new Set(JSON.parse(localStorage.getItem("ashen_achievements") || "[]"));
+    }catch(e){ STORE.achievements = new Set(); }
+  }
+
+  function saveAchievements(){
+    if(_player) return;
+    try{
+      localStorage.setItem("ashen_achievements", JSON.stringify([...STORE.achievements]));
+    }catch(e){}
+  }
+
+  function unlockAchievement(id){
+    if(STORE.achievements.has(id)) return;
+    const ach = ACHIEVEMENTS.find(a => a.id === id);
+    if(!ach) return;
+    STORE.achievements.add(id);
+    if(_player) unlockAchievementServer(id);
+    else saveAchievements();
+    // Toast notification
+    const c = $("#achToastContainer");
+    if(c){
+      const t = document.createElement("div");
+      t.className = "achievement-toast";
+      t.innerHTML = `<div class="ach-icon">${ach.icon}</div><div style="flex:1"><div class="ach-title">ДОСТИЖЕНИЕ: ${escapeHtml(ach.name)}</div><div class="ach-desc">${escapeHtml(ach.desc)}</div></div>`;
+      c.appendChild(t);
+      setTimeout(()=>t.remove(), 5000);
+    }
+    // Success chord
+    Audio.beep(659, 0.12, 0.16);
+    setTimeout(()=>Audio.beep(784, 0.12, 0.16), 120);
+    setTimeout(()=>Audio.beep(988, 0.18, 0.18), 240);
+    const ta = $("#tag-ach");
+    if(ta) ta.textContent = STORE.achievements.size;
+  }
+
+  function renderAchievements(){
+    const cards = ACHIEVEMENTS.map(a => {
+      const unlocked = STORE.achievements.has(a.id);
+      return `<div class="ach-card${unlocked?" unlocked":""}">
+        <div class="ach-card-icon">${unlocked?a.icon:"???"}</div>
+        <div class="ach-card-name">${unlocked?escapeHtml(a.name):"???"}</div>
+        <div class="ach-card-desc">${unlocked?escapeHtml(a.desc):"скрыто"}</div>
+      </div>`;
+    }).join("");
+    return `<div class="panel-head">
+      <h2><span class="g">&gt;</span> ДОСТИЖЕНИЯ <span class="g">::</span> ВЕДОМОСТИ СТРАЖА</h2>
+      <div class="sub">${STORE.achievements.size} / ${ACHIEVEMENTS.length} получено</div>
+    </div>
+    <div class="ach-grid">${cards}</div>`;
+  }
+
+  /* =========================================================
+     SHARDS — collect fragment words from unlocked shard records
+     ========================================================= */
+  function trackRead(record){
+    if(!record || !record.id || STORE.readRecords.has(record.id)) return;
+    STORE.readRecords.add(record.id);
+    try{ localStorage.setItem("ashen_read_records", JSON.stringify([...STORE.readRecords])); }catch(e){}
+    // ARCHIVIST: read all unlocked records
+    const allOpen = [];
+    ["npcs","lore","rulers"].forEach(t => {
+      allOpen.push(...STORE[t].filter(r => !r.is_locked));
+    });
+    if(allOpen.length > 0 && allOpen.every(r => STORE.readRecords.has(r.id))){
+      unlockAchievement("ARCHIVIST");
+    }
+  }
+
+  function tryCollectShard(record){
+    if(!record || !record.shard_word) return;
+    const word = record.shard_word;
+    if(STORE.collectedFragments.has(word)) return;
+    STORE.collectedFragments.add(word);
+    try{ localStorage.setItem("ashen_collected_fragments", JSON.stringify([...STORE.collectedFragments])); }catch(e){}
+    unlockAchievement("SHARD_COLLECTOR");
+    triggerAlert("ОСКОЛОК СОБРАН", `слово <b>${escapeHtml(word)}</b> добавлено.<br>собрано: <b>${STORE.collectedFragments.size}</b>`);
+    Audio.beep(523, 0.1, 0.14);
+    setTimeout(()=>Audio.beep(659, 0.1, 0.14), 100);
+    setTimeout(()=>Audio.beep(784, 0.15, 0.16), 200);
+    renderShardLog();
+  }
+
+  function renderShardLog(){
+    const el = $("#shardLog");
+    if(!el) return;
+    const allRecs = [...STORE.npcs, ...STORE.lore, ...STORE.rulers];
+    const shards = allRecs.filter(r => r.shard_word);
+    const collected = [...STORE.collectedFragments];
+    el.innerHTML = `<div class="shard-log-title">// ОСКОЛКИ ПАМЯТИ</div>${
+      collected.length > 0
+        ? collected.map(w => `<span class="shard-word">${escapeHtml(w)}</span>`).join("")
+        : "<span style='font-size:11px;color:var(--text-dim)'>пусто</span>"
+    }<div class="shard-progress">${collected.length} / ${shards.length}</div>`;
+  }
   const META={
     npcs:{ label:"АРХИВ_НПС", crumb:"АРХИВ_НПС", tag:"npcs" },
     lore:{ label:"БАЗА_ЛОРА", crumb:"МИРОВОЙ_ЛОР", tag:"lore" },
@@ -1341,6 +1507,7 @@
             ${r.title?`<div class="npc-title">${escapeHtml(r.title)}</div>`:""}
             <div class="stat-row">${chips}</div>
             <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
+            ${r.shard_word ? `<div style="margin-top:8px;font-size:12px;color:var(--amber);letter-spacing:1px;font-family:'VT323',monospace;border:1px dashed var(--amber);padding:6px 10px;background:rgba(232,161,58,.05);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))">🧩 ОСКОЛОК ПАМЯТИ: «${escapeHtml(r.shard_word)}»</div>` : ""}
           </div>
           <div class="holo">
             <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -1400,6 +1567,7 @@
           ${r.title?`<div class="npc-title">${escapeHtml(r.title)}</div>`:""}
           <div class="stat-row"><span class="chip">${r.category||"НЕИЗВЕСТНО"}</span>${chips}</div>
           <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
+          ${r.shard_word ? `<div style="margin-top:8px;font-size:12px;color:var(--amber);letter-spacing:1px;font-family:'VT323',monospace;border:1px dashed var(--amber);padding:6px 10px;background:rgba(232,161,58,.05);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))">🧩 ОСКОЛОК ПАМЯТИ: «${escapeHtml(r.shard_word)}»</div>` : ""}
         </div>
         <div class="holo">
           <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -1435,10 +1603,16 @@
     if(i<0||i>=recs.length) return;
     STORE.selectedIdx[type]=i;
     const slot=$("#detailSlot"); if(!slot) return;
-    slot.innerHTML=renderRecordCard(recs[i], type);
+    const rec = recs[i];
+    slot.innerHTML=renderRecordCard(rec, type);
     $$("#npcList .npc-row").forEach((r,j)=>r.classList.toggle("sel",j===i));
     Audio.blip(520,0.05,0.08);
     initPanelExtras("detail");
+    // Track reading + collect shard if this is a fragment record (stage 5+6)
+    if(!rec.is_locked){
+      trackRead(rec);
+      tryCollectShard(rec);
+    }
   }
 
   /* ---------- loader + panel switching ---------- */
@@ -1476,19 +1650,39 @@
       }
     }
     function reveal(){
-      content.innerHTML=renderArchive(name);
-      content.scrollTop=0;
-      loader.style.display="none";
+      let html;
+      if(name === "achievements"){
+        html = renderAchievements();
+        $("#crumbCur").textContent = "ДОСТИЖЕНИЯ";
+      } else {
+        html = renderArchive(name);
+        $("#crumbCur").textContent = META[name].crumb;
+      }
+      content.innerHTML = html;
+      content.scrollTop = 0;
+      loader.style.display = "none";
       content.classList.add("show");
-      $("#crumbCur").textContent=META[name].crumb;
-      busy=false;
-      wirePanel(name);
-      initPanelExtras(name);
+      busy = false;
+      if(name !== "achievements"){
+        wirePanel(name);
+        initPanelExtras(name);
+        renderShardLog();
+      }
     }
     next();
   }
 
   async function buildLogs(name){
+    // Achievements panel has its own log sequence (no Supabase fetch needed)
+    if(name === "achievements"){
+      const logs = [
+        {t:"открытие ВЕДОМОСТЕЙ СТРАЖА ........ [ OK ]",c:"ok"},
+        {t:"получено " + STORE.achievements.size + " / " + ACHIEVEMENTS.length + " достижений", c: STORE.achievements.size > 0 ? "ok" : "warn"},
+        {t:"ведомости готовы.",c:"ok"},
+      ];
+      updateTags();
+      return logs;
+    }
     const meta=META[name];
     const logs=[
       {t:"открытие "+meta.label+" :: СЕКТОР_07 ...",c:"ok"},
@@ -1723,7 +1917,7 @@
     Audio.beep(523, 0.15, 0.16);
     setTimeout(()=>Audio.beep(659, 0.15, 0.16), 120);
     setTimeout(()=>Audio.beep(784, 0.2, 0.18), 240);
-    // After 1.1s: unlock server-side, refresh data, show unveil
+    // After 1.1s: unlock server-side, refresh data, show unveil, grant achievements
     setTimeout(async ()=>{
       const ctx = bypassContext;
       if(!ctx) return;
@@ -1738,6 +1932,20 @@
         updateTags();
         const updated = STORE[ctx.type].find(r => r.id === ctx.record.id);
         const realName = updated ? (updated.name || "") : "";
+        // Achievements (stage 5)
+        addGaze(8);
+        unlockAchievement("FIRST_BREACH");
+        if(ctx.record.puzzle_type) unlockAchievement("PUZZLE_" + ctx.record.puzzle_type.toUpperCase());
+        // SEALBREAKER: all records across all 3 archives are unlocked
+        const allLocked = [];
+        ["npcs","lore","rulers"].forEach(t => {
+          allLocked.push(...STORE[t].filter(r => r.is_locked));
+        });
+        if(allLocked.length === 0) unlockAchievement("SEALBREAKER");
+        // Collect shard if the unlocked record carries one (stage 6)
+        if(updated && updated.shard_word){
+          tryCollectShard(updated);
+        }
         showUnveil(garbled, realName);
       }catch(e){
         showUnveil(garbled, garbled);
@@ -2161,6 +2369,7 @@
     Audio.glitch(0.2);
     try{ await fetch("/api/auth/logout", { method: "DELETE" }); }catch(e){}
     _player = null;
+    STORE.achievements = new Set();
     const stage = $("#stage");
     if(stage){
       stage.style.transition = "opacity .5s";
@@ -2179,11 +2388,18 @@
     }, 500);
   });
 
+  // Load local persisted state (shards + read records + achievements when anonymous)
+  try{ STORE.collectedFragments = new Set(JSON.parse(localStorage.getItem("ashen_collected_fragments") || "[]")); }catch(e){}
+  try{ STORE.readRecords = new Set(JSON.parse(localStorage.getItem("ashen_read_records") || "[]")); }catch(e){}
+  loadAchievements();
+
   // On load: check session, then either boot directly or show gate
   (async () => {
     const loggedIn = await checkSession();
     if(loggedIn){
       setWardenName();
+      // Sync achievements from server (overrides local cache)
+      await syncAchievementsFromServer();
       $("#wardensGate").classList.add("gone");
       setTimeout(bootStep, 650);
     } else {
@@ -2193,6 +2409,7 @@
 
   // initial tag update
   updateTags();
+  renderShardLog();
 
 })();
 </script>

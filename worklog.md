@@ -719,3 +719,81 @@ Stage Summary:
 - Cooldown система: 3с → 5с+gaze → 10с заморозка, с обратным отсчётом и visual feedback.
 - Заглушки unlockAchievement/addGaze/collectedFragments готовы для замены в этапах 5/6/7.
 - Готов к этапу 5 (ДОСТИЖЕНИЯ).
+
+---
+Task ID: UPDATE-5+6
+Agent: main (z.ai code)
+Task: Этапы 5 (ДОСТИЖЕНИЯ) и 6 (ОСКОЛКИ ПАМЯТИ). Базируется на Update 4 (1dc4da1).
+
+Work Log:
+- Прочитал worklog.md — Update 4 завершён, все 8 головоломок + cooldown работают.
+- Извлёк из v6.0-messy: ACHIEVEMENTS, unlockAchievement/sync/save/load, renderAchievements, tryCollectShard, trackRead, renderShardLog, /api/auth/achievements route.
+
+Backend:
+- src/app/api/auth/achievements/route.ts: GET (list player achievements) + POST (upsert achievement, idempotent via UNIQUE constraint).
+- src/lib/supabase.ts: + shard_word field в ArchiveRecord.
+
+Frontend CSS:
+- .achievement-toast (fixed top-right, amber border, achIn/achOut animations)
+- .ach-icon, .ach-title, .ach-desc
+- .ach-grid (auto-fill minmax 180px), .ach-card (+.unlocked), .ach-card-icon/name/desc
+- .shard-log (sidebar, amber dashed), .shard-log-title, .shard-word, .shard-progress
+
+Frontend HTML:
+- 4-й пункт меню «ДОСТИЖЕНИЯ» (data-panel="achievements", tag-ach)
+- #shardLog в sidebar (перед meters)
+- #achToastContainer (после unveil overlay)
+
+Frontend JS:
+- STORE: + achievements Set, + readRecords Set (collectedFragments уже был)
+- ACHIEVEMENTS array: 10 шт (FIRST_BREACH, ARCHIVIST, SEALBREAKER, SHARD_COLLECTOR, PROPHECY_FULFILLED, WITCHING_HOUR, FINAL_REVELATION, RESEAL, VOICE_OF_GOD, CARTOGRAPHER)
+- syncAchievementsFromServer(): GET /api/auth/achievements → STORE.achievements
+- unlockAchievementServer(id): POST /api/auth/achievements
+- loadAchievements(): если _player — sync, иначе localStorage
+- saveAchievements(): localStorage (анонимный режим)
+- unlockAchievement(id): проверка дубликата, добавление в Set, sync/save, toast notification (icon+name+desc, 5 сек), success chord (659→784→988 Hz), обновление tag-ach
+- renderAchievements(): grid из 10 карточек (unlocked показывает icon+name+desc, locked показывает ???/скрыто)
+- trackRead(record): добавляет в readRecords, проверяет ARCHIVIST (все открытые записи прочитаны)
+- tryCollectShard(record): добавляет shard_word в collectedFragments, unlockAchievement("SHARD_COLLECTOR"), triggerAlert, success chord, renderShardLog
+- renderShardLog(): sidebar виджет с собранными словами и прогрессом N/M
+- selectRecord: если !is_locked → trackRead(rec) + tryCollectShard(rec)
+- bypassSuccess: addGaze(8), unlockAchievement("FIRST_BREACH"), unlockAchievement("PUZZLE_"+type), SEALBREAKER check, tryCollectShard(updated) если есть shard_word
+- startPanel: achievements branch (renderAchievements, crumb=ДОСТИЖЕНИЯ), renderShardLog для остальных
+- buildLogs: achievements branch (свой log sequence без Supabase fetch)
+- logout: STORE.achievements = new Set()
+- init: загрузка collectedFragments + readRecords из localStorage, loadAchievements(), syncAchievementsFromServer() после login
+- renderRecordCard: shard badge «🧩 ОСКОЛОК ПАМЯТИ: «word»» в image-card и sigil-card variants
+
+Verification:
+- JS syntax (node --check): OK (59435 bytes script block).
+- ESLint: clean (exit 0).
+- API: GET /api/auth/achievements (no cookie) → 401; (with cookie) → 200 [].
+  POST unlock FIRST_BREACH → 200. GET → ["FIRST_BREACH"]. ✓
+
+E2E agent-browser (TESTWARDEN session):
+1. Login → auto-boot → stage live, achTag=1 (FIRST_BREACH synced from server), shardLog «0/5» ✓
+2. Click Странник Пепельных Дорог (shard_word=ПЕПЕЛ):
+   - Card shows «🧩 ОСКОЛОК ПАМЯТИ: «ПЕПЕЛ»» badge ✓
+   - shardLog: «ПЕПЕЛ | 1 / 5» ✓
+   - achTag: 1→2 (SHARD_COLLECTOR unlocked) ✓
+   - alertOverlay visible («ОСКОЛОК СОБРАН») ✓
+   - toast notification (achievement-toast) ✓
+3. Collect remaining 4 shards (d77bf566, 1c2f5570, 646f6429, 04eab081):
+   - shardLog: «ПЕПЕЛПОМНИТИМЯБОГАОСВОБОДИ | 5 / 5» ✓
+4. ДОСТИЖЕНИЯ panel:
+   - Header «ДОСТИЖЕНИЯ :: ВЕДОМОСТИ СТРАЖА» ✓
+   - Sub «2 / 10 получено» ✓
+   - 10 cards, 2 unlocked (🥇 Первый взлом, 🧩 Собиратель Осколков) ✓
+   - Locked cards show ??? / скрыто ✓
+5. Meta puzzle (lore/7c4ec899):
+   - Open bypass → 5 fragments all collected, input + ПРОИЗНЕСТИ shown ✓
+   - Enter «ПЕПЕЛ ПОМНИТ ИМЯ БОГА ОСВОБОДИ» → «ДОСТУП РАЗРЕШЕН» ✓
+   - achTag: 2→3 (FINAL_REVELATION unlocked) ✓
+   - loreTag: 18→17 🔒, DB is_locked=False ✓
+6. Server achievements sync: ["FIRST_BREACH","SHARD_COLLECTOR","FINAL_REVELATION"] ✓
+- 0 JS errors ✓
+
+Stage Summary:
+- Этапы 5+6 завершены. 10 достижений с toast + server sync, 5 осколков с sidebar виджетом + alert, ARCHIVIST/FINAL_REVELATION/SHARD_COLLECTOR/SEALBREAKER автоматически.
+- Meta puzzle теперь полностью проходима (нужны все 5 осколков).
+- Готов к этапу 7 (ВЗГЛЯД БОГА).
