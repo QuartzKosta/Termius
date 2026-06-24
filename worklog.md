@@ -536,3 +536,60 @@ Stage Summary:
 - Этап 1 (WARDEN'S GATE) завершён. Auth-инфраструктура полностью на месте: 5 новых файлов backend + gate UI/frontend.
 - Следующий шаг для пользователя: выполнить supabase-fix-players-grant.sql, затем создать стража через /admin (пока WardensPanel нет в админке — можно через curl или временно).
 - Ветка v6.0-messy сохранена для cherry-pick следующих этапов (2-12).
+
+---
+Task ID: UPDATE-2
+Agent: main (z.ai code)
+Task: Этап 2 из 12 — ПЕЧАТИ + головоломка keyword. Базируется на Update 1 (710bea3).
+
+Work Log:
+- Прочитал worklog.md — Update 1 (WARDEN'S GATE) завершён. Пользователь параллельно починил БД (выполнил supabase-fix-players-grant.sql).
+- Подтверждено: POST /api/admin/players теперь возвращает 200 (создан TESTWARDEN), POST /api/auth/login возвращает 200 + cookie, GET /api/auth/session возвращает 200.
+- Изучил renderRecordCard в Version 10: locked-карточка уже рендерится с corruption-стилями (garble, censor, red-dim). Не хватало только кнопки СНЯТЬ ПЕЧАТЬ и puzzle-инфраструктуры.
+
+Backend:
+- src/lib/supabase.ts: расширил ArchiveRecord type — добавил puzzle_type, puzzle_data, puzzle_hint (string|null).
+- src/app/api/archive/unlock/route.ts: POST endpoint. Body {type, id} → update is_locked=false через getAdminClient (service_role). Validation: 400 на missing fields / invalid type.
+
+Frontend (public/dnd-console.html):
+- CSS (строки 676-701): добавил .bypass-overlay, .bypass-box (+.denied/.granted с shake-анимацией), .bypass-head/.bypass-title/.bypass-close, .bypass-hint, .bypass-status, .pk-input, .seal-btn (amber-themed кнопка), .unveil-overlay/.unveil-garbled/.unveil-name (с unveilNameIn анимацией scale+blur).
+- HTML overlays (строки 755-774): #bypassOverlay (модалка с title/hint/puzzle-slot/status) + #unveilOverlay (fullscreen reveal с garbled→name анимацией).
+- renderRecordCard: в locked-блок добавлена кнопка «⚠ СНЯТЬ ПЕЧАТЬ» (class seal-btn, id=bypassBtn, data-id/data-type) — только если r.puzzle_type существует. Иначе сообщение «// печать без головоломки.»
+- JS (строки 1560-1706):
+  - bypassContext = {record, type}
+  - openBypass(record, type) — парсит puzzle_data JSON, показывает hint, вызывает renderPuzzle
+  - closeBypass() — скрывает overlay
+  - bypassFail(reason) — .denied класс + shake + glitch sound + авто-сброс через 1.4s
+  - bypassSuccess() — .granted класс + green flash + success chord (523→659→784 Hz) + через 1.1s: POST /api/archive/unlock, refresh STORE, showUnveil(garbled, realName)
+  - showUnveil(garbled, realName) — fullscreen overlay, garbled текст глитчится, realName появляется с scale+blur анимацией через 0.8s, auto-close через 2.8s
+  - renderPuzzle(ptype, pd) — dispatcher: keyword → renderKeyword, остальные → «неизвестный тип печати»
+  - renderKeyword(slot, pd) — input + ПОДТВЕРДИТЬ button, проверка answer (case-insensitive, trim), Enter сабмитит
+  - document click listener для #bypassBtn (delegated, т.к. карточка перерисовывается)
+  - #bypassClose click + ESC key handler
+
+Verification:
+- JS syntax (node --check): OK (35571 bytes script block).
+- ESLint: clean (exit 0).
+- API tests:
+  - POST /api/archive/unlock {type:"invalid"} → 400 "Invalid type" ✓
+  - POST /api/archive/unlock {} → 400 "type and id required" ✓
+  - POST /api/archive/unlock {type:"npcs", id:"8382cf54..."} → 200 ✓ (реальный unlock)
+- E2E agent-browser (полный flow с реальным TESTWARDEN):
+  1. Login via cookie → auto-boot → stage live → wardenName="TESTWARDEN" ✓
+  2. NPC tag = "47 rec // 14 🔒" ✓
+  3. Клик по 8382CF54 (keyword, answer="пепел") → locked card + «⚠ СНЯТЬ ПЕЧАТЬ» button ✓
+  4. Клик bypass → overlay show, hint="То, что остаётся от клятвы...", pkInput + ПОДТВЕРДИТЬ ✓
+  5. Wrong answer "неправильно" → bypassFail (denied класс, shake, статус сбрасывается через 1.4s, input очищается) ✓
+  6. Correct answer "пепел" → "ДОСТУП РАЗРЕШЕН — печать снята", box.granted ✓
+  7. Через 1.1s: POST /api/archive/unlock 200, STORE refreshed, unveil overlay показывает garbled→name ✓
+  8. npcTag изменился: "14 🔒" → "13 🔒" ✓
+  9. DB verify: 8382cf54 is_locked=False ✓ (серверная разблокировка сработала)
+  10. 89F2A212 (circuit puzzle) → «неизвестный тип печати: circuit» (ожидаемо, circuit в этапе 3) ✓
+  11. × button закрывает overlay ✓
+  12. ESC закрывает overlay ✓
+  13. 0 JS errors ✓
+
+Stage Summary:
+- Этап 2 (ПЕЧАТИ + keyword puzzle) завершён. Полный flow: locked card → bypass modal → keyword input → server unlock → unveil animation → data refresh.
+- БД починена пользователем параллельно — login + create warden + unlock работают end-to-end.
+- Готов к этапу 3 (головоломки tumbler, constellation, circuit).

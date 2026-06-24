@@ -25,6 +25,9 @@ export interface ArchiveRecord {
   image_url: string | null;
   sigil: string | null;
   is_locked: boolean;
+  puzzle_type: string | null;
+  puzzle_data: string | null;
+  puzzle_hint: string | null;
   created_at: string | null;
 }
 
