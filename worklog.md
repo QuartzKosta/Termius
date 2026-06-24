@@ -865,3 +865,59 @@ Stage Summary:
 - Этапы 7+8 завершены. God's Gaze с 4 уровнями CRT degradation + admin command bridge. Witching Hour с timezone-aware time ranges + manual override + WITCHING_HOUR achievement.
 - Заглушка addGaze заменена на реальную реализацию. bypassFail (этап 4) теперь реально повышает gaze при 2-й ошибке.
 - Готов к этапу 9 (РЕЖИМ ПРОЕКЦИИ).
+
+---
+Task ID: UPDATE-9+10
+Agent: main (z.ai code)
+Task: Этапы 9 (РЕЖИМ ПРОЕКЦИИ) и 10 (КАРТА ЗНАНИЙ). Базируется на Update 7+8 (cf9f0d4).
+
+Work Log:
+- Прочитал worklog.md — Update 7+8 завершён, God's Gaze + Witching Hour работают.
+- Извлёк из v6.0-messy: projection CSS + openProjection/closeProjection, map CSS + renderMapView, view-toggle.
+- Заглушки isValidImageUrl/safeImgTag не нужны — реализовал проверку image_url inline в openProjection (regex + onerror fallback на sigil SVG).
+
+Frontend CSS:
+- .projection-overlay (fullscreen, z-9600, opacity transition), .projection-close (× button), .projection-holo (300×300), .bracket tl/tr/bl/br, .holo-stage, .holo-subj (svg/img with holoSpin), .scan (holoScan 3.4s), .projection-name/title/desc
+- .view-toggle + .view-btn (+.active green), .map-container (500px min), .map-svg (radial-gradient bg + grid), .map-node (+.locked red, +.fragment amber dashed), .node-dot, .map-link (dashed), .map-legend with .dot.open/locked/fragment
+
+Frontend HTML:
+- #projectionOverlay (после witchingIndicator): close button + holo + name/title/desc
+- Кнопка «📽 ПРОЕКЦИЯ» (seal-btn, id=projBtn, data-id/data-type) в image-card и sigil-card variants
+
+Frontend JS:
+- let _viewMode = "list" (глобальная переменная режима просмотра)
+- renderArchive: if(_viewMode==="map") return renderMapView(type); + view-toggle (СПИСОК/КАРТА) в panel-head
+- renderMapView(type): кластеризация по category (ОПЕЧАТАНО/ОСКОЛКИ/category), cluster centers на круге (cR=34), nodes в кольцах внутри кластеров (ir=3+count*1.2), links внутри кластеров + между центрами, grid 10-90%, SVG viewBox 0 0 100 100, legend с счётчиками open/locked/fragment
+- openProjection(record, type): fullscreen holo с brackets + scan, subject = i-err если locked / image если valid URL (regex + onerror fallback) / sigil SVG, name/title/desc, unlockAchievement("VOICE_OF_GOD"), beep chord
+- Click delegation (единый listener): #bypassBtn → openBypass, #projBtn → openProjection, .map-node → selectRecord + _viewMode=list + startPanel, .view-btn[data-view] → switch mode + CARTOGRAPHER
+- #projectionClose click + ESC (приоритет: projection → bypass)
+
+Verification:
+- JS syntax (node --check): OK (71106 bytes script block).
+- ESLint: clean (exit 0).
+
+E2E agent-browser (TESTWARDEN session):
+1. Click The Cinder-King (UNDEAD, unlocked):
+   - view-toggle с 2 кнопками (СПИСОК/КАРТА) ✓
+   - «📽 ПРОЕКЦИЯ» кнопка в карточке ✓
+2. Click ПРОЕКЦИЯ:
+   - projectionOverlay.show ✓
+   - name «The Cinder-King», title «// last monarch of the Ashen Throne», desc ✓
+   - holo-subj отрендерен ✓
+   - achTag 4→5 (VOICE_OF_GOD) ✓
+3. ESC closes projection ✓
+4. × button closes projection ✓
+5. Click КАРТА:
+   - header «АРХИВ_НПС :: КАРТА ЗНАНИЙ» ✓
+   - 1 SVG, 47 nodes, 61 links, 1 legend ✓
+   - СПИСОК button для возврата ✓
+   - achTag 5→6 (CARTOGRAPHER) ✓
+6. Click map node:
+   - returns to list view, npcList restored ✓
+- 0 JS errors ✓
+- Server achievements: [FIRST_BREACH, SHARD_COLLECTOR, FINAL_REVELATION, WITCHING_HOUR, VOICE_OF_GOD, CARTOGRAPHER] — 6 synced ✓
+
+Stage Summary:
+- Этапы 9+10 завершены. Projection (fullscreen holo) + Map view (clustered SVG) работают.
+- 2 новых achievement: VOICE_OF_GOD (projection), CARTOGRAPHER (map view).
+- Готов к этапу 11 (РАСШИРЕННАЯ АДМИНКА).

@@ -798,6 +798,49 @@
   .witching-indicator.show{display:block}
   @keyframes witchingPulse{0%,100%{opacity:.7;box-shadow:0 0 20px rgba(167,139,250,.2)}50%{opacity:1;box-shadow:0 0 40px rgba(167,139,250,.5)}}
 
+  /* ============ PROJECTION (fullscreen holo) ============ */
+  .projection-overlay{position:fixed;inset:0;z-index:9600;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.95);opacity:0;pointer-events:none;transition:opacity .4s;padding:40px 20px;overflow-y:auto}
+  .projection-overlay.show{opacity:1;pointer-events:auto}
+  .projection-close{position:absolute;top:20px;right:20px;background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:24px;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:10}
+  .projection-close:hover{color:var(--red);border-color:var(--red)}
+  .projection-holo{position:relative;width:300px;height:300px;max-width:90vw;max-height:50vh;margin-bottom:20px}
+  .projection-holo .bracket{position:absolute;width:22px;height:22px;border:2px solid var(--green)}
+  .projection-holo .bracket.tl{top:0;left:0;border-right:none;border-bottom:none}
+  .projection-holo .bracket.tr{top:0;right:0;border-left:none;border-bottom:none}
+  .projection-holo .bracket.bl{bottom:0;left:0;border-right:none;border-top:none}
+  .projection-holo .bracket.br{bottom:0;right:0;border-left:none;border-top:none}
+  .projection-holo .holo-stage{position:absolute;inset:20px;display:flex;align-items:center;justify-content:center}
+  .projection-holo .holo-subj{width:100%;height:100%;display:flex;align-items:center;justify-content:center;animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite}
+  .projection-holo .holo-subj svg{width:70%;height:70%;color:var(--green);filter:drop-shadow(0 0 14px rgba(74,246,38,.6))}
+  .projection-holo .holo-subj img{max-width:80%;max-height:80%;object-fit:contain;filter:drop-shadow(0 0 16px rgba(74,246,38,.5)) sepia(.3) hue-rotate(70deg) saturate(1.4);animation:holoSpin 9s linear infinite}
+  .projection-holo .scan{position:absolute;left:0;right:0;height:14px;top:-14px;background:linear-gradient(180deg,transparent,rgba(74,246,38,.55),transparent);animation:holoScan 3.4s linear infinite;pointer-events:none}
+  .projection-name{font-family:'MedievalSharp',serif;font-size:32px;color:var(--green);text-shadow:0 0 20px rgba(74,246,38,.8);letter-spacing:4px;margin-bottom:8px}
+  .projection-title{font-family:'VT323',monospace;font-size:16px;color:var(--text-dim);letter-spacing:2px;margin-bottom:16px}
+  .projection-desc{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--text);line-height:1.6;max-width:700px;text-align:center}
+  @keyframes holoScan{0%{top:-14px}100%{top:100%}}
+
+  /* ============ MAP VIEW ============ */
+  .view-toggle{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+  .view-btn{background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:13px;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all .15s;clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px))}
+  .view-btn.active{border-color:var(--green);color:var(--green);text-shadow:0 0 6px rgba(74,246,38,.5);background:rgba(74,246,38,.08)}
+  .view-btn:hover{border-color:var(--green);color:var(--green)}
+  .map-container{position:relative;width:100%;min-height:500px;max-height:70vh}
+  .map-svg{width:100%;height:100%;min-height:500px;background:radial-gradient(ellipse at 30% 30%,rgba(74,246,38,.04),transparent 50%),radial-gradient(ellipse at 70% 70%,rgba(63,214,200,.03),transparent 50%),#020510;border:1px solid var(--green-deep);display:block}
+  .map-svg .map-grid{stroke:rgba(74,246,38,.04);stroke-width:.3}
+  .map-svg .map-link{stroke:rgba(74,246,38,.12);stroke-width:.4;fill:none;stroke-dasharray:1 1}
+  .map-svg .map-node{cursor:pointer;transition:all .2s}
+  .map-svg .map-node circle.node-dot{fill:var(--green-deep);stroke:var(--green);stroke-width:1.2;transition:all .2s;filter:drop-shadow(0 0 3px rgba(74,246,38,.4))}
+  .map-svg .map-node:hover circle.node-dot{stroke-width:2;filter:drop-shadow(0 0 6px var(--green))}
+  .map-svg .map-node.locked circle.node-dot{fill:#3a1414;stroke:var(--red)}
+  .map-svg .map-node.fragment circle.node-dot{fill:var(--green-deep);stroke:var(--amber);stroke-dasharray:1.5 1}
+  .map-svg .map-node text{fill:var(--text);font-family:'VT323',monospace;font-size:3px;text-anchor:middle;pointer-events:none}
+  .map-svg .map-node.locked text{fill:var(--red-dim)}
+  .map-legend{display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px;flex-wrap:wrap;padding:8px}
+  .map-legend .dot{width:10px;height:10px;border-radius:50%;border:2px solid;display:inline-block;margin-right:4px;vertical-align:middle}
+  .map-legend .dot.open{border-color:var(--green);background:var(--green-deep)}
+  .map-legend .dot.locked{border-color:var(--red);background:#3a1414}
+  .map-legend .dot.fragment{border-color:var(--amber);background:var(--green-deep);border-style:dashed}
+
   /* ---------- Responsive ---------- */
   @media (max-width:900px){
     .body{flex-direction:column}
@@ -876,6 +919,17 @@
 
 <!-- WITCHING HOUR INDICATOR -->
 <div class="witching-indicator" id="witchingIndicator">🌙 ЧАС ВЕДЬМЫ 🌙</div>
+
+<!-- PROJECTION (fullscreen hologram) -->
+<div class="projection-overlay" id="projectionOverlay">
+  <button class="projection-close" id="projectionClose" title="Закрыть">×</button>
+  <div class="projection-holo" id="projectionHolo"></div>
+  <div style="text-align:center;max-width:800px">
+    <div class="projection-name" id="projectionName"></div>
+    <div class="projection-title" id="projectionTitle"></div>
+    <div class="projection-desc" id="projectionDesc"></div>
+  </div>
+</div>
 
 <!-- BOOT -->
 <div class="boot" id="boot">
@@ -1484,6 +1538,8 @@
   }
 
   /* ---------- render archive list+detail ---------- */
+  let _viewMode = "list"; // "list" | "map"
+
   function renderArchive(type){
     const recs=STORE[type];
     const meta=META[type];
@@ -1497,6 +1553,8 @@
           <b>// проверьте подключение к Supabase или добавьте записи через /admin.</b>
         </div>`;
     }
+    // Map view mode
+    if(_viewMode === "map") return renderMapView(type);
     const sel=STORE.selectedIdx[type]||0;
     const list = recs.map((r,i)=>{
       const isSel=i===sel;
@@ -1513,12 +1571,92 @@
     const detail = renderRecordCard(recs[sel], type);
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> ${meta.label} <span class="g">::</span> СЕКТОР_07</h2>
-        <div class="sub">${recs.length} записей // ${recs.filter(r=>r.is_locked).length} повреждено/опечатано // источник: SUPABASE</div>
+        <div class="view-toggle">
+          <button class="view-btn active">СПИСОК</button>
+          <button class="view-btn" data-view="map">КАРТА</button>
+        </div>
       </div>
+      <div class="sub" style="margin-bottom:10px;font-size:12px;color:var(--text-dim);font-family:'VT323',monospace">${recs.length} записей // ${recs.filter(r=>r.is_locked).length} повреждено/опечатано // источник: SUPABASE</div>
       <div class="archive-wrap">
         <div class="npc-list" id="npcList">${list}</div>
         <div class="detail-slot" id="detailSlot">${detail}</div>
       </div>`;
+  }
+
+  /** Map view — clusters records by category, renders SVG with nodes + links + legend. */
+  function renderMapView(type){
+    const recs = STORE[type], meta = META[type];
+    if(recs.length === 0){
+      return `<div class="panel-head">
+        <h2><span class="g">&gt;</span> ${meta.label}</h2>
+        <div class="view-toggle"><button class="view-btn active">КАРТА</button><button class="view-btn" data-view="list">СПИСОК</button></div>
+      </div>
+      <div class="empty-state">// хранилище пусто</div>`;
+    }
+    // Cluster records by category (locked / shard / category)
+    const clusters = {};
+    recs.forEach(r => {
+      const cat = r.is_locked ? "ОПЕЧАТАНО" : (r.shard_word ? "ОСКОЛКИ" : (r.category || "ПРОЧЕЕ"));
+      if(!clusters[cat]) clusters[cat] = [];
+      clusters[cat].push(r);
+    });
+    const cNames = Object.keys(clusters), nC = cNames.length;
+    const cx = 50, cy = 50, cR = 34;
+    let nodes = [], links = [], ccs = [];
+    cNames.forEach((cn, ci) => {
+      // Position cluster center on a circle around the map
+      const a = (ci / nC) * Math.PI * 2 - Math.PI / 2;
+      const ccx = cx + Math.cos(a) * cR, ccy = cy + Math.sin(a) * cR;
+      ccs.push({ name: cn, x: ccx, y: ccy });
+      const cr = clusters[cn], ir = Math.min(8, 3 + cr.length * 1.2);
+      cr.forEach((r, ri) => {
+        const ra = (ri / cr.length) * Math.PI * 2;
+        let cls = "";
+        if(r.is_locked) cls = "locked";
+        else if(r.shard_word) cls = "fragment";
+        const label = r.is_locked ? "🔒" : ((r.name || "?").split(" ")[0].slice(0, 10));
+        const nx = r.map_x != null ? r.map_x : (ccx + Math.cos(ra) * ir);
+        const ny = r.map_y != null ? r.map_y : (ccy + Math.sin(ra) * ir);
+        nodes.push({ x: nx, y: ny, cls, label, id: r.id, name: r.name || "", locked: !!r.is_locked });
+      });
+      // Link nodes within a cluster in a ring
+      for(let i = 0; i < cr.length; i++){
+        const a2 = nodes[nodes.length - cr.length + i];
+        const b = nodes[nodes.length - cr.length + ((i + 1) % cr.length)];
+        links.push({ x1: a2.x, y1: a2.y, x2: b.x, y2: b.y });
+      }
+    });
+    // Link cluster centers in a ring
+    for(let i = 0; i < ccs.length; i++){
+      links.push({ x1: ccs[i].x, y1: ccs[i].y, x2: ccs[(i + 1) % ccs.length].x, y2: ccs[(i + 1) % ccs.length].y });
+    }
+    // Background grid
+    let grid = "";
+    for(let i = 10; i < 100; i += 10){
+      grid += `<line class="map-grid" x1="${i}" y1="0" x2="${i}" y2="100"/>`;
+      grid += `<line class="map-grid" x1="0" y1="${i}" x2="100" y2="${i}"/>`;
+    }
+    const linksHtml = links.map(l => `<line class="map-link" x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}"/>`).join("");
+    const cLabels = ccs.map(c => `<text x="${c.x}" y="${c.y - 10}" style="fill:var(--text-dim);font-family:'VT323',monospace;font-size:3.5px;text-anchor:middle;opacity:.6">${escapeHtml(c.name)}</text>`).join("");
+    const nodesHtml = nodes.map(n => `<g class="map-node${n.cls ? " " + n.cls : ""}" data-id="${escapeAttr(n.id)}" data-name="${escapeAttr(n.name)}" data-locked="${n.locked}"><circle class="node-dot" cx="${n.x}" cy="${n.y}" r="1.8"/><text x="${n.x}" y="${n.y + 4}">${escapeHtml(n.label)}</text></g>`).join("");
+    const lockedCount = recs.filter(r => r.is_locked).length;
+    const fragCount = recs.filter(r => r.shard_word).length;
+    const openCount = recs.length - lockedCount - fragCount;
+    return `<div class="panel-head">
+      <h2><span class="g">&gt;</span> ${meta.label} <span class="g">::</span> КАРТА ЗНАНИЙ</h2>
+      <div class="view-toggle">
+        <button class="view-btn active">КАРТА</button>
+        <button class="view-btn" data-view="list">СПИСОК</button>
+      </div>
+    </div>
+    <div class="map-container">
+      <svg class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">${grid}${linksHtml}${cLabels}${nodesHtml}</svg>
+    </div>
+    <div class="map-legend">
+      <span><span class="dot open"></span>открыто (${openCount})</span>
+      <span><span class="dot locked"></span>опечатано (${lockedCount})</span>
+      ${fragCount > 0 ? `<span><span class="dot fragment"></span>осколок (${fragCount})</span>` : ""}
+    </div>`;
   }
 
   function renderRecordCard(r, type){
@@ -1564,6 +1702,7 @@
             <div class="stat-row">${chips}</div>
             <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
             ${r.shard_word ? `<div style="margin-top:8px;font-size:12px;color:var(--amber);letter-spacing:1px;font-family:'VT323',monospace;border:1px dashed var(--amber);padding:6px 10px;background:rgba(232,161,58,.05);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))">🧩 ОСКОЛОК ПАМЯТИ: «${escapeHtml(r.shard_word)}»</div>` : ""}
+            <button class="seal-btn" id="projBtn" data-id="${escapeAttr(r.id)}" data-type="${type}" style="width:auto;padding:6px 16px;font-size:12px;margin-top:8px">📽 ПРОЕКЦИЯ</button>
           </div>
           <div class="holo">
             <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -1624,6 +1763,7 @@
           <div class="stat-row"><span class="chip">${r.category||"НЕИЗВЕСТНО"}</span>${chips}</div>
           <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
           ${r.shard_word ? `<div style="margin-top:8px;font-size:12px;color:var(--amber);letter-spacing:1px;font-family:'VT323',monospace;border:1px dashed var(--amber);padding:6px 10px;background:rgba(232,161,58,.05);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))">🧩 ОСКОЛОК ПАМЯТИ: «${escapeHtml(r.shard_word)}»</div>` : ""}
+          <button class="seal-btn" id="projBtn" data-id="${escapeAttr(r.id)}" data-type="${type}" style="width:auto;padding:6px 16px;font-size:12px;margin-top:8px">📽 ПРОЕКЦИЯ</button>
         </div>
         <div class="holo">
           <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -2319,25 +2459,94 @@
     }
   }
 
-  // Wire bypass button (delegated, since card re-renders)
+  // Wire bypass + projection + map-node + view-toggle buttons (delegated, card re-renders)
   document.addEventListener("click", e => {
     const btn = e.target.closest("#bypassBtn");
-    if(!btn) return;
-    const id = btn.dataset.id, type = btn.dataset.type;
-    const recs = STORE[type] || [];
-    const rec = recs.find(r => r.id === id);
-    if(rec) openBypass(rec, type);
+    if(btn){
+      const id = btn.dataset.id, type = btn.dataset.type;
+      const recs = STORE[type] || [];
+      const rec = recs.find(r => r.id === id);
+      if(rec) openBypass(rec, type);
+      return;
+    }
+    const pb = e.target.closest("#projBtn");
+    if(pb){
+      const id = pb.dataset.id, type = pb.dataset.type;
+      const recs = STORE[type] || [];
+      const rec = recs.find(r => r.id === id);
+      if(rec) openProjection(rec, type);
+      return;
+    }
+    const node = e.target.closest(".map-node");
+    if(node){
+      const id = node.dataset.id, type = currentPanel;
+      const recs = STORE[type] || [];
+      const idx = recs.findIndex(r => r.id === id);
+      if(idx >= 0){
+        STORE.selectedIdx[type] = idx;
+        _viewMode = "list";
+        startPanel(type);
+      }
+      return;
+    }
+    const vb = e.target.closest(".view-btn[data-view]");
+    if(vb){
+      _viewMode = vb.dataset.view;
+      if(currentPanel) startPanel(currentPanel);
+      unlockAchievement("CARTOGRAPHER");
+      return;
+    }
   });
 
-  // Bypass close button + ESC
+  /** Projection — fullscreen hologram view of a record. */
+  function openProjection(record, type){
+    if(!record) return;
+    const ov = $("#projectionOverlay"), holo = $("#projectionHolo");
+    const sigil = record.sigil || (type === "rulers" ? "i-crown" : type === "lore" ? "i-flame" : "i-skull");
+    const isLocked = record.is_locked;
+    // Build the holo subject: error icon if locked, image if valid URL, sigil SVG otherwise
+    let subj;
+    if(isLocked){
+      subj = `<svg><use href="#i-err"/></svg>`;
+    } else if(record.image_url && /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(record.image_url)){
+      subj = `<img src="${escapeAttr(record.image_url)}" alt="${escapeAttr(record.name || "")}" onerror="this.outerHTML='<svg><use href=\\'#${sigil}\\'/></svg>'" />`;
+    } else {
+      subj = `<svg><use href="#${sigil}"/></svg>`;
+    }
+    holo.innerHTML = `
+      <div class="bracket tl"></div><div class="bracket tr"></div>
+      <div class="bracket bl"></div><div class="bracket br"></div>
+      <div class="holo-stage"><div class="holo-subj">${subj}</div></div>
+      <div class="scan"></div>
+    `;
+    $("#projectionName").textContent = isLocked ? "[ДАННЫЕ ПОВРЕЖДЕНЫ]" : (record.name || "");
+    $("#projectionTitle").textContent = record.title || "";
+    $("#projectionDesc").textContent = isLocked ? "// запись опечатана" : (record.description || "");
+    ov.classList.add("show");
+    unlockAchievement("VOICE_OF_GOD");
+    Audio.beep(220, 0.15, 0.14);
+    setTimeout(()=>Audio.beep(330, 0.15, 0.14), 150);
+  }
+
+  // Projection close button + ESC
+  $("#projectionClose").addEventListener("click", () => {
+    $("#projectionOverlay").classList.remove("show");
+    Audio.blip(330, 0.06, 0.1);
+  });
+  document.addEventListener("keydown", e => {
+    if(e.key === "Escape"){
+      if($("#projectionOverlay").classList.contains("show")){
+        $("#projectionOverlay").classList.remove("show");
+      } else if($("#bypassOverlay").classList.contains("show")){
+        closeBypass();
+      }
+    }
+  });
+
+  // Bypass close button
   $("#bypassClose").addEventListener("click", () => {
     closeBypass();
     Audio.blip(220, 0.06, 0.08);
-  });
-  document.addEventListener("keydown", e => {
-    if(e.key === "Escape" && $("#bypassOverlay").classList.contains("show")){
-      closeBypass();
-    }
   });
 
   /* =========================================================
