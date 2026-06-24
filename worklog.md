@@ -471,3 +471,68 @@ Next steps for user:
 2. Visit / to browse the archive.
 3. Visit /admin (password: WARDEN) to manage records.
 4. Change ADMIN_PASSWORD in .env for production.
+
+---
+Task ID: UPDATE-1
+Agent: main (z.ai code)
+Task: Этап 1 из 12 — WARDEN'S GATE (аутентификация). Базируется на коммите 8173fa1 (Version 10).
+
+Work Log:
+- Прочитал worklog.md — предыдущая запись про FINAL AUDIT v6.0 (50df9c9). Пользователь решил откатиться к Version 10 (8173fa1) и добавлять фичи поэтапно.
+- Создал ветку v6.0-messy (tag v6.0-messy-tag) на 50df9c9 для сохранения всех v6.0-наработок (cherry-pick source).
+- Reset main → 8173fa1 (Version 10, стабильная база: 3 пункта меню, 1475 строк console, 406 строк admin).
+- Изучил структуру Version 10: 6 API routes (admin/list, admin/login, admin/toggle, admin/upload, archive, root), нет /api/auth/*, нет /api/admin/players, нет src/lib/auth.ts, ArchiveRecord minimal (8 полей).
+- Извлёк из v6.0-messy: src/lib/auth.ts (hashPassword, verifyPassword, getAuthClient), 3 auth API routes, /api/admin/players, supabase-fix-players-grant.sql, Warden's Gate CSS/HTML/JS.
+
+Создано (backend):
+- src/lib/auth.ts — SHA-256 hashPassword/verifyPassword + getAuthClient (service_role key).
+- src/app/api/auth/login/route.ts — POST (login + cookie) + GET (session check).
+- src/app/api/auth/session/route.ts — GET (cookie validation).
+- src/app/api/auth/logout/route.ts — DELETE (clear cookie).
+- src/app/api/admin/players/route.ts — GET (list with achievements) + POST (create/reset_password/reset_achievements/delete).
+- supabase-fix-players-grant.sql — безопасный фикс прав players/player_achievements (GRANT ALL + CREATE TABLE IF NOT EXISTS + RLS policies).
+
+Создано (frontend, в public/dnd-console.html):
+- CSS: .wardens-gate + .gate-logo/.gate-sub/.gate-form/.gate-label/.gate-input/.gate-btn/.gate-err/.gate-info (перед Responsive блоком, строка 653-674).
+- HTML overlay: #wardensGate с формой (WARDEN NAME + CIPHER + ENTER THE ARCHIVE) после CRT overlays (строка 701-724).
+- Titlebar: добавлена кнопка ВЫХОД (#logoutBtn, red-dim) + индикатор СТРАЖ: <wardenName> в tb-meta.
+- JS (строки 1511-1624):
+  - _player переменная (null или {id, warden_name})
+  - checkSession() — GET /api/auth/session
+  - showGate() — показывает gate + focus на name input
+  - hideGate() — скрывает gate + запускает bootStep
+  - setWardenName() — обновляет tb-meta
+  - gateForm submit handler — POST /api/auth/login, success beep sequence, error display, button state
+  - logoutBtn click handler — DELETE /api/auth/logout, fade out stage, show gate
+  - IIFE on load — checkSession → boot directly OR showGate
+- Убран автостарт setTimeout(bootStep,650) — теперь bootStep запускается только после auth-resolve.
+
+Verification:
+- JS syntax (node --check): OK (29686 bytes script block).
+- ESLint: clean (exit 0).
+- API tests (curl):
+  - GET /api/auth/session (no cookie) → 401 ✓
+  - POST /api/auth/login (несуществующий) → 404 "Страж не найден" ✓
+  - DELETE /api/auth/logout → 200 ✓
+  - GET /api/admin/players (no auth) → 401 ✓
+  - POST /api/admin/login (WARDEN) → 200 ✓
+  - POST /api/admin/players (create KEEPER07) → 500 "permission denied for table players" — ожидаемо, требует GRANT fix SQL.
+- E2E agent-browser:
+  - Gate visible on load, boot waits, stage not live, wardenName="—" ✓
+  - Empty submit → "// введите имя и шифр" ✓
+  - Nonexistent warden (GHOSTWARDEN/wrongpass) → "// Страж не найден", button restored to "ENTER THE ARCHIVE" ✓
+  - Logout button exists with text "ВЫХОД" ✓
+  - No JS errors ✓
+- Archive API intact: npcs 47, lore 37, rulers 27 ✓
+- Admin page intact: NPC 47 / LORE 37 / RULERS 27 / +NEW RECORD ✓
+
+Known limitation (requires user action):
+- Таблица players в Supabase не имеет GRANT для service_role (или не существует).
+- Фикс: выполнить supabase-fix-players-grant.sql в Supabase SQL Editor.
+- До фикса: login всегда падает с 404/500, нельзя войти как страж. Но gate UI работает (error handling корректный).
+- Архив и админка (CRUD записей) работают без входа стража.
+
+Stage Summary:
+- Этап 1 (WARDEN'S GATE) завершён. Auth-инфраструктура полностью на месте: 5 новых файлов backend + gate UI/frontend.
+- Следующий шаг для пользователя: выполнить supabase-fix-players-grant.sql, затем создать стража через /admin (пока WardensPanel нет в админке — можно через curl или временно).
+- Ветка v6.0-messy сохранена для cherry-pick следующих этапов (2-12).

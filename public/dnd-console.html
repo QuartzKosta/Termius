@@ -650,6 +650,29 @@
   }
   .empty-state b{color:var(--green-dim)}
 
+  /* ============ WARDEN'S GATE (auth screen) ============ */
+  .wardens-gate{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;transition:opacity .5s}
+  .wardens-gate.gone{opacity:0;pointer-events:none}
+  .gate-logo{font-family:'MedievalSharp',serif;font-size:36px;color:var(--green);text-shadow:0 0 20px rgba(74,246,38,.6);letter-spacing:6px;margin-bottom:6px;text-align:center;animation:gateFlicker 4s infinite steps(40)}
+  @keyframes gateFlicker{0%,97%,100%{opacity:1}98%{opacity:.6}99%{opacity:.9}}
+  .gate-sub{font-family:'VT323',monospace;font-size:16px;color:var(--text-dim);letter-spacing:3px;margin-bottom:30px;text-align:center}
+  .gate-form{display:flex;flex-direction:column;gap:14px;width:100%;max-width:320px}
+  .gate-label{font-family:'VT323',monospace;font-size:14px;color:var(--green-dim);letter-spacing:2px}
+  .gate-input{width:100%;background:#0a0d0a;border:1px solid var(--green-dim);color:var(--green);font-family:'VT323',monospace;font-size:20px;padding:10px 14px;outline:none;text-shadow:0 0 6px rgba(74,246,38,.4);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));transition:all .15s}
+  .gate-input:focus{border-color:var(--green);box-shadow:0 0 14px rgba(74,246,38,.3)}
+  .gate-err{font-family:'VT323',monospace;font-size:14px;color:var(--red);text-shadow:0 0 6px rgba(255,36,36,.5);text-align:center;min-height:20px;letter-spacing:1px}
+  .gate-info{font-family:'VT323',monospace;font-size:12px;color:var(--text-dim);text-align:center;margin-top:20px;letter-spacing:1px;line-height:1.5}
+  .gate-btn{
+    background:linear-gradient(180deg,rgba(74,246,38,.12),rgba(74,246,38,.03));
+    border:1px solid var(--green-dim);color:var(--green);
+    font-family:'VT323',monospace;font-size:18px;letter-spacing:3px;
+    padding:12px;cursor:pointer;width:100%;margin-top:6px;
+    clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));
+    transition:all .15s;text-shadow:0 0 6px rgba(74,246,38,.5);
+  }
+  .gate-btn:hover:not(:disabled){background:linear-gradient(180deg,rgba(74,246,38,.25),rgba(74,246,38,.08));box-shadow:0 0 14px rgba(74,246,38,.4)}
+  .gate-btn:disabled{opacity:.5;cursor:wait}
+
   /* ---------- Responsive ---------- */
   @media (max-width:900px){
     .body{flex-direction:column}
@@ -683,6 +706,24 @@
 <div class="crt-vignette"></div>
 <div class="crt-noise"></div>
 <div class="crt-flicker"></div>
+
+<!-- WARDEN'S GATE (auth screen) -->
+<div class="wardens-gate" id="wardensGate">
+  <div class="gate-logo">АШЕНОВ КОДЕКС</div>
+  <div class="gate-sub">// ВРАТА СТРАЖА // ВВЕДИТЕ ВЕРНЫЕ ДАННЫЕ</div>
+  <form class="gate-form" id="gateForm" autocomplete="off">
+    <label class="gate-label">&gt; WARDEN NAME:</label>
+    <input type="text" class="gate-input" id="gateName" placeholder="..." autocomplete="off" />
+    <label class="gate-label">&gt; CIPHER:</label>
+    <input type="password" class="gate-input" id="gateCipher" placeholder="..." autocomplete="off" />
+    <div class="gate-err" id="gateErr"></div>
+    <button type="submit" class="gate-btn" id="gateBtn">ENTER THE ARCHIVE</button>
+  </form>
+  <div class="gate-info">
+    // спросите Стража (Мастера) об учётной записи<br>
+    // нет аккаунта? обратитесь к /admin → WARDENS
+  </div>
+</div>
 
 <!-- BOOT -->
 <div class="boot" id="boot">
@@ -721,7 +762,8 @@
       </div>
       <div class="tb-title">А&nbsp;Ш&nbsp;Е&nbsp;Н&nbsp;О&nbsp;В&nbsp;&nbsp;К&nbsp;О&nbsp;Д&nbsp;Е&nbsp;К&nbsp;С &nbsp;//&nbsp; <b>БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ</b> &nbsp;v4.1-archive</div>
       <button class="audio-btn off" id="audioBtn" title="Включить звук">ЗВУК:ВЫКЛ</button>
-      <div class="tb-meta">СЕКТОР <span>07</span> // АРХИВ <span>В СЕТИ</span></div>
+      <button class="audio-btn" id="logoutBtn" title="Выйти из архива" style="border-color:var(--red-dim);color:var(--red-dim)">ВЫХОД</button>
+      <div class="tb-meta">СЕКТОР <span>07</span> // АРХИВ <span>В СЕТИ</span> // СТРАЖ: <b id="wardenName" style="color:var(--green)">—</b></div>
     </div>
 
     <!-- BODY -->
@@ -1030,7 +1072,7 @@
     else if(l.snd==="glitch") Audio.glitch(0.1);
     setTimeout(bootStep, 130+Math.random()*90);
   }
-  setTimeout(bootStep,650);
+  // bootStep is started by gate-check logic below (after auth resolves)
 
   /* ---------- CLOCK ---------- */
   function tick(){
@@ -1465,6 +1507,121 @@
       setTimeout(()=>Audio.beep(220,0.08,0.10),80);
     }
   });
+
+  /* =========================================================
+     WARDEN'S GATE — authentication
+     ========================================================= */
+  let _player = null; // { id, warden_name } when logged in
+
+  /** Check existing session cookie via /api/auth/session. */
+  async function checkSession(){
+    try{
+      const r = await fetch("/api/auth/session");
+      if(r.ok){
+        const j = await r.json();
+        if(j.ok && j.player){ _player = j.player; return true; }
+      }
+    }catch(e){}
+    return false;
+  }
+
+  function showGate(){
+    const g = $("#wardensGate");
+    if(!g) return;
+    g.classList.remove("gone");
+    const nameInput = $("#gateName");
+    if(nameInput) setTimeout(()=>nameInput.focus(), 100);
+  }
+
+  function hideGate(){
+    const g = $("#wardensGate");
+    if(!g) return;
+    g.classList.add("gone");
+    setTimeout(bootStep, 650);
+  }
+
+  function setWardenName(){
+    const el = $("#wardenName");
+    if(el) el.textContent = _player ? _player.warden_name : "—";
+  }
+
+  // Gate form submit
+  $("#gateForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = $("#gateName").value.trim();
+    const cipher = $("#gateCipher").value;
+    const errEl = $("#gateErr");
+    const btn = $("#gateBtn");
+    if(!name || !cipher){
+      errEl.textContent = "// введите имя и шифр";
+      return;
+    }
+    errEl.textContent = "";
+    btn.disabled = true;
+    btn.textContent = "ПРОВЕРКА...";
+    Audio.glitch(0.15);
+    try{
+      const r = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ warden_name: name, password: cipher })
+      });
+      const j = await r.json();
+      if(r.ok && j.ok && j.player){
+        _player = j.player;
+        setWardenName();
+        Audio.beep(523, 0.15, 0.16);
+        setTimeout(()=>Audio.beep(659, 0.15, 0.16), 120);
+        setTimeout(()=>Audio.beep(784, 0.2, 0.18), 240);
+        btn.textContent = "ДОСТУП РАЗРЕШЕН";
+        setTimeout(hideGate, 600);
+      } else {
+        errEl.textContent = "// " + (j.error || "доступ отказан");
+        btn.disabled = false;
+        btn.textContent = "ENTER THE ARCHIVE";
+        Audio.glitch(0.2);
+      }
+    }catch(err){
+      errEl.textContent = "// сбой связи с архивом";
+      btn.disabled = false;
+      btn.textContent = "ENTER THE ARCHIVE";
+    }
+  });
+
+  // Logout button
+  $("#logoutBtn").addEventListener("click", async () => {
+    Audio.glitch(0.2);
+    try{ await fetch("/api/auth/logout", { method: "DELETE" }); }catch(e){}
+    _player = null;
+    const stage = $("#stage");
+    if(stage){
+      stage.style.transition = "opacity .5s";
+      stage.style.opacity = "0";
+    }
+    const boot = $("#boot");
+    if(boot){ boot.style.opacity = "0"; boot.classList.add("gone"); }
+    setTimeout(()=>{
+      if(stage){ stage.style.opacity = ""; stage.classList.remove("live"); }
+      if(boot){ boot.style.opacity = ""; }
+      $("#gateName").value = "";
+      $("#gateCipher").value = "";
+      $("#gateErr").textContent = "";
+      $("#wardensGate").classList.remove("gone");
+      setTimeout(()=>{ const n = $("#gateName"); if(n) n.focus(); }, 300);
+    }, 500);
+  });
+
+  // On load: check session, then either boot directly or show gate
+  (async () => {
+    const loggedIn = await checkSession();
+    if(loggedIn){
+      setWardenName();
+      $("#wardensGate").classList.add("gone");
+      setTimeout(bootStep, 650);
+    } else {
+      showGate();
+    }
+  })();
 
   // initial tag update
   updateTags();
