@@ -770,6 +770,34 @@
   .shard-word{display:inline-block;font-family:'MedievalSharp',serif;font-size:14px;color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.5);margin:2px 4px;letter-spacing:1px}
   .shard-progress{font-size:10px;color:var(--text-dim);font-family:'VT323',monospace;margin-top:4px}
 
+  /* ============ GOD'S GAZE — 4 levels of divine observation ============ */
+  body.gaze-low .crt-scanlines{opacity:.55}
+  body.gaze-med .crt-scanlines{opacity:.6}
+  body.gaze-med .crt-noise{opacity:.06}
+  body.gaze-med .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 6s ease-in-out infinite}
+  @keyframes gazeBlink{0%,95%,100%{opacity:1}97%{opacity:.3}98%{opacity:1}}
+  body.gaze-high .crt-scanlines{opacity:.65}
+  body.gaze-high .crt-noise{opacity:.08}
+  body.gaze-high .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 4s ease-in-out infinite}
+  body.gaze-high .holo::after{content:"👁";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:80px;color:rgba(255,36,36,.03);pointer-events:none;z-index:1;animation:gazeEyeFlicker 8s ease-in-out infinite}
+  @keyframes gazeEyeFlicker{0%,90%,100%{opacity:0}93%{opacity:.08}96%{opacity:0}}
+  body.gaze-extreme .crt-scanlines{opacity:.7}
+  body.gaze-extreme .crt-noise{opacity:.1}
+  body.gaze-extreme .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 2s ease-in-out infinite}
+  body.gaze-extreme .holo::after{content:"👁";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;color:rgba(255,36,36,.05);pointer-events:none;z-index:1;animation:gazeEyeFlicker 4s ease-in-out infinite}
+  body.gaze-extreme .console{animation:gazeInvert 12s ease-in-out infinite}
+  @keyframes gazeInvert{0%,92%,100%{filter:none}94%{filter:invert(1) hue-rotate(180deg)}96%{filter:none}}
+
+  /* ============ METER TOOLTIPS ============ */
+  .meter .lbl{cursor:help;position:relative}
+  .meter .lbl:hover .meter-tooltip{opacity:1;visibility:visible}
+  .meter-tooltip{position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:#0a0805;border:1px solid var(--green-dim);padding:6px 10px;font-size:10px;color:var(--text);line-height:1.4;opacity:0;visibility:hidden;transition:opacity .2s;z-index:100;text-align:left;font-family:'Share Tech Mono',monospace;box-shadow:0 0 12px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));white-space:normal}
+
+  /* ============ WITCHING HOUR INDICATOR ============ */
+  .witching-indicator{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9300;background:rgba(20,0,40,.9);border:2px solid #a78bfa;padding:8px 20px;font-family:'MedievalSharp',serif;font-size:18px;color:#a78bfa;text-shadow:0 0 12px rgba(167,139,250,.8);letter-spacing:3px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));box-shadow:0 0 30px rgba(167,139,250,.3);animation:witchingPulse 2s ease-in-out infinite;display:none}
+  .witching-indicator.show{display:block}
+  @keyframes witchingPulse{0%,100%{opacity:.7;box-shadow:0 0 20px rgba(167,139,250,.2)}50%{opacity:1;box-shadow:0 0 40px rgba(167,139,250,.5)}}
+
   /* ---------- Responsive ---------- */
   @media (max-width:900px){
     .body{flex-direction:column}
@@ -846,6 +874,9 @@
 <!-- ACHIEVEMENT TOAST CONTAINER -->
 <div id="achToastContainer"></div>
 
+<!-- WITCHING HOUR INDICATOR -->
+<div class="witching-indicator" id="witchingIndicator">🌙 ЧАС ВЕДЬМЫ 🌙</div>
+
 <!-- BOOT -->
 <div class="boot" id="boot">
   <div class="boot-flash"></div>
@@ -903,15 +934,21 @@
         <div class="side-foot">
           <div class="shard-log" id="shardLog"></div>
           <div class="meter">
-            <div class="lbl"><span>ЦЕЛОСТНОСТЬ_АРХИВА</span><b id="m1v">--%</b></div>
+            <div class="lbl"><span>ЦЕЛОСТНОСТЬ_АРХИВА</span><b id="m1v">--%</b>
+              <div class="meter-tooltip"><b>ЦЕЛОСТНОСТЬ АРХИВА</b><br>Процент открытых записей от общего числа.</div>
+            </div>
             <div class="bar"><i id="m1" style="width:--%"></i></div>
           </div>
           <div class="meter">
-            <div class="lbl"><span>ПОРЧА</span><b id="m2v">--%</b></div>
-            <div class="bar"><i id="m2" class="red" style="width:--%"></i></div>
+            <div class="lbl"><span>ВЗГЛЯД БОГА</span><b id="m2v">0%</b>
+              <div class="meter-tooltip"><b style="color:var(--amber)">ВЗГЛЯД БОГА</b><br>Мёртвый бог наблюдает через архив. Растёт от чтения и решения головоломок. <span style="color:var(--amber)">30%</span> — моргание. <span style="color:var(--amber)">60%</span> — силуэт глаза. <span style="color:var(--amber)">90%</span> — инверсия. <span style="color:var(--amber)">100%</span> — ОН ВИДИТ ТЕБЯ.</div>
+            </div>
+            <div class="bar"><i id="m2" class="red" style="width:0%"></i></div>
           </div>
           <div class="meter">
-            <div class="lbl"><span>СИГНАЛ</span><b id="m3v">--%</b></div>
+            <div class="lbl"><span>СИГНАЛ</span><b id="m3v">--%</b>
+              <div class="meter-tooltip"><b>СИГНАЛ</b><br>Качество связи с Supabase.</div>
+            </div>
             <div class="bar"><i id="m3" style="width:--%"></i></div>
           </div>
         </div>
@@ -953,7 +990,7 @@
       <span class="sep">|</span>
       <div class="s r">ОПЕЧАТАНО <b id="sbLocked">0</b></div>
       <div class="right">
-        <div class="s">ПОРЧА <b id="sbCorr">--%</b></div>
+        <div class="s">ВЗГЛЯД <b id="sbCorr">0%</b></div>
         <span class="sep">|</span>
         <div class="s">СТРАЖ: <b>страж_07</b></div>
         <span class="sep">|</span>
@@ -1219,8 +1256,24 @@
     readRecords: new Set(), // record IDs the player has opened (for ARCHIVIST)
   };
 
-  // Stub for God's Gaze (stage 7 will replace with real logic).
-  function addGaze(amount){ /* stub — stage 7 */ }
+  // God's Gaze — grows from reading records, solving puzzles, witching hour.
+  // Drives CRT degradation (scanlines, noise, eye silhouette, invert) at thresholds.
+  function addGaze(amount){
+    corruptionLevel = Math.max(0, Math.min(100, corruptionLevel + amount));
+    updateTags();
+  }
+  function applyGazeClass(){
+    const t = corruptionLevel < 30 ? "gaze-low"
+            : corruptionLevel < 60 ? "gaze-med"
+            : corruptionLevel < 90 ? "gaze-high"
+            : "gaze-extreme";
+    document.body.className = document.body.className.replace(/gaze-\w+/g, "").trim() + " " + t;
+    if(corruptionLevel >= 100 && !window._gaze100){
+      window._gaze100 = true;
+      triggerAlert("👁 ОН ВИДИТ ТЕБЯ", "взгляд бога достиг максимума. архив дрожит.");
+      Audio.glitch(0.3);
+    }
+  }
 
   /* =========================================================
      ACHIEVEMENTS — 10 unlocks, synced to server when logged in
@@ -1325,6 +1378,8 @@
     if(!record || !record.id || STORE.readRecords.has(record.id)) return;
     STORE.readRecords.add(record.id);
     try{ localStorage.setItem("ashen_read_records", JSON.stringify([...STORE.readRecords])); }catch(e){}
+    // Each read record draws the god's gaze (+2%)
+    addGaze(2);
     // ARCHIVIST: read all unlocked records
     const allOpen = [];
     ["npcs","lore","rulers"].forEach(t => {
@@ -1366,7 +1421,7 @@
     lore:{ label:"БАЗА_ЛОРА", crumb:"МИРОВОЙ_ЛОР", tag:"lore" },
     rulers:{ label:"РЕЕСТР_ПРАВИТЕЛЕЙ", crumb:"ПРАВИТЕЛИ", tag:"rulers" },
   };
-  let corruptionLevel=27; // decorative — drives CRT degradation
+  let corruptionLevel=0; // God's Gaze — grows from actions, drives CRT degradation
 
   const GARBLE="█▓▒░▚▞▒▓█░▒▓";
   function garble(n){let s="";for(let i=0;i<n;i++)s+=GARBLE[Math.floor(Math.random()*GARBLE.length)];return s;}
@@ -1403,6 +1458,7 @@
     const m2=$("#m2"),m2v=$("#m2v"); if(m2){m2.style.width=corruptionLevel+"%";m2v.textContent=corruptionLevel+"%";}
     const m3=$("#m3"),m3v=$("#m3v"); const sig=Math.max(40,Math.min(99,100-Math.round(corruptionLevel/3))); if(m3){m3.style.width=sig+"%";m3v.textContent=sig+"%";}
     const sbC=$("#sbCorr"); if(sbC) sbC.textContent=corruptionLevel+"%";
+    applyGazeClass();
   }
 
   /* ---------- alert ---------- */
@@ -2406,6 +2462,92 @@
       showGate();
     }
   })();
+
+  /* =========================================================
+     WITCHING HOUR — time-based event + admin command bridge
+     ========================================================= */
+  const DEFAULT_EVT = {
+    witching_hour: {
+      enabled: false,
+      startHour: 3, startMinute: 0,
+      endHour: 4, endMinute: 0,
+      timezone: 3, // UTC+3 (Moscow)
+      boost: 15,
+      title: "ЧАС ВЕДЬМЫ",
+      msg: "бог смотрит пристальнее"
+    }
+  };
+  function loadEvtCfg(){
+    try{
+      const s = JSON.parse(localStorage.getItem("ashen_events_config_v2") || "{}");
+      return { witching_hour: Object.assign({}, DEFAULT_EVT.witching_hour, s.witching_hour || {}) };
+    }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_EVT)); }
+  }
+  let _witchManual = false, _witchTriggered = false;
+
+  function checkWitching(){
+    const cfg = loadEvtCfg().witching_hour;
+    const manual = _witchManual || localStorage.getItem("ashen_witching_manual") === "true";
+    // Allow admin to turn it off via "false"
+    if(localStorage.getItem("ashen_witching_manual") === "false"){
+      localStorage.removeItem("ashen_witching_manual");
+    }
+    if(!cfg.enabled && !manual){
+      $("#witchingIndicator")?.classList.remove("show");
+      return;
+    }
+    const now = new Date();
+    // Convert current time to the configured timezone
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const tzMs = utcMs + (cfg.timezone || 0) * 3600000;
+    const tzDate = new Date(tzMs);
+    const h = tzDate.getHours(), m = tzDate.getMinutes();
+    const curMin = h * 60 + m;
+    const startMin = (cfg.startHour || 0) * 60 + (cfg.startMinute || 0);
+    const endMin = (cfg.endHour || 0) * 60 + (cfg.endMinute || 0);
+    // Handle ranges that cross midnight (e.g. 23:00 → 04:00)
+    const inRange = manual ? true
+      : (startMin <= endMin
+          ? (curMin >= startMin && curMin < endMin)
+          : (curMin >= startMin || curMin < endMin));
+    if(inRange){
+      $("#witchingIndicator")?.classList.add("show");
+      if(!_witchTriggered){
+        _witchTriggered = true;
+        addGaze(cfg.boost || 5);
+        triggerAlert(cfg.title || "ЧАС ВЕДЬМЫ", cfg.msg || "бог смотрит пристальнее");
+        Audio.whisper(0.18);
+        unlockAchievement("WITCHING_HOUR");
+      }
+    } else {
+      $("#witchingIndicator")?.classList.remove("show");
+      _witchTriggered = false;
+    }
+  }
+  setInterval(checkWitching, 30000);
+  checkWitching();
+
+  // God's Gaze command bridge — admin (stage 12 EventsPanel) writes commands to localStorage.
+  // This polling loop picks them up and applies the effect.
+  setInterval(()=>{
+    const cmd = localStorage.getItem("ashen_gaze_cmd");
+    if(!cmd) return;
+    localStorage.removeItem("ashen_gaze_cmd");
+    try{
+      const j = JSON.parse(cmd);
+      if(j.action === "open_eye"){
+        addGaze(j.amount || 50);
+        triggerAlert("👁 ОТКРЫТО ОКО", "взгляд бога усилился");
+        Audio.glitch(0.3);
+      } else if(j.action === "close_eye"){
+        corruptionLevel = 0;
+        window._gaze100 = false;
+        updateTags();
+        triggerAlert("👁 ЗАКРЫТО ОКО", "взгляд бога отведён");
+        Audio.beep(330, 0.2, 0.14);
+      }
+    }catch(e){}
+  }, 1000);
 
   // initial tag update
   updateTags();

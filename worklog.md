@@ -797,3 +797,71 @@ Stage Summary:
 - Этапы 5+6 завершены. 10 достижений с toast + server sync, 5 осколков с sidebar виджетом + alert, ARCHIVIST/FINAL_REVELATION/SHARD_COLLECTOR/SEALBREAKER автоматически.
 - Meta puzzle теперь полностью проходима (нужны все 5 осколков).
 - Готов к этапу 7 (ВЗГЛЯД БОГА).
+
+---
+Task ID: UPDATE-7+8
+Agent: main (z.ai code)
+Task: Этапы 7 (ВЗГЛЯД БОГА) и 8 (ЧАС ВЕДЬМЫ). Базируется на Update 5+6 (b7b5367).
+
+Work Log:
+- Прочитал worklog.md — Update 5+6 завершён, достижения + осколки работают.
+- Извлёк из v6.0-messy: GOD'S GAZE CSS (4 levels), applyGazeClass/addGaze, meter-tooltip CSS, witching-indicator CSS + checkWitching + DEFAULT_EVT + loadEvtCfg + gaze command bridge.
+
+Frontend CSS:
+- body.gaze-low/med/high/extreme — 4 уровня CRT degradation:
+  - low: scanlines .55
+  - med: scanlines .6 + noise .06 + gazeBlink 6s
+  - high: scanlines .65 + noise .08 + gazeBlink 4s + 👁 eye silhouette 80px (8s flicker)
+  - extreme: scanlines .7 + noise .1 + gazeBlink 2s + 👁 120px (4s flicker) + console gazeInvert 12s (invert+hue-rotate)
+- @keyframes gazeBlink, gazeEyeFlicker, gazeInvert
+- .meter .lbl cursor:help + .meter-tooltip (hover reveal, clip-path, green-dim border)
+- .witching-indicator (fixed top center, purple #a78bfa, witchingPulse 2s, display:none → .show)
+
+Frontend HTML:
+- Метка метрики ПОРЧА → ВЗГЛЯД БОГА (с meter-tooltip: пороги 30/60/90/100%)
+- Добавлены meter-tooltip ко всем 3 метрам (ЦЕЛОСТНОСТЬ, ВЗГЛЯД БОГА, СИГНАЛ)
+- Statusbar: ПОРЧА → ВЗГЛЯД
+- #witchingIndicator overlay (🌙 ЧАС ВЕДЬМЫ 🌙)
+
+Frontend JS:
+- Убран stub addGaze, добавлена реальная реализация:
+  - addGaze(amount): corruptionLevel = clamp(0,100, +amount), updateTags()
+  - applyGazeClass(): <30=gaze-low, <60=gaze-med, <90=gaze-high, else gaze-extreme; при 100% — triggerAlert «👁 ОН ВИДИТ ТЕБЯ» + glitch
+- corruptionLevel: 27 → 0 (gaze начинается с 0, растёт от действий)
+- updateTags: добавлен applyGazeClass() вызов в конце
+- trackRead: добавлен addGaze(2) за каждое чтение записи
+- DEFAULT_EVT.witching_hour: {enabled, startHour:3, endHour:4, timezone:3 (Moscow), boost:15, title, msg}
+- loadEvtCfg(): читает ashen_events_config_v2 из localStorage (этап 12 будет писать)
+- checkWitching(): проверяет manual flag или time range (с timezone конверсией, поддерживает midnight-crossing), показывает #witchingIndicator, при первом триггере — addGaze(boost) + triggerAlert + Audio.whisper + unlockAchievement("WITCHING_HOUR")
+- setInterval(checkWitching, 30000) + начальный checkWitching()
+- Gaze command bridge: setInterval(1с) читает ashen_gaze_cmd из localStorage:
+  - open_eye → addGaze(amount||50) + alert «👁 ОТКРЫТО ОКО»
+  - close_eye → corruptionLevel=0 + alert «👁 ЗАКРЫТО ОКО»
+
+Verification:
+- JS syntax (node --check): OK (63429 bytes script block).
+- ESLint: clean (exit 0).
+
+E2E agent-browser (TESTWARDEN session):
+1. Initial state: gaze=0%, body=gaze-low, witching hidden ✓
+2. Cleared localStorage for clean test, clicked 5 unlocked records:
+   - gaze: 0→10% (5×2%), body=gaze-low (<30%) ✓
+   - readRecords persisted to localStorage ✓
+3. Admin command bridge (open_eye +50%):
+   - localStorage.ashen_gaze_cmd = {action:"open_eye", amount:50}
+   - After 2s: gaze=60%, body=gaze-high (>=60%), alert «👁 ОТКРЫТО ОКО» ✓
+4. Admin command (close_eye):
+   - gaze→0%, body→gaze-low, alert «👁 ЗАКРЫТО ОКО» ✓
+5. Witching manual ON (localStorage.ashen_witching_manual="true"):
+   - After 30s interval: witchingIndicator visible, gaze 0→15% (boost), alert «ЧАС ВЕДЬМЫ», achTag 3→4 (WITCHING_HOUR) ✓
+   - Audio.whisper played ✓
+6. Witching manual OFF ("false"):
+   - witchingIndicator hidden, manualFlag cleared ✓
+7. Meter tooltips: 3 tooltips present, second label = «ВЗГЛЯД БОГА» ✓
+8. WITCHING_HOUR synced to server: POST /api/auth/achievements 200 ✓
+- 0 JS errors ✓
+
+Stage Summary:
+- Этапы 7+8 завершены. God's Gaze с 4 уровнями CRT degradation + admin command bridge. Witching Hour с timezone-aware time ranges + manual override + WITCHING_HOUR achievement.
+- Заглушка addGaze заменена на реальную реализацию. bypassFail (этап 4) теперь реально повышает gaze при 2-й ошибке.
+- Готов к этапу 9 (РЕЖИМ ПРОЕКЦИИ).
