@@ -644,3 +644,78 @@ Stage Summary:
 - Этап 3 (головоломки tumbler + constellation + circuit) завершён. Все 4 типа теперь функциональны: keyword, tumbler, constellation, circuit.
 - Заглушка _puzzleLocked готова для этапа 4 (cooldown система).
 - Готов к этапу 4 (головоломки alchemy, runes, fragment, meta + cooldown).
+
+---
+Task ID: UPDATE-4
+Agent: main (z.ai code)
+Task: Этап 4 из 12 — Головоломки alchemy, runes, fragment, meta + Cooldown система. Базируется на Update 3 (81ff494).
+
+Work Log:
+- Прочитал worklog.md — Update 3 (tumbler/constellation/circuit) завершён, 4 типа головоломок работают.
+- Извлёк из v6.0-messy: renderAlchemy, renderRunes, renderMeta + cooldown логика в bypassFail.
+- Обнаружил зависимости из будущих этапов: renderMeta вызывает unlockAchievement (этап 5) + использует STORE.collectedFragments (этап 6); bypassFail вызывает addGaze (этап 7). Добавил безопасные заглушки.
+
+Заглушки (строки 1190-1197):
+- STORE.collectedFragments = new Set() — пустой Set, этап 6 заполнит
+- function unlockAchievement(id){} — no-op, этап 5 заменит
+- function addGaze(amount){} — no-op, этап 7 заменит
+
+CSS (строки 724-749):
+- .alchemy-slot (+.filled green), .alchemy-ing (+.used), hover scale
+- .rune-slot (+.question с pulse анимацией), .rune-opt (+.correct/.wrong)
+- .meta-fragment (+.collected amber), .meta-input
+- .puzzle-frozen (hue-rotate + brightness), .cooldown-overlay (absolute, cyan), .cooldown-text (MedievalSharp, pulse), @keyframes cooldownPulse
+
+JS:
+- _puzzleErrors счётчик (строка 1620)
+- openBypass: сброс _puzzleErrors=0, _puzzleLocked=false, удаление .frozen класса
+- closeBypass: сброс _puzzleErrors + _puzzleLocked
+- bypassFail (строки 1649-1708): полная cooldown система
+  - red flash overlay (radial-gradient, flicker)
+  - _puzzleErrors++
+  - 1-я ошибка: 3 сек блокировка, penalty="блокировка 3 сек"
+  - 2-я ошибка: 5 сек + addGaze(5), penalty="блокировка 5 сек + взгляд +5%"
+  - 3-я+: 10 сек заморозка (box.frozen), penalty="заморозка 10 сек"
+  - cooldown-overlay внутри bypass-box с обратным отсчётом
+  - puzzle-frozen класс на slot (pointer-events:none + hue-rotate)
+  - setInterval обновляет текст каждую секунду
+  - setTimeout снимает блокировку, удаляет overlay, очищает status
+- renderPuzzle dispatcher: +alchemy/runes/meta/fragment
+- fragment: inline сообщение «// прочтите эту запись для осколка. запись откроется после снятия печати.»
+- renderAlchemy (строки 1941-1974): ingredients + correct_recipe, клик заполняет слоты, auto-check при заполнении всех, success/fail
+- renderRunes (строки 1976-2007): sequence + options + correct, клик по опции, .correct (green) или .wrong (red) + bypassFail, success через 400ms
+- renderMeta (строки 2009-2056): требует все shard_word собранными (collectedFragments), показывает прогресс «осколков собрано: N / M», если все собраны — input + ПРОИЗНЕСТИ кнопка, проверка answer (uppercase), unlockAchievement("FINAL_REVELATION") при успехе. Пока collectedFragments пустой — показывает «найдите все записи-осколки».
+
+Verification:
+- JS syntax (node --check): OK (50757 bytes script block).
+- ESLint: clean (exit 0).
+
+E2E agent-browser (TESTWARDEN session):
+1. Alchemy (lore/f5a4a6c7, recipe=[🜃,🜄,☿]):
+   - Open bypass → 5 ingredients, hint показан ✓
+   - Click 🜃(3)→🜄(1)→☿(4) в порядке ✓
+   - «ДОСТУП РАЗРЕШЕН», box.granted ✓
+   - loreTag: 20→19 🔒, DB is_locked=False ✓
+2. Runes (lore/70248f0d, correct=🜃):
+   - Open bypass → 5 slots (4 sequence + ?), 4 options ✓
+   - Click 🜃 → .correct (green) ✓
+   - «ДОСТУП РАЗРЕШЕН» ✓
+   - loreTag: 19→18 🔒, DB is_locked=False ✓
+3. Fragment (npcs/5205ab6b):
+   - Open bypass → «// прочтите эту запись для осколка. запись откроется после снятия печати.» ✓
+4. Meta (lore/7c4ec899, answer="ПЕПЕЛ ПОМНИТ ИМЯ БОГА ОСВОБОДИ"):
+   - Open bypass → «осколков собрано: 0 / 5» + «найдите все записи-осколки» ✓
+   - Input/Submit не показаны (collectedFragments пустой) ✓
+5. Cooldown система (keyword B11104DD):
+   - 1-я ошибка → «ОТКАЗ // блокировка 3 сек», cooldown overlay visible, puzzle frozen ✓
+   - Через 3.5s → cooldown снят, input enabled ✓
+   - 2-я ошибка → «ОТКАЗ // блокировка 5 сек + взгляд +5%» ✓
+   - 3-я ошибка → «ОТКАЗ // заморозка 10 сек», box.frozen ✓
+   - ESC закрывает bypass ✓
+- 0 JS errors во всех тестах ✓
+
+Stage Summary:
+- Этап 4 (alchemy + runes + fragment + meta + cooldown) завершён. Все 8 типов головоломок теперь функциональны: keyword, tumbler, constellation, circuit, alchemy, runes, fragment, meta.
+- Cooldown система: 3с → 5с+gaze → 10с заморозка, с обратным отсчётом и visual feedback.
+- Заглушки unlockAchievement/addGaze/collectedFragments готовы для замены в этапах 5/6/7.
+- Готов к этапу 5 (ДОСТИЖЕНИЯ).

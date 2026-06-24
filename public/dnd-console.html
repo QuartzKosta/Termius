@@ -721,6 +721,33 @@
   .circuit-cell svg path{stroke:var(--text-dim);stroke-width:8;fill:none;transition:stroke .2s}
   .circuit-cell.flow svg path{stroke:var(--green);filter:drop-shadow(0 0 4px var(--green))}
 
+  /* ============ PUZZLES: alchemy ============ */
+  .alchemy-slot{width:60px;height:60px;border:2px dashed var(--amber);background:rgba(232,161,58,.04);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--amber);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
+  .alchemy-slot.filled{border-style:solid;border-color:var(--green);color:var(--green);box-shadow:0 0 10px rgba(74,246,38,.3)}
+  .alchemy-ing{width:56px;height:56px;border:1px solid var(--green-deep);background:rgba(74,246,38,.05);display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
+  .alchemy-ing:hover{border-color:var(--green);background:rgba(74,246,38,.15);transform:scale(1.05)}
+  .alchemy-ing.used{opacity:.3;pointer-events:none}
+
+  /* ============ PUZZLES: runes ============ */
+  .rune-slot{width:56px;height:56px;border:1px solid var(--green-deep);background:rgba(74,246,38,.04);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--green);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+  .rune-slot.question{border-style:dashed;color:var(--amber);animation:cooldownPulse 1.5s ease-in-out infinite}
+  .rune-opt{width:60px;height:60px;border:1px solid var(--amber);background:rgba(232,161,58,.05);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--amber);cursor:pointer;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
+  .rune-opt:hover{background:rgba(232,161,58,.2);transform:scale(1.05)}
+  .rune-opt.correct{border-color:var(--green);color:var(--green);background:rgba(74,246,38,.15)}
+  .rune-opt.wrong{border-color:var(--red);color:var(--red);background:rgba(255,36,36,.15)}
+
+  /* ============ PUZZLES: meta ============ */
+  .meta-fragment{padding:8px 14px;border:1px dashed var(--text-dim);background:rgba(0,0,0,.3);font-family:'MedievalSharp',serif;font-size:18px;color:var(--text-dim);letter-spacing:2px;min-width:80px;text-align:center;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .3s}
+  .meta-fragment.collected{border-style:solid;border-color:var(--amber);color:var(--amber);text-shadow:0 0 8px rgba(232,161,58,.5);background:rgba(232,161,58,.08)}
+  .meta-input{width:100%;max-width:360px;background:#0a0805;border:1px solid var(--amber);color:var(--green);font-family:'VT323',monospace;font-size:20px;text-align:center;letter-spacing:3px;padding:10px 14px;outline:none;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));display:block;margin:0 auto 12px}
+  .meta-input:focus{border-color:var(--green);box-shadow:0 0 12px rgba(74,246,38,.3)}
+
+  /* ============ COOLDOWN ============ */
+  .puzzle-frozen{pointer-events:none!important;filter:hue-rotate(180deg) brightness(.6)}
+  .cooldown-overlay{position:absolute;inset:0;background:rgba(0,30,60,.3);display:flex;align-items:center;justify-content:center;z-index:100;pointer-events:none;border-radius:inherit}
+  .cooldown-text{font-family:'MedievalSharp',serif;font-size:24px;color:var(--cyan);text-shadow:0 0 16px rgba(63,214,200,.8);letter-spacing:4px;animation:cooldownPulse 1s ease-in-out infinite;text-align:center}
+  @keyframes cooldownPulse{0%,100%{opacity:.5}50%{opacity:1}}
+
   /* ---------- Responsive ---------- */
   @media (max-width:900px){
     .body{flex-direction:column}
@@ -1160,7 +1187,14 @@
     lore: [],
     rulers: [],
     selectedIdx: { npcs:0, lore:0, rulers:0 },
+    collectedFragments: new Set(), // shard words collected by player (stage 6 will populate)
   };
+
+  // Stubs for features arriving in later stages — safe no-ops until then.
+  // Stage 5 (achievements) will replace unlockAchievement with real logic.
+  function unlockAchievement(id){ /* stub — stage 5 */ }
+  // Stage 7 (God's Gaze) will replace addGaze with real logic.
+  function addGaze(amount){ /* stub — stage 7 */ }
   const META={
     npcs:{ label:"АРХИВ_НПС", crumb:"АРХИВ_НПС", tag:"npcs" },
     lore:{ label:"БАЗА_ЛОРА", crumb:"МИРОВОЙ_ЛОР", tag:"lore" },
@@ -1582,12 +1616,15 @@
      BYPASS WARD — puzzle system (sealed records)
      ========================================================= */
   let bypassContext = null; // { record, type }
-  let _puzzleLocked = false; // cooldown flag (stage 4 will add real cooldown logic)
+  let _puzzleLocked = false; // cooldown flag — true during penalty freeze
+  let _puzzleErrors = 0; // error counter per bypass session — drives cooldown escalation
 
   function openBypass(record, type){
     bypassContext = { record, type };
+    _puzzleErrors = 0;
+    _puzzleLocked = false;
     const box = $("#bypassBox");
-    box.classList.remove("denied","granted");
+    box.classList.remove("denied","granted","frozen");
     const hint = $("#bypassHint");
     const status = $("#bypassStatus");
     status.textContent = "";
@@ -1605,6 +1642,8 @@
   function closeBypass(){
     $("#bypassOverlay").classList.remove("show");
     bypassContext = null;
+    _puzzleLocked = false;
+    _puzzleErrors = 0;
   }
 
   function bypassFail(reason){
@@ -1612,14 +1651,60 @@
     const status = $("#bypassStatus");
     box.classList.add("denied");
     box.classList.remove("granted");
-    status.textContent = "ОТКАЗАНО — " + (reason || "неверный ответ");
+    status.textContent = "ОТКАЗ В ДОСТУПЕ — " + (reason || "печать не поддалась");
     status.className = "bypass-status denied";
-    Audio.glitch(0.2);
-    setTimeout(()=>{
-      box.classList.remove("denied");
-      status.textContent = "";
-      status.className = "bypass-status";
-    }, 1400);
+    Audio.glitch(0.22);
+    // Red flash overlay
+    const flash = document.createElement("div");
+    flash.style.cssText = "position:fixed;inset:0;background:radial-gradient(circle,rgba(255,36,36,0),rgba(255,36,36,.25));z-index:9400;pointer-events:none;animation:flicker .4s forwards";
+    document.body.appendChild(flash);
+    setTimeout(()=>flash.remove(), 450);
+
+    _puzzleErrors++;
+    let cd = 0, penalty = "";
+    if(_puzzleErrors === 1){ cd = 3000; penalty = "блокировка 3 сек"; }
+    else if(_puzzleErrors === 2){ cd = 5000; penalty = "блокировка 5 сек + взгляд +5%"; addGaze(5); }
+    else { cd = 10000; penalty = "заморозка 10 сек"; box.classList.add("frozen"); }
+
+    if(cd > 0){
+      _puzzleLocked = true;
+      const slot = $("#bypassPuzzle");
+      if(slot) slot.classList.add("puzzle-frozen");
+      // Cooldown overlay inside the bypass box
+      const cdEl = document.createElement("div");
+      cdEl.className = "cooldown-overlay";
+      cdEl.id = "cooldownOverlay";
+      cdEl.innerHTML = `<div class="cooldown-text">⚠ ПЕРЕЗАРЯДКА ${cd/1000}с ⚠<br><span style="font-size:14px;color:var(--text-dim)">${penalty}</span></div>`;
+      box.appendChild(cdEl);
+      status.textContent = `ОТКАЗ // ${penalty}`;
+      // Countdown timer
+      let rem = cd / 1000;
+      const cdText = cdEl.querySelector(".cooldown-text");
+      const iv = setInterval(()=>{
+        rem--;
+        if(rem > 0 && cdText){
+          cdText.innerHTML = `⚠ ПЕРЕЗАРЯДКА ${rem}с ⚠<br><span style="font-size:14px;color:var(--text-dim)">${penalty}</span>`;
+        }
+      }, 1000);
+      // Release after cooldown
+      setTimeout(()=>{
+        _puzzleLocked = false;
+        if(slot) slot.classList.remove("puzzle-frozen");
+        box.classList.remove("frozen");
+        const cdO = $("#cooldownOverlay");
+        if(cdO) cdO.remove();
+        clearInterval(iv);
+        status.textContent = "";
+        status.className = "bypass-status";
+        box.classList.remove("denied");
+      }, cd);
+    } else {
+      setTimeout(()=>{
+        box.classList.remove("denied");
+        status.textContent = "";
+        status.className = "bypass-status";
+      }, 900);
+    }
   }
 
   function bypassSuccess(){
@@ -1686,6 +1771,10 @@
     else if(ptype === "tumbler") renderTumbler(slot, pd);
     else if(ptype === "constellation") renderConstellation(slot, pd);
     else if(ptype === "circuit") renderCircuit(slot, pd);
+    else if(ptype === "alchemy") renderAlchemy(slot, pd);
+    else if(ptype === "runes") renderRunes(slot, pd);
+    else if(ptype === "meta") renderMeta(slot, pd);
+    else if(ptype === "fragment") slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// прочтите эту запись для осколка.<br>запись откроется после снятия печати.</div>`;
     else slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// неизвестный тип печати: ${escapeHtml(ptype || "—")}</div>`;
   }
 
@@ -1847,6 +1936,123 @@
       });
     }
     render();
+  }
+
+  /** Alchemy puzzle — fill slots with ingredients in the correct recipe order. */
+  function renderAlchemy(slot, pd){
+    const ingredients = pd.ingredients || ["🜂","🜄","🜁","🜃","☿"];
+    const recipe = pd.correct_recipe || [];
+    let slotsArr = [], used = new Set();
+
+    function render(){
+      const slotsHtml = slotsArr.map(s => `<div class="alchemy-slot${s?" filled":""}">${s||""}</div>`).join("");
+      const ingsHtml = ingredients.map((ing, i) => `<div class="alchemy-ing${used.has(i)?" used":""}" data-ing="${i}">${ing}</div>`).join("");
+      slot.innerHTML = `<div>
+        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:10px">заполните ${recipe.length} слота</div>
+        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">${slotsHtml}</div>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">${ingsHtml}</div>
+      </div>`;
+      $$(".alchemy-ing", slot).forEach(el => {
+        el.addEventListener("click", () => {
+          if(_puzzleLocked) return;
+          const i = parseInt(el.dataset.ing, 10);
+          if(used.has(i) || slotsArr.length >= recipe.length) return;
+          slotsArr.push(ingredients[i]);
+          used.add(i);
+          Audio.blip(330 + slotsArr.length * 60, 0.06, 0.1);
+          if(slotsArr.length === recipe.length){
+            render();
+            if(slotsArr.every((s, j) => s === recipe[j])) bypassSuccess();
+            else setTimeout(() => bypassFail("неверная рецептура"), 300);
+          } else {
+            render();
+          }
+        });
+      });
+    }
+    render();
+  }
+
+  /** Runes puzzle — pick the rune that completes the sequence. */
+  function renderRunes(slot, pd){
+    const seq = pd.sequence || ["🜂","🜃","🜁","🜄"];
+    const options = pd.options || [];
+    const correct = pd.correct;
+
+    function render(){
+      const seqHtml = seq.map(r => `<div class="rune-slot">${r}</div>`).join("") + '<div class="rune-slot question">?</div>';
+      const optsHtml = options.map(o => `<div class="rune-opt" data-rune="${escapeAttr(o)}">${o}</div>`).join("");
+      slot.innerHTML = `<div style="text-align:center">
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">какая руна завершает?</div>
+        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">${seqHtml}</div>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">${optsHtml}</div>
+      </div>`;
+      $$(".rune-opt", slot).forEach(el => {
+        el.addEventListener("click", () => {
+          if(_puzzleLocked) return;
+          const r = el.dataset.rune;
+          if(r === correct){
+            el.classList.add("correct");
+            Audio.beep(659, 0.1, 0.14);
+            setTimeout(() => bypassSuccess(), 400);
+          } else {
+            el.classList.add("wrong");
+            bypassFail("неверная руна");
+            setTimeout(() => el.classList.remove("wrong"), 900);
+          }
+        });
+      });
+    }
+    render();
+  }
+
+  /** Meta puzzle — final revelation. Requires all shard fragments collected,
+   *  then enter the phrase composed from the fragment words.
+   *  (Stage 6 will populate STORE.collectedFragments; until then this shows
+   *  the "collect all fragments" message.) */
+  function renderMeta(slot, pd){
+    const answer = (pd.answer || "").toUpperCase().trim();
+    const allRecs = [...STORE.npcs, ...STORE.lore, ...STORE.rulers];
+    const fragments = allRecs.filter(r => r.shard_word);
+    const fragmentWords = fragments.map(f => ({
+      word: f.shard_word,
+      collected: STORE.collectedFragments.has(f.shard_word)
+    }));
+    const collectedCount = fragmentWords.filter(f => f.collected).length;
+    const fragsHtml = fragmentWords.map(f =>
+      `<div class="meta-fragment${f.collected?" collected":""}">${f.collected?escapeHtml(f.word):"???"}</div>`
+    ).join("");
+
+    slot.innerHTML = `<div style="padding:8px 0">
+      <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:14px">
+        осколков собрано: <b style="color:var(--amber)">${collectedCount}</b> / ${fragmentWords.length}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px">${fragsHtml}</div>
+      ${collectedCount === fragmentWords.length && fragmentWords.length > 0
+        ? `<div style="text-align:center">
+            <input type="text" class="meta-input" id="metaInput" placeholder="фраза из осколков..." autocomplete="off" />
+            <button class="seal-btn" id="metaSubmit" style="width:auto;padding:8px 24px;display:block;margin:0 auto">ПРОИЗНЕСТИ</button>
+          </div>`
+        : `<div style="text-align:center;font-size:13px;color:var(--text-dim)">найдите все записи-осколки</div>`
+      }
+    </div>`;
+
+    if(collectedCount === fragmentWords.length && fragmentWords.length > 0){
+      const inp = $("#metaInput");
+      const submit = () => {
+        if(_puzzleLocked) return;
+        const val = (inp.value || "").toUpperCase().trim();
+        if(val === answer){
+          unlockAchievement("FINAL_REVELATION");
+          bypassSuccess();
+        } else {
+          bypassFail("фраза неверна");
+          inp.value = "";
+        }
+      };
+      $("#metaSubmit").addEventListener("click", submit);
+      if(inp) inp.addEventListener("keydown", e => { if(e.key === "Enter") submit(); });
+    }
   }
 
   // Wire bypass button (delegated, since card re-renders)
