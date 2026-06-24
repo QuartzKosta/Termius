@@ -700,6 +700,27 @@
   .unveil-name{font-size:42px;color:var(--green);text-shadow:0 0 20px rgba(74,246,38,.8);letter-spacing:4px;opacity:0;animation:unveilNameIn .8s .8s ease-out forwards}
   @keyframes unveilNameIn{0%{opacity:0;transform:scale(.5);filter:blur(20px)}60%{opacity:1;transform:scale(1.1);filter:blur(0)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 
+  /* ============ PUZZLES: tumbler ============ */
+  .puzzle-tumbler{display:flex;justify-content:center;gap:18px;padding:20px 0}
+  .tumbler-display{width:72px;height:80px;background:#0a0805;border:2px solid var(--amber);display:flex;align-items:center;justify-content:center;font-size:44px;color:var(--green);text-shadow:0 0 14px rgba(74,246,38,.6);font-family:'MedievalSharp',serif;box-shadow:inset 0 0 18px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));transition:all .15s}
+  .tumbler-btn{background:linear-gradient(180deg,rgba(232,161,58,.15),rgba(232,161,58,.03));border:1px solid var(--amber);color:var(--amber);width:48px;height:32px;font-size:18px;cursor:pointer;font-family:'VT323',monospace;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
+  .tumbler-btn:hover{background:linear-gradient(180deg,rgba(232,161,58,.3),rgba(232,161,58,.1));box-shadow:0 0 10px rgba(232,161,58,.4)}
+  .tumbler-btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ============ PUZZLES: constellation ============ */
+  .constellation-svg{width:100%;height:280px;background:radial-gradient(ellipse at center,#020510,#000);border:1px solid var(--green-deep);display:block;cursor:crosshair;overflow:visible}
+  .constellation-svg g{transition:opacity .2s}
+  .constellation-svg g:hover circle{opacity:.9}
+
+  /* ============ PUZZLES: circuit ============ */
+  .circuit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:280px;margin:0 auto}
+  .circuit-cell{aspect-ratio:1/1;background:#0a0805;border:1px solid var(--green-deep);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .15s}
+  .circuit-cell:hover{border-color:var(--green)}
+  .circuit-cell.flow{border-color:var(--green);box-shadow:0 0 10px rgba(74,246,38,.4),inset 0 0 8px rgba(74,246,38,.2)}
+  .circuit-cell svg{width:100%;height:100%}
+  .circuit-cell svg path{stroke:var(--text-dim);stroke-width:8;fill:none;transition:stroke .2s}
+  .circuit-cell.flow svg path{stroke:var(--green);filter:drop-shadow(0 0 4px var(--green))}
+
   /* ---------- Responsive ---------- */
   @media (max-width:900px){
     .body{flex-direction:column}
@@ -1561,6 +1582,7 @@
      BYPASS WARD — puzzle system (sealed records)
      ========================================================= */
   let bypassContext = null; // { record, type }
+  let _puzzleLocked = false; // cooldown flag (stage 4 will add real cooldown logic)
 
   function openBypass(record, type){
     bypassContext = { record, type };
@@ -1661,6 +1683,9 @@
     const slot = $("#bypassPuzzle");
     slot.innerHTML = "";
     if(ptype === "keyword") renderKeyword(slot, pd);
+    else if(ptype === "tumbler") renderTumbler(slot, pd);
+    else if(ptype === "constellation") renderConstellation(slot, pd);
+    else if(ptype === "circuit") renderCircuit(slot, pd);
     else slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// неизвестный тип печати: ${escapeHtml(ptype || "—")}</div>`;
   }
 
@@ -1682,6 +1707,146 @@
     $("#pkSubmit").addEventListener("click", submit);
     inp.addEventListener("keydown", e => { if(e.key === "Enter") submit(); });
     setTimeout(()=>inp.focus(), 100);
+  }
+
+  /** Tumbler puzzle — rotate drum wheels to match the correct symbol sequence. */
+  function renderTumbler(slot, pd){
+    const symbols = pd.symbols || ["ᚠ","ᚢ","ᚦ","ᚨ","ᚱ","ᚲ"];
+    const correct = pd.correct || [symbols[0], symbols[1], symbols[2]];
+    let drums;
+    // Randomize initial drum positions (avoid starting in solved state)
+    do {
+      drums = correct.map(() => Math.floor(Math.random() * symbols.length));
+    } while(drums.every((v, j) => symbols[v] === correct[j]));
+
+    function render(){
+      slot.innerHTML = `<div class="puzzle-tumbler">${drums.map((idx, i) => {
+        const isMatch = symbols[idx] === correct[i];
+        const matchStyle = isMatch ? "border-color:var(--green);box-shadow:inset 0 0 18px rgba(0,0,0,.8),0 0 18px rgba(74,246,38,.5)" : "";
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <button class="tumbler-btn" data-drum="${i}" data-dir="up" ${_puzzleLocked?"disabled":""}>▲</button>
+          <div class="tumbler-display" style="${matchStyle}">${symbols[idx]}</div>
+          <button class="tumbler-btn" data-drum="${i}" data-dir="down" ${_puzzleLocked?"disabled":""}>▼</button>
+        </div>`;
+      }).join("")}</div>`;
+      $$(".tumbler-btn", slot).forEach(b => {
+        b.addEventListener("click", () => {
+          if(_puzzleLocked) return;
+          const i = parseInt(b.dataset.drum, 10), dir = b.dataset.dir;
+          if(dir === "up") drums[i] = (drums[i] + 1) % symbols.length;
+          else drums[i] = (drums[i] - 1 + symbols.length) % symbols.length;
+          Audio.blip(440 + i * 40, 0.04, 0.08);
+          if(drums.every((v, j) => symbols[v] === correct[j])){
+            render();
+            bypassSuccess();
+          } else {
+            render();
+          }
+        });
+      });
+    }
+    render();
+  }
+
+  /** Constellation puzzle — connect stars in the correct order. */
+  function renderConstellation(slot, pd){
+    const nodes = pd.nodes || [], order = pd.order || [], clicked = [];
+    // Background ambient stars
+    const bgStars = Array.from({length: 40}, () => {
+      const x = Math.random() * 300, y = Math.random() * 280, r = 0.8 + Math.random() * 1.5;
+      return `<circle cx="${x}" cy="${y}" r="${r}" style="fill:rgba(74,246,38,.12)"/>`;
+    }).join("");
+
+    function render(){
+      const litSet = new Set(clicked);
+      // Draw lines between clicked stars in sequence
+      const lines = clicked.length > 1 ? clicked.slice(0, -1).map((id, i) => {
+        const a = nodes.find(n => n.id === id), b = nodes.find(n => n.id === clicked[i + 1]);
+        return a && b ? `<path d="M ${a.x} ${a.y} L ${b.x} ${b.y}" style="stroke:var(--amber);stroke-width:2;fill:none;opacity:.8;filter:drop-shadow(0 0 6px var(--amber))"/>` : "";
+      }).join("") : "";
+      // Render star nodes
+      const stars = nodes.map(n => {
+        const isLit = litSet.has(n.id);
+        const r = isLit ? 12 : 8;
+        const glow = isLit
+          ? "filter:drop-shadow(0 0 12px var(--amber)) drop-shadow(0 0 24px rgba(232,161,58,.5))"
+          : "filter:drop-shadow(0 0 6px rgba(74,246,38,.4))";
+        const fill = isLit ? "var(--amber)" : "var(--green-dim)";
+        const stroke = isLit ? "var(--amber)" : "var(--green)";
+        return `<g style="cursor:pointer" data-id="${n.id}" ${_puzzleLocked?"style=\"pointer-events:none\"":""}>
+          <circle cx="${n.x}" cy="${n.y}" r="${r+4}" style="fill:none;stroke:${stroke};stroke-width:.5;opacity:.3;${glow}"/>
+          <circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:${fill};stroke:${stroke};stroke-width:2;${glow}"/>
+          <circle cx="${n.x}" cy="${n.y}" r="2" style="fill:#fff;opacity:.8"/>
+        </g>`;
+      }).join("");
+      slot.innerHTML = `<div>
+        <svg class="constellation-svg" viewBox="0 0 300 280" style="overflow:visible">${bgStars}${lines}${stars}</svg>
+        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-top:8px">соединено: <b style="color:var(--amber)">${clicked.length}</b> / ${order.length}</div>
+      </div>`;
+      $$("g[data-id]", slot).forEach(s => {
+        s.addEventListener("click", () => {
+          if(_puzzleLocked) return;
+          const id = s.dataset.id, expected = order[clicked.length];
+          if(id === expected){
+            clicked.push(id);
+            Audio.beep(523 + clicked.length * 80, 0.1, 0.14);
+            if(clicked.length === order.length){
+              render();
+              bypassSuccess();
+            } else {
+              render();
+            }
+          } else {
+            bypassFail("неверный порядок звёзд");
+            clicked.length = 0;
+            const svg = slot.querySelector(".constellation-svg");
+            if(svg){
+              svg.style.filter = "saturate(3)";
+              svg.style.transition = "filter .3s";
+              setTimeout(() => { svg.style.filter = ""; }, 300);
+            }
+            render();
+          }
+        });
+      });
+    }
+    render();
+  }
+
+  /** Circuit puzzle — rotate tiles to complete the mana flow path. */
+  function renderCircuit(slot, pd){
+    const solution = pd.solution || [0, 1, 2, 5, 8];
+    let rotations = Array.from({length: 9}, () => Math.floor(Math.random() * 4));
+    // Expected rotation per solution cell (0=up-right, 1=right-down, 2=down-left, 3=left-up)
+    const expectedRot = { 0: 0, 1: 0, 2: 2, 5: 1, 8: 0 };
+    function isFlow(idx){
+      return solution.includes(idx) && rotations[idx] === expectedRot[idx];
+    }
+    function render(){
+      const cells = Array.from({length: 9}, (_, i) => {
+        const flow = isFlow(i), rot = rotations[i] * 90;
+        return `<div class="circuit-cell${flow?" flow":""}" data-cell="${i}"><svg viewBox="0 0 40 40"><path d="M 0 20 L 20 20 L 20 40" transform="rotate(${rot} 20 20)"/></svg></div>`;
+      }).join("");
+      slot.innerHTML = `<div>
+        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:10px">поверните плитки для потока маны</div>
+        <div class="circuit-grid">${cells}</div>
+      </div>`;
+      $$(".circuit-cell", slot).forEach(c => {
+        c.addEventListener("click", () => {
+          if(_puzzleLocked) return;
+          const i = parseInt(c.dataset.cell, 10);
+          rotations[i] = (rotations[i] + 1) % 4;
+          Audio.blip(440 + i * 30, 0.04, 0.08);
+          if(solution.every(idx => isFlow(idx))){
+            render();
+            bypassSuccess();
+          } else {
+            render();
+          }
+        });
+      });
+    }
+    render();
   }
 
   // Wire bypass button (delegated, since card re-renders)

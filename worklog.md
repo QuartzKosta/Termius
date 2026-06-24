@@ -593,3 +593,54 @@ Stage Summary:
 - Этап 2 (ПЕЧАТИ + keyword puzzle) завершён. Полный flow: locked card → bypass modal → keyword input → server unlock → unveil animation → data refresh.
 - БД починена пользователем параллельно — login + create warden + unlock работают end-to-end.
 - Готов к этапу 3 (головоломки tumbler, constellation, circuit).
+
+---
+Task ID: UPDATE-3
+Agent: main (z.ai code)
+Task: Этап 3 из 12 — Головоломки tumbler, constellation, circuit. Базируется на Update 2 (88ee848).
+
+Work Log:
+- Прочитал worklog.md — Update 2 (ПЕЧАТИ + keyword) завершён, БД починена пользователем.
+- Извлёк из v6.0-messy: renderTumbler, renderConstellation, renderCircuit + CSS для всех 3 типов.
+- Добавил заглушку `let _puzzleLocked = false;` (cooldown-переменная для этапа 4, сейчас всегда false = не залочено).
+
+Frontend (public/dnd-console.html):
+- CSS (строки 703-722):
+  - .puzzle-tumbler, .tumbler-display (72×80px, MedievalSharp, green glow), .tumbler-btn (▲/▼, amber)
+  - .constellation-svg (300×280 viewBox, radial-gradient bg, crosshair cursor)
+  - .circuit-grid (3×3 grid), .circuit-cell (+.flow с green glow), SVG path с rotation
+- JS (строки 1712-1850):
+  - renderTumbler(slot, pd): symbols (default 6 рун), correct sequence, 3 барабана с ▲/▼ кнопками, randomize initial (избегает solved state), green border+glow при совпадении, auto-success когда все 3 совпадают
+  - renderConstellation(slot, pd): nodes + order, 40 фоновых звёзд, клик по звезде подсвечивает (amber glow) если правильный порядок, линии между соединёнными, saturate(3) flash при ошибке + bypassFail, auto-success когда все в order кликнуты
+  - renderCircuit(slot, pd): 3×3 grid, solution path (default [0,1,2,5,8]), expectedRot per cell, клик вращает плитку на 90°, green glow когда в потоке, auto-success когда все solution-ячейки в правильной ротации
+  - renderPuzzle dispatcher обновлён: keyword/tumbler/constellation/circuit → соответствующие функции, остальные → «неизвестный тип печати»
+
+Verification:
+- JS syntax (node --check): OK (42368 bytes script block).
+- ESLint: clean (exit 0).
+
+E2E agent-browser (полный flow, TESTWARDEN session):
+1. Tumbler (2feaf866, correct=["ᚨ","ᚱ","ᚦ"]):
+   - Open bypass → 3 drums [ᚱ,ᚨ,ᚲ], 6 buttons, hint показан ✓
+   - Click ▲ на каждом барабане до совпадения → [ᚨ,ᚱ,ᚦ] ✓
+   - «ДОСТУП РАЗРЕШЕН», box.granted ✓
+   - npcTag: 13→12 🔒, DB is_locked=False ✓
+2. Constellation (7c844939, order=["eye","crown","flame"]):
+   - Open bypass → 5 звёзд (eye,crown,flame,serpent,tail), hint показан ✓
+   - .click() на <g> не сработал → использовал dispatchEvent(MouseEvent) ✓
+   - Click eye → lit (amber), crown → lit, flame → lit ✓
+   - «ДОСТУП РАЗРЕШЕН», box.granted ✓
+   - npcTag: 12→11 🔒, DB is_locked=False ✓
+3. Circuit (89f2a212, solution=[0,1,2,5,8]):
+   - Open bypass → 9 cells (3×3), 0 in flow ✓
+   - Click cells 0,1,2,5,8 до нужной ротации (0,0,2,1,0) ✓
+   - 5 cells in flow → «ДОСТУП РАЗРЕШЕН», box.granted ✓
+   - npcTag: 11→10 🔒, DB is_locked=False ✓
+- 0 JS errors во всех 3 тестах ✓
+- Keyword (из этапа 2) продолжает работать ✓
+- Unknown types (fragment, alchemy, runes, meta) показывают «неизвестный тип печати» (ожидаемо, этап 4)
+
+Stage Summary:
+- Этап 3 (головоломки tumbler + constellation + circuit) завершён. Все 4 типа теперь функциональны: keyword, tumbler, constellation, circuit.
+- Заглушка _puzzleLocked готова для этапа 4 (cooldown система).
+- Готов к этапу 4 (головоломки alchemy, runes, fragment, meta + cooldown).
