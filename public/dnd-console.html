@@ -650,6 +650,171 @@
   }
   .empty-state b{color:var(--green-dim)}
 
+  /* ============ WARDEN'S GATE ============ */
+  .wardens-gate{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;transition:opacity .5s}
+  .wardens-gate.gone{opacity:0;pointer-events:none}
+  .gate-logo{font-family:'MedievalSharp',serif;font-size:36px;color:var(--green);text-shadow:0 0 20px rgba(74,246,38,.6);letter-spacing:6px;margin-bottom:6px;text-align:center;animation:gateFlicker 4s infinite steps(40)}
+  @keyframes gateFlicker{0%,97%,100%{opacity:1}98%{opacity:.6}99%{opacity:.9}}
+  .gate-sub{font-family:'VT323',monospace;font-size:16px;color:var(--text-dim);letter-spacing:3px;margin-bottom:30px;text-align:center}
+  .gate-form{display:flex;flex-direction:column;gap:14px;width:100%;max-width:320px}
+  .gate-label{font-family:'VT323',monospace;font-size:14px;color:var(--green-dim);letter-spacing:2px}
+  .gate-input{width:100%;background:#0a0d0a;border:1px solid var(--green-dim);color:var(--green);font-family:'VT323',monospace;font-size:20px;padding:10px 14px;outline:none;text-shadow:0 0 6px rgba(74,246,38,.4);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));transition:all .15s}
+  .gate-input:focus{border-color:var(--green);box-shadow:0 0 14px rgba(74,246,38,.3)}
+  .gate-btn{width:100%;padding:12px;font-size:18px;letter-spacing:3px;margin-top:6px}
+  .gate-err{font-family:'VT323',monospace;font-size:14px;color:var(--red);text-shadow:0 0 6px rgba(255,36,36,.5);text-align:center;min-height:20px;letter-spacing:1px}
+  .gate-info{font-family:'VT323',monospace;font-size:12px;color:var(--text-dim);text-align:center;margin-top:20px;letter-spacing:1px;line-height:1.5}
+
+  /* ============ GOD'S GAZE ============ */
+  body.gaze-low .crt-scanlines{opacity:.55}
+  body.gaze-med .crt-scanlines{opacity:.6}
+  body.gaze-med .crt-noise{opacity:.06}
+  body.gaze-med .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 6s ease-in-out infinite}
+  @keyframes gazeBlink{0%,95%,100%{opacity:1}97%{opacity:.3}98%{opacity:1}}
+  body.gaze-high .crt-scanlines{opacity:.65}
+  body.gaze-high .crt-noise{opacity:.08}
+  body.gaze-high .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 4s ease-in-out infinite}
+  body.gaze-high .holo::after{content:"👁";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:80px;color:rgba(255,36,36,.03);pointer-events:none;z-index:1;animation:gazeEyeFlicker 8s ease-in-out infinite}
+  @keyframes gazeEyeFlicker{0%,90%,100%{opacity:0}93%{opacity:.08}96%{opacity:0}}
+  body.gaze-extreme .crt-scanlines{opacity:.7}
+  body.gaze-extreme .crt-noise{opacity:.1}
+  body.gaze-extreme .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 2s ease-in-out infinite}
+  body.gaze-extreme .holo::after{content:"👁";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;color:rgba(255,36,36,.05);pointer-events:none;z-index:1;animation:gazeEyeFlicker 4s ease-in-out infinite}
+  body.gaze-extreme .console{animation:gazeInvert 12s ease-in-out infinite}
+  @keyframes gazeInvert{0%,92%,100%{filter:none}94%{filter:invert(1) hue-rotate(180deg)}96%{filter:none}}
+  @keyframes bodyJitter{0%,100%{transform:translate(0,0)}25%{transform:translate(.5px,-.5px)}50%{transform:translate(-.5px,.5px)}75%{transform:translate(.5px,.5px)}}
+
+  /* ============ BYPASS WARD ============ */
+  .bypass-overlay{position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.85);opacity:0;pointer-events:none;transition:opacity .35s;padding:20px}
+  .bypass-overlay.show{opacity:1;pointer-events:auto}
+  .bypass-box{position:relative;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;border:2px solid var(--amber);background:linear-gradient(180deg,rgba(20,16,10,.95),rgba(8,6,4,.98));padding:24px 28px;box-shadow:0 0 80px rgba(232,161,58,.3),inset 0 0 40px rgba(232,161,58,.06),0 30px 60px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));font-family:'VT323',monospace}
+  .bypass-box.denied{border-color:var(--red);box-shadow:0 0 80px rgba(255,36,36,.4),inset 0 0 40px rgba(255,36,36,.1),0 30px 60px rgba(0,0,0,.8);animation:bypassShake .3s steps(4) 2}
+  .bypass-box.granted{border-color:var(--green);box-shadow:0 0 80px rgba(74,246,38,.4),inset 0 0 40px rgba(74,246,38,.1),0 30px 60px rgba(0,0,0,.8)}
+  @keyframes bypassShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .bypass-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed rgba(232,161,58,.3)}
+  .bypass-title{font-family:'MedievalSharp',serif;font-size:22px;color:var(--amber);text-shadow:0 0 12px rgba(232,161,58,.6);letter-spacing:3px}
+  .bypass-close{background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:16px;width:28px;height:28px;cursor:pointer}
+  .bypass-close:hover{color:var(--red);border-color:var(--red)}
+  .bypass-hint{border:1px solid rgba(232,161,58,.2);background:rgba(232,161,58,.04);padding:10px 14px;margin-bottom:16px;font-size:15px;line-height:1.5;color:var(--text);font-style:italic;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+  .bypass-status{font-size:14px;text-align:center;letter-spacing:2px;margin-top:14px;min-height:20px}
+  .bypass-status.denied{color:var(--red);text-shadow:0 0 8px rgba(255,36,36,.6)}
+  .bypass-status.granted{color:var(--green);text-shadow:0 0 8px rgba(74,246,38,.6)}
+
+  /* ============ PUZZLES ============ */
+  .pk-input{width:100%;max-width:320px;background:#0a0805;border:1px solid var(--amber);color:var(--green);font-family:'VT323',monospace;font-size:22px;text-align:center;letter-spacing:4px;padding:10px 14px;outline:none;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+  .puzzle-tumbler{display:flex;justify-content:center;gap:18px;padding:20px 0}
+  .tumbler-display{width:72px;height:80px;background:#0a0805;border:2px solid var(--amber);display:flex;align-items:center;justify-content:center;font-size:44px;color:var(--green);text-shadow:0 0 14px rgba(74,246,38,.6);font-family:'MedievalSharp',serif;box-shadow:inset 0 0 18px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+  .tumbler-btn{background:linear-gradient(180deg,rgba(232,161,58,.15),rgba(232,161,58,.03));border:1px solid var(--amber);color:var(--amber);width:48px;height:32px;font-size:18px;cursor:pointer;font-family:'VT323',monospace;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+  .constellation-svg{width:100%;height:280px;background:radial-gradient(ellipse at center,#020510,#000);border:1px solid var(--green-deep);display:block;cursor:crosshair;overflow:visible}
+  .alchemy-slot{width:60px;height:60px;border:2px dashed var(--amber);background:rgba(232,161,58,.04);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--amber);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+  .alchemy-slot.filled{border-style:solid;border-color:var(--green);color:var(--green)}
+  .alchemy-ing{width:56px;height:56px;border:1px solid var(--green-deep);background:rgba(74,246,38,.05);display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
+  .alchemy-ing:hover{border-color:var(--green);background:rgba(74,246,38,.15);transform:scale(1.05)}
+  .alchemy-ing.used{opacity:.3;pointer-events:none}
+  .circuit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:280px;margin:0 auto}
+  .circuit-cell{aspect-ratio:1/1;background:#0a0805;border:1px solid var(--green-deep);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .15s}
+  .circuit-cell:hover{border-color:var(--green)}
+  .circuit-cell.flow{border-color:var(--green);box-shadow:0 0 10px rgba(74,246,38,.4),inset 0 0 8px rgba(74,246,38,.2)}
+  .circuit-cell svg{width:100%;height:100%}
+  .circuit-cell svg path{stroke:var(--text-dim);stroke-width:8;fill:none;transition:stroke .2s}
+  .circuit-cell.flow svg path{stroke:var(--green);filter:drop-shadow(0 0 4px var(--green))}
+  .rune-slot{width:56px;height:56px;border:1px solid var(--green-deep);background:rgba(74,246,38,.04);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--green);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+  .rune-slot.question{border-style:dashed;color:var(--amber)}
+  .rune-opt{width:60px;height:60px;border:1px solid var(--amber);background:rgba(232,161,58,.05);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--amber);cursor:pointer;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
+  .rune-opt:hover{background:rgba(232,161,58,.2);transform:scale(1.05)}
+  .rune-opt.correct{border-color:var(--green);color:var(--green);background:rgba(74,246,38,.15)}
+  .rune-opt.wrong{border-color:var(--red);color:var(--red);background:rgba(255,36,36,.15)}
+  .meta-fragment{padding:8px 14px;border:1px dashed var(--text-dim);background:rgba(0,0,0,.3);font-family:'MedievalSharp',serif;font-size:18px;color:var(--text-dim);letter-spacing:2px;min-width:80px;text-align:center;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+  .meta-fragment.collected{border-style:solid;border-color:var(--amber);color:var(--amber);text-shadow:0 0 8px rgba(232,161,58,.5);background:rgba(232,161,58,.08)}
+  .meta-input{width:100%;max-width:360px;background:#0a0805;border:1px solid var(--amber);color:var(--green);font-family:'VT323',monospace;font-size:20px;text-align:center;letter-spacing:3px;padding:10px 14px;outline:none;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));display:block;margin:0 auto 12px}
+
+  /* ============ COOLDOWN ============ */
+  .puzzle-frozen{pointer-events:none!important;filter:hue-rotate(180deg) brightness(.6)}
+  .cooldown-overlay{position:absolute;inset:0;background:rgba(0,30,60,.3);display:flex;align-items:center;justify-content:center;z-index:100;pointer-events:none}
+  .cooldown-text{font-family:'MedievalSharp',serif;font-size:24px;color:var(--cyan);text-shadow:0 0 16px rgba(63,214,200,.8);letter-spacing:4px;animation:cooldownPulse 1s ease-in-out infinite}
+  @keyframes cooldownPulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .bypass-box.frozen{border-color:var(--cyan)!important;box-shadow:0 0 80px rgba(63,214,200,.3),inset 0 0 40px rgba(63,214,200,.1),0 30px 60px rgba(0,0,0,.8)!important}
+
+  /* ============ ACHIEVEMENTS ============ */
+  .achievement-toast{position:fixed;top:20px;right:20px;z-index:9900;background:linear-gradient(180deg,rgba(12,14,12,.98),rgba(6,8,6,.98));border:2px solid var(--amber);padding:14px 20px;min-width:280px;max-width:360px;box-shadow:0 0 30px rgba(232,161,58,.4),0 10px 30px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));font-family:'VT323',monospace;animation:achIn .5s ease-out,achOut .5s ease-in 4s forwards;display:flex;gap:12px;align-items:center}
+  @keyframes achIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+  @keyframes achOut{to{transform:translateX(120%);opacity:0}}
+  .ach-icon{font-size:36px;text-shadow:0 0 12px var(--amber);flex-shrink:0}
+  .ach-title{font-family:'MedievalSharp',serif;font-size:16px;color:var(--amber);text-shadow:0 0 8px rgba(232,161,58,.6);letter-spacing:2px;margin-bottom:2px}
+  .ach-desc{font-size:13px;color:var(--text);letter-spacing:1px;line-height:1.3}
+  .ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+  .ach-card{border:1px solid #1a201a;background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));padding:12px;opacity:.5;transition:all .3s;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+  .ach-card.unlocked{opacity:1;border-color:var(--amber);box-shadow:0 0 12px rgba(232,161,58,.2)}
+  .ach-card-icon{font-size:28px;text-align:center;margin-bottom:6px;color:var(--text-dim)}
+  .ach-card.unlocked .ach-card-icon{color:var(--amber);text-shadow:0 0 8px rgba(232,161,58,.6)}
+  .ach-card-name{font-family:'MedievalSharp',serif;font-size:14px;color:var(--text-dead);text-align:center;letter-spacing:1px;margin-bottom:4px}
+  .ach-card.unlocked .ach-card-name{color:var(--amber)}
+  .ach-card-desc{font-size:11px;color:var(--text-dim);text-align:center;line-height:1.4}
+
+  /* ============ UNVEIL ============ */
+  .unveil-overlay{position:fixed;inset:0;z-index:9700;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.9);opacity:0;pointer-events:none;transition:opacity .4s}
+  .unveil-overlay.show{opacity:1}
+  .unveil-garbled{font-size:42px;color:var(--red);text-shadow:0 0 16px rgba(255,36,36,.6);letter-spacing:4px;animation:corruptGlitch .15s steps(2) infinite}
+  .unveil-name{font-size:42px;color:var(--green);text-shadow:0 0 20px rgba(74,246,38,.8);letter-spacing:4px;opacity:0;animation:unveilNameIn .8s .8s ease-out forwards}
+  @keyframes unveilNameIn{0%{opacity:0;transform:scale(.5);filter:blur(20px)}60%{opacity:1;transform:scale(1.1);filter:blur(0)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+
+  /* ============ PROJECTION ============ */
+  .projection-overlay{position:fixed;inset:0;z-index:9950;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .5s;padding:30px}
+  .projection-overlay.show{opacity:1;pointer-events:auto}
+  .projection-close{position:absolute;top:20px;right:20px;background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:18px;width:40px;height:40px;cursor:pointer;z-index:10}
+  .projection-close:hover{color:var(--red);border-color:var(--red)}
+  .projection-holo{width:min(50vh,400px);height:min(50vh,400px);position:relative;border:1px solid var(--green-deep);background:radial-gradient(circle at 50% 60%,rgba(74,246,38,.10),transparent 60%),linear-gradient(180deg,#04140a,#020805);overflow:hidden;box-shadow:inset 0 0 60px rgba(0,0,0,.8),inset 0 0 20px rgba(74,246,38,.2),0 0 80px rgba(74,246,38,.2)}
+  .projection-name{font-family:'MedievalSharp',serif;font-size:48px;color:var(--green);text-shadow:0 0 20px rgba(74,246,38,.7);letter-spacing:4px;margin-bottom:8px;text-align:center}
+  .projection-title{font-size:20px;color:var(--green-dim);font-family:'VT323',monospace;letter-spacing:2px;margin-bottom:20px;text-align:center}
+  .projection-desc{font-size:20px;line-height:1.6;color:var(--text);font-family:'VT323',monospace;letter-spacing:1px;white-space:pre-wrap;text-align:left;max-width:800px}
+
+  /* ============ MAP VIEW ============ */
+  .view-toggle{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+  .view-btn{background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:13px;padding:5px 14px;cursor:pointer;letter-spacing:1px;transition:all .15s;clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px))}
+  .view-btn.active{border-color:var(--green);color:var(--green);text-shadow:0 0 6px rgba(74,246,38,.5);background:rgba(74,246,38,.08)}
+  .view-btn:hover{border-color:var(--green);color:var(--green)}
+  .map-container{position:relative;width:100%;min-height:500px;max-height:70vh}
+  .map-svg{width:100%;height:100%;min-height:500px;background:radial-gradient(ellipse at 30% 30%,rgba(74,246,38,.04),transparent 50%),radial-gradient(ellipse at 70% 70%,rgba(63,214,200,.03),transparent 50%),#020510;border:1px solid var(--green-deep);display:block}
+  .map-svg .map-grid{stroke:rgba(74,246,38,.04);stroke-width:.3}
+  .map-svg .map-link{stroke:rgba(74,246,38,.12);stroke-width:.4;fill:none;stroke-dasharray:1 1}
+  .map-svg .map-node{cursor:pointer;transition:all .2s}
+  .map-svg .map-node circle.node-dot{fill:var(--green-deep);stroke:var(--green);stroke-width:1.2;transition:all .2s;filter:drop-shadow(0 0 3px rgba(74,246,38,.4))}
+  .map-svg .map-node:hover circle.node-dot{stroke-width:2;filter:drop-shadow(0 0 6px var(--green))}
+  .map-svg .map-node.locked circle.node-dot{fill:#3a1414;stroke:var(--red)}
+  .map-svg .map-node.fragment circle.node-dot{fill:var(--green-deep);stroke:var(--amber);stroke-dasharray:1.5 1}
+  .map-svg .map-node text{fill:var(--text);font-family:'VT323',monospace;font-size:3px;text-anchor:middle;pointer-events:none}
+  .map-svg .map-node.locked text{fill:var(--red-dim)}
+  .map-legend{display:flex;gap:14px;justify-content:center;margin-top:10px;font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px;flex-wrap:wrap;padding:8px}
+  .map-legend .dot{width:10px;height:10px;border-radius:50%;border:2px solid;display:inline-block;margin-right:4px}
+  .map-legend .dot.open{border-color:var(--green);background:var(--green-deep)}
+  .map-legend .dot.locked{border-color:var(--red);background:#3a1414}
+  .map-legend .dot.fragment{border-color:var(--amber);background:var(--green-deep);border-style:dashed}
+  .map-tooltip{position:absolute;background:#0a0805;border:1px solid var(--green);padding:6px 12px;font-family:'VT323',monospace;font-size:13px;color:var(--green);letter-spacing:1px;pointer-events:none;z-index:50;box-shadow:0 0 12px rgba(74,246,38,.3);clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));opacity:0;transition:opacity .15s;white-space:nowrap}
+  .map-tooltip.show{opacity:1}
+
+  /* ============ IMAGE FALLBACK + ENC BUTTONS ============ */
+  .holo-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--cyan);filter:drop-shadow(0 0 8px rgba(63,214,200,.5))}
+  .holo-fallback svg{width:100%;height:100%;opacity:.85}
+  .enc-btn{background:linear-gradient(180deg,rgba(74,246,38,.12),rgba(74,246,38,.03));border:1px solid var(--green-dim);color:var(--green);font-family:'VT323',monospace;font-size:15px;letter-spacing:2px;padding:7px 18px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));transition:all .15s;text-shadow:0 0 6px rgba(74,246,38,.5)}
+  .enc-btn:hover:not(:disabled){background:linear-gradient(180deg,rgba(74,246,38,.25),rgba(74,246,38,.08));box-shadow:0 0 14px rgba(74,246,38,.4)}
+  .enc-btn:disabled{opacity:.35;cursor:not-allowed}
+  .enc-btn.warn{border-color:var(--amber);color:var(--amber);background:linear-gradient(180deg,rgba(232,161,58,.1),rgba(232,161,58,.02))}
+
+  /* ============ METER TOOLTIPS ============ */
+  .meter .lbl{cursor:help;position:relative}
+  .meter .lbl:hover .meter-tooltip{opacity:1;visibility:visible}
+  .meter-tooltip{position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:#0a0805;border:1px solid var(--green-dim);padding:6px 10px;font-size:10px;color:var(--text);line-height:1.4;opacity:0;visibility:hidden;transition:opacity .2s;z-index:100;text-align:left;font-family:'Share Tech Mono',monospace;box-shadow:0 0 12px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));white-space:normal}
+
+  /* ============ SHARDS SIDEBAR ============ */
+  .shard-log{margin:8px;padding:8px;border:1px dashed var(--amber);background:rgba(232,161,58,.03);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+  .shard-log-title{font-size:11px;color:var(--amber);letter-spacing:2px;font-family:'VT323',monospace;margin-bottom:4px}
+  .shard-word{display:inline-block;font-family:'MedievalSharp',serif;font-size:14px;color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.5);margin:2px 4px;letter-spacing:1px}
+  .shard-progress{font-size:10px;color:var(--text-dim);font-family:'VT323',monospace;margin-top:4px}
+
+  /* ============ WITCHING INDICATOR ============ */
+  .witching-indicator{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9300;background:rgba(20,0,40,.9);border:2px solid #a78bfa;padding:8px 20px;font-family:'MedievalSharp',serif;font-size:18px;color:#a78bfa;text-shadow:0 0 12px rgba(167,139,250,.8);letter-spacing:3px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));box-shadow:0 0 30px rgba(167,139,250,.3);animation:witchingPulse 2s ease-in-out infinite;display:none}
+  .witching-indicator.show{display:block}
+  @keyframes witchingPulse{0%,100%{opacity:.7;box-shadow:0 0 30px rgba(167,139,250,.3)}50%{opacity:1;box-shadow:0 0 50px rgba(167,139,250,.6)}}
+
   /* ---------- Responsive ---------- */
   @media (max-width:900px){
     .body{flex-direction:column}
@@ -676,7 +841,20 @@
   }
 </style>
 </head>
-<body>
+<body class="gaze-low">
+
+<!-- WARDEN'S GATE -->
+<div class="wardens-gate" id="wardensGate">
+  <div class="gate-logo">АШЕНОВ КОДЕКС</div>
+  <div class="gate-sub">// ВРАТА СТРАЖА // ВВЕДИТЕ ВЕРНЫЕ ДАННЫЕ</div>
+  <form class="gate-form" id="gateForm">
+    <div class="gate-field"><div class="gate-label">&gt; WARDEN NAME:</div><input type="text" class="gate-input" id="gateName" placeholder="..." autocomplete="off" /></div>
+    <div class="gate-field"><div class="gate-label">&gt; CIPHER:</div><input type="password" class="gate-input" id="gateCipher" placeholder="..." autocomplete="off" /></div>
+    <div class="gate-err" id="gateErr"></div>
+    <button type="submit" class="enc-btn gate-btn" id="gateBtn">ENTER THE ARCHIVE</button>
+  </form>
+  <div class="gate-info">// спросите Стража (Мастера) об учётной записи<br>// нет аккаунта? обратитесь к /admin → WARDENS</div>
+</div>
 
 <!-- screen overlays -->
 <div class="crt-scanlines"></div>
@@ -719,8 +897,9 @@
         <span class="led a"></span>
         <span class="led g"></span>
       </div>
-      <div class="tb-title">А&nbsp;Ш&nbsp;Е&nbsp;Н&nbsp;О&nbsp;В&nbsp;&nbsp;К&nbsp;О&nbsp;Д&nbsp;Е&nbsp;К&nbsp;С &nbsp;//&nbsp; <b>БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ</b> &nbsp;v4.1-archive</div>
+      <div class="tb-title">А&nbsp;Ш&nbsp;Е&nbsp;Н&nbsp;О&nbsp;В&nbsp;&nbsp;К&nbsp;О&nbsp;Д&nbsp;Е&nbsp;К&nbsp;С &nbsp;//&nbsp; <b>БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ</b> &nbsp;v6.0</div>
       <button class="audio-btn off" id="audioBtn" title="Включить звук">ЗВУК:ВЫКЛ</button>
+      <button class="audio-btn" id="logoutBtn" title="Выйти из архива" style="border-color:var(--red-dim);color:var(--red-dim)">ВЫХОД</button>
       <div class="tb-meta">СЕКТОР <span>07</span> // АРХИВ <span>В СЕТИ</span></div>
     </div>
 
@@ -734,20 +913,27 @@
           <button class="menu-item active" data-panel="npcs" data-txt="> ЗАПРОС_АРХИВ_НПС"><span class="chev">&gt;</span>ЗАПРОС_АРХИВ_НПС<span class="tag" id="tag-npcs">…</span></button>
           <button class="menu-item" data-panel="lore" data-txt="> БАЗА_ЛОРА"><span class="chev">&gt;</span>БАЗА_ЛОРА<span class="tag" id="tag-lore">…</span></button>
           <button class="menu-item" data-panel="rulers" data-txt="> РЕЕСТР_ПРАВИТЕЛЕЙ"><span class="chev">&gt;</span>РЕЕСТР_ПРАВИТЕЛЕЙ<span class="tag" id="tag-rulers">…</span></button>
+          <button class="menu-item" data-panel="achievements" data-txt="> ДОСТИЖЕНИЯ"><span class="chev">&gt;</span>ДОСТИЖЕНИЯ<span class="tag" id="tag-ach">0</span></button>
         </nav>
 
         <div class="side-foot">
           <div class="meter">
-            <div class="lbl"><span>ЦЕЛОСТНОСТЬ_АРХИВА</span><b id="m1v">--%</b></div>
+            <div class="lbl"><span>ЦЕЛОСТНОСТЬ_АРХИВА</span><b id="m1v">--%</b>
+              <div class="meter-tooltip"><b>ЦЕЛОСТНОСТЬ АРХИВА</b><br>Процент открытых записей от общего числа.</div>
+            </div>
             <div class="bar"><i id="m1" style="width:--%"></i></div>
           </div>
           <div class="meter">
-            <div class="lbl"><span>ПОРЧА</span><b id="m2v">--%</b></div>
-            <div class="bar"><i id="m2" class="red" style="width:--%"></i></div>
+            <div class="lbl"><span>ВЗГЛЯД БОГА</span><b id="m2v">0%</b>
+              <div class="meter-tooltip"><b style="color:var(--amber)">ВЗГЛЯД БОГА</b><br>Мёртвый бог наблюдает через архив. Растёт от чтения и решения головоломок. <span style="color:var(--amber)">30%</span> — моргание. <span style="color:var(--amber)">60%</span> — силуэт глаза. <span style="color:var(--amber)">90%</span> — инверсия. <span style="color:var(--amber)">100%</span> — ОН ВИДИТ ТЕБЯ.</div>
+            </div>
+            <div class="bar"><i id="m2" style="width:0%;background:repeating-linear-gradient(45deg,var(--amber) 0 4px,#1a1208 4px 8px)"></i></div>
           </div>
           <div class="meter">
-            <div class="lbl"><span>СИГНАЛ</span><b id="m3v">--%</b></div>
-            <div class="bar"><i id="m3" style="width:--%"></i></div>
+            <div class="lbl"><span>СИГНАЛ</span><b id="m3v">99%</b>
+              <div class="meter-tooltip"><b>СИГНАЛ</b><br>Качество связи с Supabase.</div>
+            </div>
+            <div class="bar"><i id="m3" style="width:99%"></i></div>
           </div>
         </div>
       </aside>
@@ -788,7 +974,7 @@
       <span class="sep">|</span>
       <div class="s r">ОПЕЧАТАНО <b id="sbLocked">0</b></div>
       <div class="right">
-        <div class="s">ПОРЧА <b id="sbCorr">--%</b></div>
+        <div class="s a">ВЗГЛЯД <b id="sbCorr">0%</b></div>
         <span class="sep">|</span>
         <div class="s">СТРАЖ: <b>страж_07</b></div>
         <span class="sep">|</span>
@@ -799,6 +985,24 @@
 </div>
 
 <div class="signature">// АШЕНОВ_КОДЕКС — БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ — НЕ ДОВЕРЯЙ СВЕТУ</div>
+
+<!-- BYPASS WARD -->
+<div class="bypass-overlay" id="bypassOverlay">
+  <div class="bypass-box" id="bypassBox">
+    <div class="bypass-head"><div class="bypass-title">СНЯТИЕ ПЕЧАТИ</div><button class="bypass-close" id="bypassClose">×</button></div>
+    <div class="bypass-hint" id="bypassHint">// загадка появится здесь</div>
+    <div id="bypassPuzzle"></div>
+    <div class="bypass-status" id="bypassStatus"></div>
+  </div>
+</div>
+<!-- UNVEIL -->
+<div class="unveil-overlay" id="unveilOverlay"><div style="text-align:center;font-family:'MedievalSharp',serif"><div class="unveil-garbled" id="unveilGarbled">[ДАННЫЕ ПОВРЕЖДЕНЫ]</div><div class="unveil-name" id="unveilName"></div></div></div>
+<!-- PROJECTION -->
+<div class="projection-overlay" id="projectionOverlay"><button class="projection-close" id="projectionClose">×</button><div class="projection-holo" id="projectionHolo"></div><div style="text-align:center;margin-top:30px;max-width:800px"><div class="projection-name" id="projectionName"></div><div class="projection-title" id="projectionTitle"></div><div class="projection-desc" id="projectionDesc"></div></div></div>
+<!-- WITCHING -->
+<div class="witching-indicator" id="witchingIndicator">🌙 ЧАС ВЕДЬМЫ 🌙</div>
+<!-- ACH TOAST -->
+<div id="achToastContainer"></div>
 
 <!-- ============ SVG TEMPLATES ============ -->
 <svg width="0" height="0" style="position:absolute">
@@ -1049,13 +1253,16 @@
     lore: [],
     rulers: [],
     selectedIdx: { npcs:0, lore:0, rulers:0 },
+    achievements: new Set(),
+    readRecords: new Set(),
+    collectedFragments: new Set(),
   };
   const META={
     npcs:{ label:"АРХИВ_НПС", crumb:"АРХИВ_НПС", tag:"npcs" },
     lore:{ label:"БАЗА_ЛОРА", crumb:"МИРОВОЙ_ЛОР", tag:"lore" },
     rulers:{ label:"РЕЕСТР_ПРАВИТЕЛЕЙ", crumb:"ПРАВИТЕЛИ", tag:"rulers" },
   };
-  let corruptionLevel=27; // decorative — drives CRT degradation
+  let corruptionLevel=0; // God's Gaze — grows from actions
 
   const GARBLE="█▓▒░▚▞▒▓█░▒▓";
   function garble(n){let s="";for(let i=0;i<n;i++)s+=GARBLE[Math.floor(Math.random()*GARBLE.length)];return s;}
@@ -1086,12 +1293,12 @@
     const locked=STORE.npcs.filter(r=>r.is_locked).length+STORE.lore.filter(r=>r.is_locked).length+STORE.rulers.filter(r=>r.is_locked).length;
     const sbRec=$("#sbRecords"); if(sbRec) sbRec.textContent=total;
     const sbLk=$("#sbLocked"); if(sbLk) sbLk.textContent=locked;
-    // archive integrity = % unlocked
     const integrity = total>0 ? Math.round((total-locked)/total*100) : 100;
     const m1=$("#m1"),m1v=$("#m1v"); if(m1){m1.style.width=integrity+"%";m1v.textContent=integrity+"%";}
     const m2=$("#m2"),m2v=$("#m2v"); if(m2){m2.style.width=corruptionLevel+"%";m2v.textContent=corruptionLevel+"%";}
-    const m3=$("#m3"),m3v=$("#m3v"); const sig=Math.max(40,Math.min(99,100-Math.round(corruptionLevel/3))); if(m3){m3.style.width=sig+"%";m3v.textContent=sig+"%";}
+    const m3=$("#m3"),m3v=$("#m3v"); if(m3){m3.style.width="99%";m3v.textContent="99%";}
     const sbC=$("#sbCorr"); if(sbC) sbC.textContent=corruptionLevel+"%";
+    applyGazeClass();
   }
 
   /* ---------- alert ---------- */
@@ -1120,14 +1327,14 @@
   function renderArchive(type){
     const recs=STORE[type];
     const meta=META[type];
+    if(_viewMode==="map") return renderMapView(type);
     if(recs.length===0){
       return `<div class="panel-head">
           <h2><span class="g">&gt;</span> ${meta.label}</h2>
-          <div class="sub">нет записей в хранилище // архив пуст или недоступен</div>
+          <div class="view-toggle"><button class="view-btn active">СПИСОК</button><button class="view-btn" data-view="map">КАРТА</button></div>
         </div>
         <div class="empty-state">
-          // хранилище молчит.<br>// ни одна запись не была восстановлена из этого архива.<br><br>
-          <b>// проверьте подключение к Supabase или добавьте записи через /admin.</b>
+          // хранилище молчит.<br>// проверьте Supabase или добавьте записи через /admin.
         </div>`;
     }
     const sel=STORE.selectedIdx[type]||0;
@@ -1135,8 +1342,8 @@
       const isSel=i===sel;
       const isLocked=r.is_locked;
       const cls = (isSel?" sel":"")+(isLocked?" corrupt":"");
-      const name = isLocked ? "[ДАННЫЕ ПОВРЕЖДЕНЫ]" : (r.name||"[без имени]");
-      const tag = isLocked ? "ОПЕЧАТАНО" : (r.category||"?");
+      const name = isLocked ? (r.name&&!r.name.startsWith("[")?r.name:"[ДАННЫЕ ПОВРЕЖДЕНЫ]") : (r.name||"[без имени]");
+      const tag = isLocked ? "ОПЕЧАТАНО" : (r.shard_word?"ОСКОЛОК":(r.category||"?"));
       return `<div class="npc-row${cls}" data-i="${i}">
         <div class="rid">${(r.id||"").toString().slice(0,8).toUpperCase()||"—"}</div>
         <div class="rnm">${name}</div>
@@ -1146,11 +1353,15 @@
     const detail = renderRecordCard(recs[sel], type);
     return `<div class="panel-head">
         <h2><span class="g">&gt;</span> ${meta.label} <span class="g">::</span> СЕКТОР_07</h2>
-        <div class="sub">${recs.length} записей // ${recs.filter(r=>r.is_locked).length} повреждено/опечатано // источник: SUPABASE</div>
+        <div class="view-toggle">
+          <button class="view-btn active">СПИСОК</button>
+          <button class="view-btn" data-view="map">КАРТА</button>
+        </div>
       </div>
       <div class="archive-wrap">
         <div class="npc-list" id="npcList">${list}</div>
         <div class="detail-slot" id="detailSlot">${detail}</div>
+        <div class="shard-log" id="shardLog"></div>
       </div>`;
   }
 
@@ -1184,7 +1395,8 @@
     // If has image_url and not locked — render image card with 3D hologram
     if(!isLocked && r.image_url){
       const chips = [r.category||"НЕИЗВЕСТНО"].map(c=>`<span class="chip">${c}</span>`).join("");
-      const imgTag = `<img src="${escapeAttr(r.image_url)}" alt="${escapeAttr(r.name||"")}" />`;
+      const imgTag = safeImgTag(r.image_url, r.name, sigil);
+      const fragBadge = r.shard_word ? `<div style="margin-top:6px;font-size:11px;color:var(--amber);letter-spacing:1px;font-family:'VT323',monospace">🧩 ОСКОЛОК ПАМЯТИ</div>` : "";
       return `<div class="card image-card">
         <div class="card-top">
           <div class="card-id">ИД: <b>${idShort}</b> // ИСТ: ${type==="npcs"?"НПС":type==="lore"?"ЛОР":"ПРАВ"}</div>
@@ -1196,6 +1408,8 @@
             ${r.title?`<div class="npc-title">${escapeHtml(r.title)}</div>`:""}
             <div class="stat-row">${chips}</div>
             <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
+            ${fragBadge}
+            <button class="enc-btn" id="projBtn" data-id="${escapeAttr(r.id)}" data-type="${type}" style="margin-top:8px;padding:5px 14px;font-size:12px">📽 ПРОЕКЦИЯ</button>
           </div>
           <div class="holo">
             <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -1211,6 +1425,8 @@
     // Locked / corrupted card
     if(isLocked){
       const errSvg = `<svg><use href="#i-err"/></svg>`;
+      const hasPuzzle = r.puzzle_type && r.puzzle_type !== "none";
+      const bypassBtn = hasPuzzle ? `<button class="enc-btn warn" id="bypassBtn" data-id="${escapeAttr(r.id)}" data-type="${type}" style="margin-top:10px;width:100%;padding:8px">⚠ СНЯТЬ ПЕЧАТЬ</button>` : `<div style="margin-top:10px;font-size:12px;color:var(--text-dim);text-align:center;font-style:italic">// печать без головоломки.</div>`;
       return `<div class="card corrupt">
         <div class="card-top">
           <div class="card-id">ИД: <b>${idShort}</b> // КЛАСС: <span style="color:var(--red)">НЕИЗВЕСТНО</span></div>
@@ -1225,9 +1441,10 @@
             </div>
             <p class="desc desc-block">
               <span class="garble" id="gar1"></span><br>
-              Некто <span class="censor" style="width:64px"></span> шёл по <span class="censor" style="width:90px"></span> до того, как <span class="censor" style="width:48px"></span> пал. Он говорит <span class="censor" style="width:72px"></span> и торгует <span class="censor" style="width:54px"></span>. Не <span class="censor" style="width:40px"></span> его имя.<br>
+              Некто <span class="censor" style="width:64px"></span> шёл по <span class="censor" style="width:90px"></span> до того, как <span class="censor" style="width:48px"></span> пал. Не <span class="censor" style="width:40px"></span> его имя.<br>
               <span class="garble" id="gar2"></span>
             </p>
+            ${bypassBtn}
           </div>
           <div class="holo">
             <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -1243,6 +1460,7 @@
     // Normal decrypted card with sigil 3D hologram
     const chips = [r.category||"НЕИЗВЕСТНО"].map(c=>`<span class="chip">${c}</span>`).join("");
     const sigilSvg = `<svg><use href="#${sigil}"/></svg>`;
+    const fragBadge = r.shard_word ? `<div style="margin-top:6px;font-size:11px;color:var(--amber);letter-spacing:1px;font-family:'VT323',monospace">🧩 ОСКОЛОК ПАМЯТИ</div>` : "";
     return `<div class="card">
       <div class="card-top">
         <div class="card-id">ИД: <b>${idShort}</b> // ИСТ: ${type==="npcs"?"НПС":type==="lore"?"ЛОР":"ПРАВ"}</div>
@@ -1254,6 +1472,8 @@
           ${r.title?`<div class="npc-title">${escapeHtml(r.title)}</div>`:""}
           <div class="stat-row"><span class="chip">${r.category||"НЕИЗВЕСТНО"}</span>${chips}</div>
           <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
+          ${fragBadge}
+          <button class="enc-btn" id="projBtn" data-id="${escapeAttr(r.id)}" data-type="${type}" style="margin-top:8px;padding:5px 14px;font-size:12px">📽 ПРОЕКЦИЯ</button>
         </div>
         <div class="holo">
           <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -1293,6 +1513,11 @@
     $$("#npcList .npc-row").forEach((r,j)=>r.classList.toggle("sel",j===i));
     Audio.blip(520,0.05,0.08);
     initPanelExtras("detail");
+    if(recs[i] && !recs[i].is_locked){
+      trackRead(recs[i]);
+      tryCollectShard(recs[i]);
+      addGaze(3);
+    }
   }
 
   /* ---------- loader + panel switching ---------- */
@@ -1330,28 +1555,38 @@
       }
     }
     function reveal(){
-      content.innerHTML=renderArchive(name);
+      let html;
+      if(name==="achievements"){ html=renderAchievements(); $("#crumbCur").textContent="ДОСТИЖЕНИЯ"; }
+      else { html=renderArchive(name); $("#crumbCur").textContent=META[name].crumb; }
+      content.innerHTML=html;
       content.scrollTop=0;
       loader.style.display="none";
       content.classList.add("show");
-      $("#crumbCur").textContent=META[name].crumb;
       busy=false;
       wirePanel(name);
       initPanelExtras(name);
+      if(name!=="achievements") renderShardLog();
     }
     next();
   }
 
   async function buildLogs(name){
+    if(name==="achievements"){
+      return [
+        {t:"открытие ВЕДОМОСТЕЙ СТРАЖА ........ [ OK ]",c:"ok"},
+        {t:"получено "+STORE.achievements.size+" / "+ACHIEVEMENTS.length+" достижений",c:STORE.achievements.size>0?"ok":"warn"},
+        {t:"ведомости готовы.",c:"ok"},
+      ];
+    }
     const meta=META[name];
     const logs=[
       {t:"открытие "+meta.label+" :: СЕКТОР_07 ...",c:"ok"},
       {t:"запрос SUPABASE хранилища ......... /api/archive?type="+name,c:"ok"},
     ];
-    // fetch if not yet loaded
-    if(STORE[name].length===0){
+    // force refresh always
+    {
       const recs=await fetchRecords(name);
-      STORE[name]=recs;
+      if(recs.length>0) STORE[name]=recs;
     }
     if(STORE[name].length===0){
       logs.push({t:"хранилище вернуло 0 записей ...... [ВНИМАНИЕ]",c:"warn"});
@@ -1468,6 +1703,104 @@
 
   // initial tag update
   updateTags();
+
+  /* =========================================================
+     v6.0: WARDEN'S GATE — AUTH
+     ========================================================= */
+  let _player=null;
+  async function checkSession(){ try{ const r=await fetch("/api/auth/session"); if(r.ok){ const j=await r.json(); if(j.ok&&j.player){ _player=j.player; return true; } } }catch(e){} return false; }
+  function showGate(){ $("#wardensGate").classList.remove("gone"); $("#stage").classList.remove("live"); $("#boot").classList.add("gone"); setTimeout(()=>{ const n=$("#gateName"); if(n) n.focus(); },300); }
+  function hideGate(){ $("#wardensGate").classList.add("gone"); bootStep(); }
+  $("#gateForm").addEventListener("submit",async(e)=>{ e.preventDefault(); const name=$("#gateName").value.trim(),cipher=$("#gateCipher").value; const errEl=$("#gateErr"); if(!name||!cipher){ errEl.textContent="// все поля обязательны"; return; } errEl.textContent="// проверка..."; $("#gateBtn").disabled=true; try{ const r=await fetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({warden_name:name,password:cipher})}); const j=await r.json(); if(r.ok&&j.ok){ _player=j.player; errEl.textContent=""; Audio.ensure(); Audio.thud(0.2); hideGate(); } else { errEl.textContent="// "+(j.error||"ОТКАЗ В ДОСТУПЕ"); Audio.glitch(0.15); $("#wardensGate").style.animation="bypassShake .3s steps(4) 2"; setTimeout(()=>{ $("#wardensGate").style.animation=""; },600); } }catch(e){ errEl.textContent="// сетевая ошибка"; } $("#gateBtn").disabled=false; });
+  async function syncAchievementsFromServer(){ if(!_player) return; try{ const r=await fetch("/api/auth/achievements"); if(r.ok){ const j=await r.json(); if(j.ok&&j.achievements){ STORE.achievements=new Set(j.achievements); const ta=$("#tag-ach"); if(ta) ta.textContent=STORE.achievements.size; } } }catch(e){} }
+  async function unlockAchievementServer(id){ if(!_player) return; try{ await fetch("/api/auth/achievements",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({achievement_id:id})}); }catch(e){} }
+  (async ()=>{ const loggedIn=await checkSession(); if(loggedIn){ $("#wardensGate").classList.add("gone"); setTimeout(()=>{ bootStep(); },100); } else { showGate(); } })();
+
+  /* ---------- LOGOUT ---------- */
+  $("#logoutBtn").addEventListener("click",async()=>{ Audio.glitch(0.2); try{ await fetch("/api/auth/logout",{method:"DELETE"}); }catch(e){} _player=null; STORE.achievements=new Set(); const stage=$("#stage"); if(stage){ stage.style.transition="opacity .5s"; stage.style.opacity="0"; } $("#boot").style.opacity="0"; $("#boot").classList.add("gone"); setTimeout(()=>{ if(stage){ stage.style.opacity=""; stage.classList.remove("live"); } $("#boot").style.opacity=""; $("#gateName").value=""; $("#gateCipher").value=""; $("#gateErr").textContent=""; $("#wardensGate").classList.remove("gone"); setTimeout(()=>{ $("#gateName").focus(); },300); },500); });
+
+  /* =========================================================
+     v6.0: GOD'S GAZE + IMAGE FALLBACK
+     ========================================================= */
+  function applyGazeClass(){ const t=corruptionLevel<30?"gaze-low":corruptionLevel<60?"gaze-med":corruptionLevel<90?"gaze-high":"gaze-extreme"; document.body.className=document.body.className.replace(/gaze-\w+/g,"").trim()+" "+t; if(corruptionLevel>=100&&(!window._gaze100)){ window._gaze100=true; triggerAlert("👁 ОН ВИДИТ ТЕБЯ","взгляд бога достиг максимума."); Audio.glitch(0.3); } }
+  function addGaze(n){ corruptionLevel=Math.max(0,Math.min(100,corruptionLevel+n)); updateTags(); }
+  function isValidImageUrl(url){ if(!url||typeof url!=="string") return false; return /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(url.toLowerCase().trim()); }
+  function imageFallbackSvg(sigil){ return `<div class="holo-fallback"><svg><use href="#${sigil||"i-eye"}"/></svg></div>`; }
+  function safeImgTag(url,name,sigil){ if(!isValidImageUrl(url)) return imageFallbackSvg(sigil); const fb=imageFallbackSvg(sigil).replace(/'/g,"\\'"); return `<img src="${escapeAttr(url)}" alt="${escapeAttr(name||"")}" onerror="this.outerHTML='${fb}'" />`; }
+
+  /* =========================================================
+     v6.0: BYPASS WARD — PUZZLES + COOLDOWN
+     ========================================================= */
+  let bypassContext=null,_puzzleErrors=0,_puzzleLocked=false;
+  function openBypass(record,type){ if(!record||!record.puzzle_type) return; bypassContext={record,type}; _puzzleErrors=0; _puzzleLocked=false; const ov=$("#bypassOverlay"),box=$("#bypassBox"); $("#bypassHint").textContent=record.puzzle_hint||"// загадка не записана"; $("#bypassStatus").textContent=""; $("#bypassStatus").className="bypass-status"; box.className="bypass-box"; ov.classList.add("show"); Audio.ensure(); Audio.beep(440,0.08,0.1); setTimeout(()=>Audio.beep(330,0.08,0.1),90); const pd=record.puzzle_data?safeParseJSON(record.puzzle_data):{}; renderPuzzle(record.puzzle_type,pd); }
+  function closeBypass(){ $("#bypassOverlay").classList.remove("show"); bypassContext=null; }
+  $("#bypassClose").addEventListener("click",closeBypass);
+  $("#bypassOverlay").addEventListener("click",e=>{ if(e.target===$("#bypassOverlay")) closeBypass(); });
+  function safeParseJSON(s){ try{ return typeof s==="string"?JSON.parse(s):(s||{}); }catch(e){ return {}; } }
+  function bypassFail(reason){ const box=$("#bypassBox"),status=$("#bypassStatus"); box.classList.add("denied"); box.classList.remove("granted"); status.textContent="ОТКАЗ В ДОСТУПЕ — "+(reason||"печать не поддалась"); status.className="bypass-status denied"; Audio.glitch(0.22); const f=document.createElement("div"); f.style.cssText="position:fixed;inset:0;background:radial-gradient(circle,rgba(255,36,36,0),rgba(255,36,36,.25));z-index:9400;pointer-events:none;animation:flicker .4s forwards"; document.body.appendChild(f); setTimeout(()=>f.remove(),450); _puzzleErrors++; let cd=0,penalty=""; if(_puzzleErrors===1){cd=3000;penalty="блокировка 3 сек";} else if(_puzzleErrors===2){cd=5000;penalty="блокировка 5 сек + взгляд +5%";addGaze(5);} else {cd=10000;penalty="заморозка 10 сек";box.classList.add("frozen");} if(cd>0){ _puzzleLocked=true; const slot=$("#bypassPuzzle"); if(slot) slot.classList.add("puzzle-frozen"); const cdEl=document.createElement("div"); cdEl.className="cooldown-overlay"; cdEl.id="cooldownOverlay"; cdEl.innerHTML=`<div class="cooldown-text">⚠ ПЕРЕЗАРЯДКА ${cd/1000}с ⚠<br><span style="font-size:14px;color:var(--text-dim)">${penalty}</span></div>`; box.appendChild(cdEl); status.textContent=`ОТКАЗ // ${penalty}`; let rem=cd/1000; const cdT=cdEl.querySelector(".cooldown-text"); const iv=setInterval(()=>{ rem--; if(rem>0&&cdT) cdT.innerHTML=`⚠ ПЕРЕЗАРЯДКА ${rem}с ⚠<br><span style="font-size:14px;color:var(--text-dim)">${penalty}</span>`; },1000); setTimeout(()=>{ _puzzleLocked=false; if(slot) slot.classList.remove("puzzle-frozen"); box.classList.remove("frozen"); const cdO=$("#cooldownOverlay"); if(cdO) cdO.remove(); clearInterval(iv); status.textContent=""; status.className="bypass-status"; box.classList.remove("denied"); },cd); } else { setTimeout(()=>{ box.classList.remove("denied"); },900); } }
+  function bypassSuccess(){ const box=$("#bypassBox"),status=$("#bypassStatus"); box.classList.add("granted"); box.classList.remove("denied"); status.textContent="ДОСТУП РАЗРЕШЕН — печать снята"; status.className="bypass-status granted"; const f=document.createElement("div"); f.style.cssText="position:fixed;inset:0;background:radial-gradient(circle,rgba(74,246,38,0),rgba(74,246,38,.2));z-index:9400;pointer-events:none;animation:flicker .5s forwards"; document.body.appendChild(f); setTimeout(()=>f.remove(),500); Audio.beep(523,0.15,0.16); setTimeout(()=>Audio.beep(659,0.15,0.16),120); setTimeout(()=>Audio.beep(784,0.2,0.18),240); setTimeout(async()=>{ const ctx=bypassContext; if(!ctx) return; const garbled=ctx.record.name||"[ДАННЫЕ ПОВРЕЖДЕНЫ]"; try{ await fetch("/api/archive/unlock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:ctx.type,id:ctx.record.id})}); STORE[ctx.type]=await fetchRecords(ctx.type); updateTags(); const updated=STORE[ctx.type].find(r=>r.id===ctx.record.id); const realName=updated?(updated.name||""):""; addGaze(8); unlockAchievement("FIRST_BREACH"); if(ctx.record.puzzle_type) unlockAchievement("PUZZLE_"+ctx.record.puzzle_type.toUpperCase()); const allLocked=[]; ["npcs","lore","rulers"].forEach(t=>{ allLocked.push(...STORE[t].filter(r=>r.is_locked)); }); if(allLocked.length===0) unlockAchievement("SEALBREAKER"); showUnveil(garbled,realName); }catch(e){} closeBypass(); if(currentPanel) startPanel(currentPanel); },1100); }
+  function renderPuzzle(ptype,pd){ const slot=$("#bypassPuzzle"); slot.innerHTML=""; if(ptype==="keyword") renderKeyword(slot,pd); else if(ptype==="tumbler") renderTumbler(slot,pd); else if(ptype==="constellation") renderConstellation(slot,pd); else if(ptype==="alchemy") renderAlchemy(slot,pd); else if(ptype==="circuit") renderCircuit(slot,pd); else if(ptype==="runes") renderRunes(slot,pd); else if(ptype==="meta") renderMeta(slot,pd); else if(ptype==="fragment") slot.innerHTML='<div style="text-align:center;color:var(--text-dim);padding:20px">// прочтите эту запись для осколка.</div>'; else slot.innerHTML='<div style="text-align:center;color:var(--text-dim);padding:20px">// неизвестный тип: '+escapeHtml(ptype)+'</div>'; }
+  function renderKeyword(slot,pd){ const answer=(pd.answer||"").toLowerCase().trim(); slot.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px"><div style="font-size:14px;color:var(--text-dim);letter-spacing:2px">&gt; ВВЕДИТЕ КОДОВОЕ СЛОВО:</div><input type="text" class="pk-input" id="pkInput" placeholder="..." autocomplete="off" /><button class="enc-btn" id="pkSubmit">ПОДТВЕРДИТЬ</button></div>`; const inp=$("#pkInput"); const submit=()=>{ if(_puzzleLocked) return; const val=(inp.value||"").toLowerCase().trim(); if(val===answer) bypassSuccess(); else { bypassFail("неверное слово"); inp.value=""; } }; $("#pkSubmit").addEventListener("click",submit); inp.addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); }); setTimeout(()=>inp.focus(),100); }
+  function renderTumbler(slot,pd){ const symbols=pd.symbols||["ᚠ","ᚢ","ᚦ","ᚨ","ᚱ","ᚲ"]; const correct=pd.correct||[symbols[0],symbols[1],symbols[2]]; let drums; do { drums=correct.map(()=>Math.floor(Math.random()*symbols.length)); } while(drums.every((v,j)=>symbols[v]===correct[j])); function render(){ slot.innerHTML=`<div class="puzzle-tumbler">${drums.map((idx,i)=>`<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><button class="tumbler-btn" data-drum="${i}" data-dir="up" ${_puzzleLocked?"disabled":""}>▲</button><div class="tumbler-display" style="${symbols[idx]===correct[i]?"border-color:var(--green);box-shadow:inset 0 0 18px rgba(0,0,0,.8),0 0 18px rgba(74,246,38,.5)":""}">${symbols[idx]}</div><button class="tumbler-btn" data-drum="${i}" data-dir="down" ${_puzzleLocked?"disabled":""}>▼</button></div>`).join("")}</div>`; $$(".tumbler-btn",slot).forEach(b=>{ b.addEventListener("click",()=>{ if(_puzzleLocked) return; const i=parseInt(b.dataset.drum,10),dir=b.dataset.dir; if(dir==="up") drums[i]=(drums[i]+1)%symbols.length; else drums[i]=(drums[i]-1+symbols.length)%symbols.length; Audio.blip(440+i*40,0.04,0.08); if(drums.every((v,j)=>symbols[v]===correct[j])){ render(); bypassSuccess(); } else render(); }); }); } render(); }
+  function renderConstellation(slot,pd){ const nodes=pd.nodes||[],order=pd.order||[],clicked=[]; const bgStars=Array.from({length:40},()=>{ const x=Math.random()*300,y=Math.random()*280,r=0.8+Math.random()*1.5; return `<circle cx="${x}" cy="${y}" r="${r}" style="fill:rgba(74,246,38,.12)"/>`; }).join(""); function render(){ const litSet=new Set(clicked); const lines=clicked.length>1?clicked.slice(0,-1).map((id,i)=>{ const a=nodes.find(n=>n.id===id),b=nodes.find(n=>n.id===clicked[i+1]); return a&&b?`<path d="M ${a.x} ${a.y} L ${b.x} ${b.y}" style="stroke:var(--amber);stroke-width:2;fill:none;opacity:.8;filter:drop-shadow(0 0 6px var(--amber))"/>`:""; }).join(""):""; const stars=nodes.map(n=>{ const isLit=litSet.has(n.id); const r=isLit?12:8; const glow=isLit?"filter:drop-shadow(0 0 12px var(--amber)) drop-shadow(0 0 24px rgba(232,161,58,.5))":"filter:drop-shadow(0 0 6px rgba(74,246,38,.4))"; const fill=isLit?"var(--amber)":"var(--green-dim)"; const stroke=isLit?"var(--amber)":"var(--green)"; return `<g style="cursor:pointer" data-id="${n.id}" ${_puzzleLocked?"style=\"pointer-events:none\"":""}><circle cx="${n.x}" cy="${n.y}" r="${r+4}" style="fill:none;stroke:${stroke};stroke-width:.5;opacity:.3;${glow}"/><circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:${fill};stroke:${stroke};stroke-width:2;${glow}"/><circle cx="${n.x}" cy="${n.y}" r="2" style="fill:#fff;opacity:.8"/></g>`; }).join(""); slot.innerHTML=`<div><svg class="constellation-svg" viewBox="0 0 300 280" style="overflow:visible">${bgStars}${lines}${stars}</svg><div style="text-align:center;font-size:13px;color:var(--text-dim);margin-top:8px">соединено: <b style="color:var(--amber)">${clicked.length}</b> / ${order.length}</div></div>`; $$("g[data-id]",slot).forEach(s=>{ s.addEventListener("click",()=>{ if(_puzzleLocked) return; const id=s.dataset.id,expected=order[clicked.length]; if(id===expected){ clicked.push(id); Audio.beep(523+clicked.length*80,0.1,0.14); if(clicked.length===order.length){ render(); bypassSuccess(); } else render(); } else { bypassFail("неверный порядок звёзд"); clicked.length=0; const svg=slot.querySelector(".constellation-svg"); if(svg){ svg.style.filter="saturate(3)"; svg.style.transition="filter .3s"; setTimeout(()=>{ svg.style.filter=""; },300); } render(); } }); }); } render(); }
+  function renderAlchemy(slot,pd){ const ingredients=pd.ingredients||["🜂","🜄","🜁","🜃","☿"],recipe=pd.correct_recipe||[]; let slotsArr=[],used=new Set(); function render(){ const slotsHtml=slotsArr.map(s=>`<div class="alchemy-slot${s?" filled":""}">${s||""}</div>`).join(""); const ingsHtml=ingredients.map((ing,i)=>`<div class="alchemy-ing${used.has(i)?" used":""}" data-ing="${i}">${ing}</div>`).join(""); slot.innerHTML=`<div><div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:10px">заполните ${recipe.length} слота</div><div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">${slotsHtml}</div><div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">${ingsHtml}</div></div>`; $$(".alchemy-ing",slot).forEach(el=>{ el.addEventListener("click",()=>{ if(_puzzleLocked) return; const i=parseInt(el.dataset.ing,10); if(used.has(i)||slotsArr.length>=recipe.length) return; slotsArr.push(ingredients[i]); used.add(i); Audio.blip(330+slotsArr.length*60,0.06,0.1); if(slotsArr.length===recipe.length){ render(); if(slotsArr.every((s,j)=>s===recipe[j])) bypassSuccess(); else setTimeout(()=>bypassFail("неверная рецептура"),300); } else render(); }); }); } render(); }
+  function renderCircuit(slot,pd){ const solution=pd.solution||[0,1,2,5,8]; let rotations=Array.from({length:9},()=>Math.floor(Math.random()*4)); const expectedRot={0:0,1:0,2:2,5:1,8:0}; function isFlow(idx){ return solution.includes(idx)&&rotations[idx]===expectedRot[idx]; } function render(){ const cells=Array.from({length:9},(_,i)=>{ const flow=isFlow(i),rot=rotations[i]*90; return `<div class="circuit-cell${flow?" flow":""}" data-cell="${i}"><svg viewBox="0 0 40 40"><path d="M 0 20 L 20 20 L 20 40" transform="rotate(${rot} 20 20)"/></svg></div>`; }).join(""); slot.innerHTML=`<div><div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:10px">поверните плитки для потока маны</div><div class="circuit-grid">${cells}</div></div>`; $$(".circuit-cell",slot).forEach(c=>{ c.addEventListener("click",()=>{ if(_puzzleLocked) return; const i=parseInt(c.dataset.cell,10); rotations[i]=(rotations[i]+1)%4; Audio.blip(440+i*30,0.04,0.08); if(solution.every(idx=>isFlow(idx))){ render(); bypassSuccess(); } else render(); }); }); } render(); }
+  function renderRunes(slot,pd){ const seq=pd.sequence||["🜂","🜃","🜁","🜄"],options=pd.options||[],correct=pd.correct; function render(){ const seqHtml=seq.map(r=>`<div class="rune-slot">${r}</div>`).join("")+'<div class="rune-slot question">?</div>'; const optsHtml=options.map(o=>`<div class="rune-opt" data-rune="${escapeAttr(o)}">${o}</div>`).join(""); slot.innerHTML=`<div style="text-align:center"><div style="font-size:13px;color:var(--text-dim);margin-bottom:10px">какая руна завершает?</div><div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">${seqHtml}</div><div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">${optsHtml}</div></div>`; $$(".rune-opt",slot).forEach(el=>{ el.addEventListener("click",()=>{ if(_puzzleLocked) return; const r=el.dataset.rune; if(r===correct){ el.classList.add("correct"); Audio.beep(659,0.1,0.14); setTimeout(()=>bypassSuccess(),400); } else { el.classList.add("wrong"); bypassFail("неверная руна"); setTimeout(()=>el.classList.remove("wrong"),900); } }); }); } render(); }
+  function renderMeta(slot,pd){ const answer=(pd.answer||"").toUpperCase().trim(); const allRecs=[...STORE.npcs,...STORE.lore,...STORE.rulers]; const fragments=allRecs.filter(r=>r.shard_word); const fragmentWords=fragments.map(f=>({word:f.shard_word,collected:STORE.collectedFragments.has(f.shard_word)})); const collectedCount=fragmentWords.filter(f=>f.collected).length; const fragsHtml=fragmentWords.map(f=>`<div class="meta-fragment${f.collected?" collected":""}">${f.collected?escapeHtml(f.word):"???"}</div>`).join(""); slot.innerHTML=`<div style="padding:8px 0"><div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:14px">осколков собрано: <b style="color:var(--amber)">${collectedCount}</b> / ${fragmentWords.length}</div><div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px">${fragsHtml}</div>${collectedCount===fragmentWords.length?`<div style="text-align:center"><input type="text" class="meta-input" id="metaInput" placeholder="фраза из осколков..." autocomplete="off" /><button class="enc-btn" id="metaSubmit" style="display:block;margin:0 auto">ПРОИЗНЕСТИ</button></div>`:`<div style="text-align:center;font-size:13px;color:var(--text-dim)">найдите все записи-осколки</div>`}</div>`; if(collectedCount===fragmentWords.length){ const inp=$("#metaInput"); const submit=()=>{ if(_puzzleLocked) return; const val=(inp.value||"").toUpperCase().trim(); if(val===answer){ unlockAchievement("FINAL_REVELATION"); bypassSuccess(); } else { bypassFail("фраза неверна"); inp.value=""; } }; $("#metaSubmit").addEventListener("click",submit); if(inp) inp.addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); }); } }
+
+  // Delegated clicks
+  document.addEventListener("click",e=>{ const btn=e.target.closest("#bypassBtn"); if(btn){ const id=btn.dataset.id,type=btn.dataset.type,recs=STORE[type]||[],rec=recs.find(r=>r.id===id); if(rec) openBypass(rec,type); return; } const pb=e.target.closest("#projBtn"); if(pb){ const id=pb.dataset.id,type=pb.dataset.type,recs=STORE[type]||[],rec=recs.find(r=>r.id===id); if(rec) openProjection(rec,type); return; } const node=e.target.closest(".map-node"); if(node){ const id=node.dataset.id,type=currentPanel,recs=STORE[type]||[],idx=recs.findIndex(r=>r.id===id); if(idx>=0){ STORE.selectedIdx[type]=idx; _viewMode="list"; startPanel(type); } return; } const vb=e.target.closest(".view-btn[data-view]"); if(vb){ _viewMode=vb.dataset.view; if(currentPanel) startPanel(currentPanel); unlockAchievement("CARTOGRAPHER"); return; } });
+  document.addEventListener("mouseover",e=>{ const node=e.target.closest(".map-node"); if(!node) return; const tip=$("#mapTooltip"); if(!tip) return; tip.textContent=node.dataset.locked==="true"?"🔒 "+(node.dataset.name||""):(node.dataset.name||""); tip.classList.add("show"); });
+  document.addEventListener("mouseout",e=>{ if(e.target.closest&&e.target.closest(".map-node")){ const tip=$("#mapTooltip"); if(tip) tip.classList.remove("show"); } });
+
+  /* =========================================================
+     v6.0: ACHIEVEMENTS
+     ========================================================= */
+  const ACHIEVEMENTS=[{id:"FIRST_BREACH",icon:"🥇",name:"Первый взлом",desc:"Решить первую головоломку"},{id:"ARCHIVIST",icon:"📚",name:"Архивариус",desc:"Прочитать все открытые записи"},{id:"SEALBREAKER",icon:"🔓",name:"Взломщик Печатей",desc:"Открыть 5 закрытых файлов"},{id:"SHARD_COLLECTOR",icon:"🧩",name:"Собиратель Осколков",desc:"Найти первый осколок памяти"},{id:"PROPHECY_FULFILLED",icon:"🔮",name:"Исполнитель Пророчества",desc:"Открыть Пророчество дня"},{id:"WITCHING_HOUR",icon:"🌙",name:"Полуночный Свидетель",desc:"Зайти в Час Ведьмы"},{id:"FINAL_REVELATION",icon:"💀",name:"Окончательное Откровение",desc:"Пройти мета-головоломку"},{id:"RESEAL",icon:"🔒",name:"Страж Печати",desc:"Запечатать обратно запись"},{id:"VOICE_OF_GOD",icon:"🎧",name:"Голос Мёртвого Бога",desc:"Прослушать TTS-озвучку"},{id:"CARTOGRAPHER",icon:"🗺",name:"Картограф",desc:"Переключиться в режим карты"}];
+  function loadAchievements(){ if(_player){ syncAchievementsFromServer(); return; } try{ STORE.achievements=new Set(JSON.parse(localStorage.getItem("ashen_achievements")||"[]")); }catch(e){ STORE.achievements=new Set(); } }
+  function saveAchievements(){ if(_player) return; try{ localStorage.setItem("ashen_achievements",JSON.stringify([...STORE.achievements])); }catch(e){} }
+  function unlockAchievement(id){ if(STORE.achievements.has(id)) return; const ach=ACHIEVEMENTS.find(a=>a.id===id); if(!ach) return; STORE.achievements.add(id); if(_player) unlockAchievementServer(id); else saveAchievements(); const c=$("#achToastContainer"); if(!c) return; const t=document.createElement("div"); t.className="achievement-toast"; t.innerHTML=`<div class="ach-icon">${ach.icon}</div><div style="flex:1"><div class="ach-title">ДОСТИЖЕНИЕ: ${escapeHtml(ach.name)}</div><div class="ach-desc">${escapeHtml(ach.desc)}</div></div>`; c.appendChild(t); setTimeout(()=>t.remove(),5000); Audio.beep(659,0.12,0.16); setTimeout(()=>Audio.beep(784,0.12,0.16),120); setTimeout(()=>Audio.beep(988,0.18,0.18),240); const ta=$("#tag-ach"); if(ta) ta.textContent=STORE.achievements.size; }
+  function renderAchievements(){ const cards=ACHIEVEMENTS.map(a=>{ const unlocked=STORE.achievements.has(a.id); return `<div class="ach-card${unlocked?" unlocked":""}"><div class="ach-card-icon">${unlocked?a.icon:"???"}</div><div class="ach-card-name">${unlocked?escapeHtml(a.name):"???"}</div><div class="ach-card-desc">${unlocked?escapeHtml(a.desc):"скрыто"}</div></div>`; }).join(""); return `<div class="panel-head"><h2><span class="g">&gt;</span> ДОСТИЖЕНИЯ <span class="g">::</span> ВЕДОМОСТИ СТРАЖА</h2><div class="sub">${STORE.achievements.size} / ${ACHIEVEMENTS.length} получено</div></div><div class="ach-grid">${cards}</div>`; }
+
+  /* =========================================================
+     v6.0: SHARDS + TRACK READ
+     ========================================================= */
+  function trackRead(record){ if(!record||!record.id||STORE.readRecords.has(record.id)) return; STORE.readRecords.add(record.id); try{ localStorage.setItem("ashen_read_records",JSON.stringify([...STORE.readRecords])); }catch(e){} const allOpen=[]; ["npcs","lore","rulers"].forEach(t=>{ allOpen.push(...STORE[t].filter(r=>!r.is_locked)); }); if(allOpen.length>0&&allOpen.every(r=>STORE.readRecords.has(r.id))) unlockAchievement("ARCHIVIST"); }
+  function tryCollectShard(record){ if(!record||!record.shard_word) return; const word=record.shard_word; if(STORE.collectedFragments.has(word)) return; STORE.collectedFragments.add(word); try{ localStorage.setItem("ashen_collected_fragments",JSON.stringify([...STORE.collectedFragments])); }catch(e){} unlockAchievement("SHARD_COLLECTOR"); triggerAlert("ОСКОЛОК СОБРАН",`слово <b>${escapeHtml(word)}</b> добавлено.<br>собрано: <b>${STORE.collectedFragments.size}</b>`); Audio.beep(523,0.1,0.14); setTimeout(()=>Audio.beep(659,0.1,0.14),100); setTimeout(()=>Audio.beep(784,0.15,0.16),200); renderShardLog(); }
+  function renderShardLog(){ const el=$("#shardLog"); if(!el) return; const allRecs=[...STORE.npcs,...STORE.lore,...STORE.rulers]; const shards=allRecs.filter(r=>r.shard_word); const collected=[...STORE.collectedFragments]; el.innerHTML=`<div class="shard-log-title">// ОСКОЛКИ ПАМЯТИ</div>${collected.length>0?collected.map(w=>`<span class="shard-word">${escapeHtml(w)}</span>`).join(""):"<span style='font-size:11px;color:var(--text-dim)'>пусто</span>"}<div class="shard-progress">${collected.length} / ${shards.length}</div>`; }
+
+  /* =========================================================
+     v6.0: UNVEIL + PROJECTION
+     ========================================================= */
+  function showUnveil(garbledName,realName){ const ov=$("#unveilOverlay"),g=$("#unveilGarbled"),n=$("#unveilName"); if(!ov||!g||!n) return; g.textContent=garbledName||"[ДАННЫЕ ПОВРЕЖДЕНЫ]"; n.textContent=realName||""; ov.classList.add("show"); Audio.glitch(0.2); setTimeout(()=>Audio.beep(330,0.15,0.14),600); setTimeout(()=>Audio.beep(440,0.15,0.14),800); setTimeout(()=>Audio.beep(660,0.2,0.16),1000); setTimeout(()=>{ ov.classList.remove("show"); },2500); }
+  function openProjection(record,type){ if(!record) return; const ov=$("#projectionOverlay"),holo=$("#projectionHolo"); const sigil=record.sigil||(type==="rulers"?"i-crown":type==="lore"?"i-flame":"i-skull"); const isLocked=record.is_locked; const subj=isLocked?`<div class="holo-fallback"><svg><use href="#i-err"/></svg></div>`:(record.image_url&&isValidImageUrl(record.image_url)?safeImgTag(record.image_url,record.name,sigil):`<div class="holo-fallback"><svg><use href="#${sigil}"/></svg></div>`); holo.innerHTML=`<div class="bracket tl" style="position:absolute;width:18px;height:18px;border:2px solid var(--green);top:6px;left:6px;border-right:none;border-bottom:none"></div><div class="bracket tr" style="position:absolute;width:18px;height:18px;border:2px solid var(--green);top:6px;right:6px;border-left:none;border-bottom:none"></div><div class="bracket bl" style="position:absolute;width:18px;height:18px;border:2px solid var(--green);bottom:6px;left:6px;border-right:none;border-top:none"></div><div class="bracket br" style="position:absolute;width:18px;height:18px;border:2px solid var(--green);bottom:6px;right:6px;border-left:none;border-top:none"></div><div class="holo-stage"><div class="holo-subj">${subj}</div></div><div class="scan" style="position:absolute;left:0;right:0;height:14px;top:-14px;background:linear-gradient(180deg,transparent,rgba(74,246,38,.55),transparent);animation:holoScan 3.4s linear infinite"></div>`; $("#projectionName").textContent=isLocked?"[ДАННЫЕ ПОВРЕЖДЕНЫ]":(record.name||""); $("#projectionTitle").textContent=record.title||""; $("#projectionDesc").textContent=isLocked?"// запись опечатана":(record.description||""); ov.classList.add("show"); unlockAchievement("VOICE_OF_GOD"); Audio.beep(220,0.15,0.14); setTimeout(()=>Audio.beep(330,0.15,0.14),150); }
+  $("#projectionClose").addEventListener("click",()=>{ $("#projectionOverlay").classList.remove("show"); Audio.blip(330,0.06,0.1); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("#projectionOverlay").classList.contains("show")) $("#projectionOverlay").classList.remove("show"); });
+
+  /* =========================================================
+     v6.0: MAP VIEW
+     ========================================================= */
+  let _viewMode="list";
+  function renderMapView(type){ const recs=STORE[type],meta=META[type]; if(recs.length===0) return `<div class="panel-head"><h2><span class="g">&gt;</span> ${meta.label}</h2><div class="view-toggle"><button class="view-btn active">КАРТА</button><button class="view-btn" data-view="list">СПИСОК</button></div></div><div class="empty-state">// хранилище пусто</div>`; const clusters={}; recs.forEach(r=>{ const cat=r.is_locked?"ОПЕЧАТАНО":(r.shard_word?"ОСКОЛКИ":(r.category||"ПРОЧЕЕ")); if(!clusters[cat]) clusters[cat]=[]; clusters[cat].push(r); }); const cNames=Object.keys(clusters),nC=cNames.length; const cx=50,cy=50,cR=34; let nodes=[],links=[],ccs=[]; cNames.forEach((cn,ci)=>{ const a=(ci/nC)*Math.PI*2-Math.PI/2; const ccx=cx+Math.cos(a)*cR,ccy=cy+Math.sin(a)*cR; ccs.push({name:cn,x:ccx,y:ccy}); const cr=clusters[cn],ir=Math.min(8,3+cr.length*1.2); cr.forEach((r,ri)=>{ const ra=(ri/cr.length)*Math.PI*2; let cls=""; if(r.is_locked) cls="locked"; else if(r.shard_word) cls="fragment"; const label=r.is_locked?"🔒":((r.name||"?").split(" ")[0].slice(0,10)); const nx=r.map_x!=null?r.map_x:(ccx+Math.cos(ra)*ir); const ny=r.map_y!=null?r.map_y:(ccy+Math.sin(ra)*ir); nodes.push({x:nx,y:ny,cls,label,id:r.id,name:r.name||"",locked:!!r.is_locked}); }); for(let i=0;i<cr.length;i++){ const a2=nodes[nodes.length-cr.length+i],b=nodes[nodes.length-cr.length+((i+1)%cr.length)]; links.push({x1:a2.x,y1:a2.y,x2:b.x,y2:b.y}); } }); for(let i=0;i<ccs.length;i++){ links.push({x1:ccs[i].x,y1:ccs[i].y,x2:ccs[(i+1)%ccs.length].x,y2:ccs[(i+1)%ccs.length].y}); } let grid=""; for(let i=10;i<100;i+=10){ grid+=`<line class="map-grid" x1="${i}" y1="0" x2="${i}" y2="100"/>`; grid+=`<line class="map-grid" x1="0" y1="${i}" x2="100" y2="${i}"/>`; } const linksHtml=links.map(l=>`<line class="map-link" x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}"/>`).join(""); const cLabels=ccs.map(c=>`<text x="${c.x}" y="${c.y-10}" style="fill:var(--text-dim);font-family:'VT323',monospace;font-size:3.5px;text-anchor:middle;opacity:.6">${escapeHtml(c.name)}</text>`).join(""); const nodesHtml=nodes.map(n=>`<g class="map-node${n.cls?" "+n.cls:""}" data-id="${escapeAttr(n.id)}" data-name="${escapeAttr(n.name)}" data-locked="${n.locked}"><circle class="node-dot" cx="${n.x}" cy="${n.y}" r="1.8"/><text x="${n.x}" y="${n.y+4}">${escapeHtml(n.label)}</text></g>`).join(""); const lockedCount=recs.filter(r=>r.is_locked).length,fragCount=recs.filter(r=>r.shard_word).length,openCount=recs.length-lockedCount-fragCount; return `<div class="panel-head"><h2><span class="g">&gt;</span> ${meta.label} <span class="g">::</span> КАРТА ЗНАНИЙ</h2><div class="view-toggle"><button class="view-btn active">КАРТА</button><button class="view-btn" data-view="list">СПИСОК</button></div></div><div class="map-container"><svg class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">${grid}${linksHtml}${cLabels}${nodesHtml}</svg><div class="map-tooltip" id="mapTooltip"></div></div><div class="map-legend"><span><span class="dot open"></span>открыто (${openCount})</span><span><span class="dot locked"></span>опечатано (${lockedCount})</span>${fragCount>0?`<span><span class="dot fragment"></span>осколок (${fragCount})</span>`:""}</div>`; }
+
+  /* =========================================================
+     v6.0: GOD'S GAZE + WITCHING HOUR
+     ========================================================= */
+  const DEFAULT_EVT={witching_hour:{enabled:false,startHour:3,startMinute:0,endHour:4,endMinute:0,timezone:3,boost:15,title:"ЧАС ВЕДЬМЫ",msg:"бог смотрит пристальнее"}};
+  function loadEvtCfg(){ try{ const s=JSON.parse(localStorage.getItem("ashen_events_config_v2")||"{}"); return {witching_hour:Object.assign({},DEFAULT_EVT.witching_hour,s.witching_hour||{})}; }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_EVT)); } }
+  let _witchManual=false,_witchTriggered=false;
+  setInterval(()=>{ const cmd=localStorage.getItem("ashen_gaze_cmd"); if(cmd){ localStorage.removeItem("ashen_gaze_cmd"); try{ const j=JSON.parse(cmd); if(j.action==="open_eye"){ addGaze(j.amount||50); triggerAlert("👁 ОТКРЫТО ОКО","взгляд бога усилился"); Audio.glitch(0.3); } else if(j.action==="close_eye"){ corruptionLevel=0; updateTags(); triggerAlert("👁 ЗАКРЫТО ОКО","взгляд бога отведён"); Audio.beep(330,0.2,0.14); } }catch(e){} } },1000);
+  function checkWitching(){ const cfg=loadEvtCfg().witching_hour; const manual=_witchManual||localStorage.getItem("ashen_witching_manual")==="true"; if(localStorage.getItem("ashen_witching_manual")==="false"){ localStorage.removeItem("ashen_witching_manual"); } if(!cfg.enabled&&!manual){ $("#witchingIndicator")?.classList.remove("show"); return; } const now=new Date(); const utcMs=now.getTime()+now.getTimezoneOffset()*60000; const tzMs=utcMs+(cfg.timezone||0)*3600000; const tzDate=new Date(tzMs); const h=tzDate.getHours(),m=tzDate.getMinutes(); const curMin=h*60+m; const startMin=(cfg.startHour||0)*60+(cfg.startMinute||0); const endMin=(cfg.endHour||0)*60+(cfg.endMinute||0); const inRange=manual?true:(startMin<=endMin?(curMin>=startMin&&curMin<endMin):(curMin>=startMin||curMin<endMin)); if(inRange){ $("#witchingIndicator")?.classList.add("show"); if(!_witchTriggered){ _witchTriggered=true; addGaze(cfg.boost||5); triggerAlert(cfg.title||"ЧАС ВЕДЬМЫ",cfg.msg||"бог смотрит пристальнее"); Audio.whisper(0.18); unlockAchievement("WITCHING_HOUR"); } } else { $("#witchingIndicator")?.classList.remove("show"); _witchTriggered=false; } }
+  setInterval(checkWitching,30000); checkWitching();
+
+  /* =========================================================
+     v6.0: INIT
+     ========================================================= */
+  loadAchievements();
+  try{ STORE.collectedFragments=new Set(JSON.parse(localStorage.getItem("ashen_collected_fragments")||"[]")); }catch(e){}
+  try{ STORE.readRecords=new Set(JSON.parse(localStorage.getItem("ashen_read_records")||"[]")); }catch(e){}
+  const ta=$("#tag-ach"); if(ta) ta.textContent=STORE.achievements.size;
+  applyGazeClass();
 
 })();
 </script>
