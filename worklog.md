@@ -1023,3 +1023,27 @@ Verification:
 Stage Summary:
 - Этапы 11+12 полностью завершены. Расширенная админка (1119 строк) + Events Panel + все CRUD маршруты работают.
 - Все 12 этапов плана реализованы. Проект ASHEN CODEX v6.0 полностью функционален.
+
+---
+Task ID: GITHUB-PREP
+Agent: main (z.ai code)
+Task: Подготовка репозитория к заливке на GitHub — безопасность, очистка истории от секретов.
+
+Work Log:
+- Проверил git state: working tree clean, 2 ветки (main + v6.0-messy), remote не настроен.
+- НАЙДЕНА УЯЗВИМОСТЬ: .env отслеживался в git с Initial commit (содержит VITE_SUPABASE_SERVICE_KEY, ADMIN_PASSWORD).
+- Создал .env.example (шаблон с placeholder значениями: YOUR_ANON_KEY, YOUR_SERVICE_ROLE_KEY, WARDEN).
+- Исправил .gitignore: добавил `!.env.example` исключение (правило `.env*` блокировало всё).
+- Удалил .env из git index (git rm --cached) — файл остался на диске.
+- Коммит "security: remove .env from tracking, add .env.example template".
+- Очистил ВСЮ историю git через git filter-repo --invert-paths --path .env — переписаны все 21 коммита, хэши изменились.
+- Удалил backup теги (pre-filter-backup, pre-filter-backup-v6, v6.0-messy-tag) — они указывали на старые коммиты с секретами.
+- Проверил: реальный Supabase service key (sb_secret_GSi8sGY9zG...) НЕ найден ни в одном коммите обеих веток.
+- .env остался на диске для локальной разработки.
+
+Stage Summary:
+- История git полностью очищена от секретов. Безопасно для публичного GitHub репозитория.
+- 102 файла отслеживается, .env.example как шаблон, .env локально.
+- Lint чистый, v6.0-messy ветка тоже чиста.
+- Внимание: хэши всех коммитов изменились после filter-repo (нормально при переписывании истории).
+- Готов к push на GitHub.
