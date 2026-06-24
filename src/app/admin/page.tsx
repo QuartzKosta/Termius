@@ -3,11 +3,27 @@
 import { useState, useEffect, useCallback } from "react";
 
 /* ============================================================
-   ASHEN CODEX — Mobile Admin Panel  (/admin)
-   Dark-fantasy themed, mobile-first. Password-gated.
+   ASHEN CODEX — Расширенная Админ-Панель  (/admin)
+   Этапы 11 (РАСШИРЕННАЯ АДМИНКА) + 12 (EVENTS PANEL).
+   Dark-fantasy CRT terminal aesthetic. Password-gated.
+   ------------------------------------------------------------
+   API contract (existing routes):
+   - GET  /api/admin/login              → checks session
+   - POST /api/admin/login {password}   → sets cookie
+   - DELETE /api/admin/login            → clears cookie
+   - GET  /api/admin/list?type=all      → {data:{npcs,lore,rulers}}
+   - POST /api/admin/upload {type,...}  → create (basic fields saved;
+                                          extended fields sent for forward-compat)
+   - POST /api/admin/toggle {type,id}   → flips is_locked server-side
+   - POST /api/admin/edit   {type,id,...} → update record
+   - POST /api/admin/delete {type,id}     → delete record
+   - GET  /api/admin/players            → {data:[{id,warden_name,created_at,achievements:[]}]}
+   - POST /api/admin/players            → create / reset_password / reset_achievements / delete
    ============================================================ */
 
 type RecordType = "npcs" | "lore" | "rulers";
+type TabKey = RecordType | "wardens";
+
 interface ArchiveRecord {
   id: string;
   name: string;
@@ -18,16 +34,27 @@ interface ArchiveRecord {
   sigil: string | null;
   is_locked: boolean;
   created_at: string | null;
+  // Extended fields (present when DB has them; null otherwise)
+  puzzle_type?: string | null;
+  puzzle_data?: string | null;
+  puzzle_hint?: string | null;
+  shard_word?: string | null;
+  prophecy_bonus_text?: string | null;
+  map_x?: number | null;
+  map_y?: number | null;
+  custom_trigger?: string | null;
 }
 type AllData = { npcs: ArchiveRecord[]; lore: ArchiveRecord[]; rulers: ArchiveRecord[] };
 
-const TABS: { key: RecordType; label: string }[] = [
+const TABS: { key: TabKey; label: string }[] = [
   { key: "npcs", label: "NPC" },
   { key: "lore", label: "LORE" },
   { key: "rulers", label: "RULERS" },
+  { key: "wardens", label: "WARDENS" },
 ];
 
 const SIGILS = ["i-skull", "i-eye", "i-serpent", "i-crown", "i-flame", "i-hourglass", "i-ritual", "i-god"];
+const PUZZLE_TYPES = ["none", "keyword", "tumbler", "constellation", "alchemy", "circuit", "runes", "fragment", "meta"];
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -54,7 +81,7 @@ export default function AdminPage() {
       setPw("");
     } else {
       const j = await res.json().catch(() => ({}));
-      setLoginErr(j.error || "ACCESS DENIED");
+      setLoginErr(j.error || "ДОСТУП ЗАПРЕЩЁН");
     }
   }
 
@@ -66,7 +93,7 @@ export default function AdminPage() {
   if (checking) {
     return (
       <div style={styles.shell}>
-        <div style={styles.boot}>CHECKING WARDEN CREDENTIALS…</div>
+        <div style={styles.boot}>ПРОВЕРКА СИГНАТА СТРАЖА…</div>
       </div>
     );
   }
@@ -76,18 +103,18 @@ export default function AdminPage() {
       <div style={styles.shell}>
         <form onSubmit={handleLogin} style={styles.loginBox}>
           <div style={styles.loginGlyph}>⚠</div>
-          <h1 style={styles.loginTitle}>WARDEN ACCESS</h1>
-          <p style={styles.loginSub}>{"// enter sigil to unlock the archive"}</p>
+          <h1 style={styles.loginTitle}>ДОСТУП СТРАЖА</h1>
+          <p style={styles.loginSub}>{"// введите сигил, чтобы открыть архив"}</p>
           <input
             type="password"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
-            placeholder="PASSWORD"
+            placeholder="ШИФР"
             autoFocus
             style={styles.input}
           />
           {loginErr && <div style={styles.err}>{loginErr}</div>}
-          <button type="submit" style={styles.btn}>ENTER</button>
+          <button type="submit" style={styles.btn}>ВОЙТИ</button>
         </form>
       </div>
     );
@@ -96,13 +123,18 @@ export default function AdminPage() {
   return <AdminPanel onLogout={handleLogout} />;
 }
 
+/* ============================================================
+   ADMIN PANEL — main dashboard
+   ============================================================ */
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [data, setData] = useState<AllData>({ npcs: [], lore: [], rulers: [] });
-  const [tab, setTab] = useState<RecordType>("npcs");
+  const [wardenCount, setWardenCount] = useState<number | null>(null);
+  const [tab, setTab] = useState<TabKey>("npcs");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [showUpload, setShowUpload] = useState(false);
   const [toast, setToast] = useState("");
+  const [editing, setEditing] = useState<{ rec: ArchiveRecord; type: RecordType } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,28 +142,43 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     try {
       const res = await fetch("/api/admin/list?type=all");
       if (!res.ok) {
-        setErr("Failed to load — session may have expired.");
+        setErr("Не удалось загрузить — сессия могла истечь.");
         return;
       }
       const j = await res.json();
       setData(j.data || { npcs: [], lore: [], rulers: [] });
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "network error");
+      setErr(e instanceof Error ? e.message : "сетевая ошибка");
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const loadWardenCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/players");
+      if (!res.ok) { setWardenCount(null); return; }
+      const j = await res.json();
+      const arr = Array.isArray(j?.data) ? j.data : Array.isArray(j) ? j : [];
+      setWardenCount(arr.length);
+    } catch {
+      setWardenCount(null);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadWardenCount();
+  }, [load, loadWardenCount]);
 
   async function toggleLock(type: RecordType, id: string, currentLocked: boolean) {
+    // Optimistic flip
     setData((d) => ({
       ...d,
       [type]: d[type].map((r) => (r.id === id ? { ...r, is_locked: !currentLocked } : r)),
     }));
     try {
+      // Backend flips is_locked server-side; we send {type, id} only.
       const res = await fetch("/api/admin/toggle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -139,16 +186,17 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        flash(j.error || "toggle failed");
+        flash(j.error || "переключение не удалось");
+        // Revert
         setData((d) => ({
           ...d,
           [type]: d[type].map((r) => (r.id === id ? { ...r, is_locked: currentLocked } : r)),
         }));
       } else {
-        flash(currentLocked ? "UNLOCKED" : "LOCKED");
+        flash(currentLocked ? "ОТПЕЧАТАНО" : "ОПЕЧАТАНО");
       }
     } catch {
-      flash("network error");
+      flash("сетевая ошибка");
       setData((d) => ({
         ...d,
         [type]: d[type].map((r) => (r.id === id ? { ...r, is_locked: currentLocked } : r)),
@@ -156,12 +204,33 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     }
   }
 
-  function flash(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(""), 1600);
+  async function deleteRecord(type: RecordType, id: string) {
+    if (!window.confirm("Удалить эту запись навсегда?")) return;
+    try {
+      const res = await fetch("/api/admin/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        flash(j.error || "УДАЛЕНИЕ НЕ УДАЛОСЬ");
+        return;
+      }
+      flash("ЗАПИСЬ УДАЛЕНА");
+      load();
+    } catch {
+      flash("сетевая ошибка");
+    }
   }
 
-  const records = data[tab];
+  function flash(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(""), 1800);
+  }
+
+  const isWardens = tab === "wardens";
+  const records = isWardens ? [] : data[tab as RecordType];
   const lockedCount = records.filter((r) => r.is_locked).length;
 
   return (
@@ -169,77 +238,117 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
       <header style={styles.header}>
         <div style={styles.headerTitle}>
           <span style={styles.headerDot} />
-          ASHEN CODEX <span style={{ color: "#4af626" }}>{"// WARDEN"}</span>
+          АШЕНОВ КОДЕКС <span style={{ color: "#4af626" }}>{"// СТРАЖ"}</span>
         </div>
-        <button onClick={onLogout} style={styles.logoutBtn}>LOGOUT</button>
+        <button onClick={onLogout} style={styles.logoutBtn}>ВЫХОД</button>
       </header>
+
+      <EventsPanel flash={flash} />
 
       <nav style={styles.tabs}>
         {TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => {
+              setTab(t.key);
+              setShowUpload(false);
+            }}
             style={{
               ...styles.tab,
               ...(tab === t.key ? styles.tabActive : {}),
             }}
           >
             {t.label}
-            <span style={styles.tabCount}>{data[t.key].length}</span>
+            <span style={styles.tabCount}>
+              {t.key === "wardens"
+                ? (wardenCount === null ? "—" : wardenCount)
+                : data[t.key as RecordType].length}
+            </span>
           </button>
         ))}
       </nav>
 
-      <div style={styles.subHeader}>
-        <span style={{ color: "#5d685c" }}>
-          {records.length}{" records // "}{lockedCount}{" locked"}
-        </span>
-        <button onClick={() => setShowUpload((s) => !s)} style={styles.uploadToggle}>
-          {showUpload ? "× CLOSE" : "+ NEW RECORD"}
-        </button>
-      </div>
+      {isWardens ? (
+        <WardensPanel flash={flash} onChanged={loadWardenCount} />
+      ) : (
+        <>
+          <div style={styles.subHeader}>
+            <span style={{ color: "#5d685c" }}>
+              {records.length}{" записей // "}{lockedCount}{" опечатано"}
+            </span>
+            <button onClick={() => setShowUpload((s) => !s)} style={styles.uploadToggle}>
+              {showUpload ? "× ЗАКРЫТЬ" : "+ НОВАЯ ЗАПИСЬ"}
+            </button>
+          </div>
 
-      {showUpload && (
-        <UploadForm
-          type={tab}
-          onDone={() => {
-            setShowUpload(false);
-            load();
-          }}
+          {showUpload && (
+            <UploadForm
+              type={tab as RecordType}
+              onDone={() => {
+                setShowUpload(false);
+                load();
+              }}
+              flash={flash}
+            />
+          )}
+
+          {err && <div style={{ ...styles.err, margin: "12px 16px", maxWidth: "none" }}>{err}</div>}
+
+          <div style={styles.listWrap}>
+            {loading ? (
+              <div style={styles.empty}>ЗАГРУЗКА АРХИВА…</div>
+            ) : records.length === 0 ? (
+              <div style={styles.empty}>
+                {"// нет записей в "}{tab}{"."}
+                <br />
+                {"// нажмите \"+ НОВАЯ ЗАПИСЬ\"."}
+              </div>
+            ) : (
+              records.map((r) => (
+                <RecordCard
+                  key={r.id}
+                  rec={r}
+                  onToggle={() => toggleLock(tab as RecordType, r.id, r.is_locked)}
+                  onEdit={() => setEditing({ rec: r, type: tab as RecordType })}
+                  onDelete={() => deleteRecord(tab as RecordType, r.id)}
+                />
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      <button onClick={load} style={styles.refreshBtn}>↻ ОБНОВИТЬ АРХИВ</button>
+
+      {editing && (
+        <EditModal
+          rec={editing.rec}
+          type={editing.type}
+          onClose={() => setEditing(null)}
+          onSaved={load}
           flash={flash}
         />
       )}
-
-      {err && <div style={{ ...styles.err, margin: "12px 16px", maxWidth: "none" }}>{err}</div>}
-
-      <div style={styles.listWrap}>
-        {loading ? (
-          <div style={styles.empty}>LOADING ARCHIVE…</div>
-        ) : records.length === 0 ? (
-          <div style={styles.empty}>
-            {"// no records in "}{tab}{"."}
-            <br />
-            {"// tap \"+ NEW RECORD\" to add."}
-          </div>
-        ) : (
-          records.map((r) => (
-            <RecordCard
-              key={r.id}
-              rec={r}
-              onToggle={() => toggleLock(tab, r.id, r.is_locked)}
-            />
-          ))
-        )}
-      </div>
-
-      <button onClick={load} style={styles.refreshBtn}>↻ REFRESH ARCHIVE</button>
 
       {toast && <div style={styles.toast}>{toast}</div>}
     </div>
   );
 }
 
-function RecordCard({ rec, onToggle }: { rec: ArchiveRecord; onToggle: () => void }) {
+/* ============================================================
+   RECORD CARD — single record row with action buttons
+   ============================================================ */
+function RecordCard({
+  rec,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  rec: ArchiveRecord;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const idShort = rec.id?.slice(0, 8).toUpperCase() || "—";
   return (
     <div style={{
@@ -252,30 +361,39 @@ function RecordCard({ rec, onToggle }: { rec: ArchiveRecord; onToggle: () => voi
           ...styles.cardStatus,
           ...(rec.is_locked ? styles.statusLocked : styles.statusOpen),
         }}>
-          {rec.is_locked ? "🔒 LOCKED" : "🔓 OPEN"}
+          {rec.is_locked ? "🔒 ОПЕЧАТАНО" : "🔓 ОТКРЫТО"}
         </span>
       </div>
-      <div style={styles.cardName}>{rec.is_locked ? "[DATA CORRUPTED]" : (rec.name || "[unnamed]")}</div>
+      <div style={styles.cardName}>{rec.is_locked ? "[ДАННЫЕ ПОВРЕЖДЕНЫ]" : (rec.name || "[без имени]")}</div>
       {rec.title && !rec.is_locked && <div style={styles.cardTitle}>{rec.title}</div>}
-      <div style={styles.cardCat}>{rec.category || "UNCATEGORIZED"}</div>
+      <div style={styles.cardCat}>{rec.category || "БЕЗ КАТЕГОРИИ"}</div>
       {rec.description && !rec.is_locked && (
         <div style={styles.cardDesc}>
           {rec.description.length > 120 ? rec.description.slice(0, 120) + "…" : rec.description}
         </div>
       )}
-      <button
-        onClick={onToggle}
-        style={{
-          ...styles.toggleBtn,
-          ...(rec.is_locked ? styles.toggleUnlock : styles.toggleLock),
-        }}
-      >
-        {rec.is_locked ? "🔓 UNLOCK" : "🔒 LOCK"}
-      </button>
+      <div style={styles.cardActions}>
+        <button
+          onClick={onToggle}
+          style={{
+            ...styles.toggleBtn,
+            ...(rec.is_locked ? styles.toggleUnlock : styles.toggleLock),
+            flex: 1,
+            marginTop: 0,
+          }}
+        >
+          {rec.is_locked ? "🔓 СНЯТЬ ПЕЧАТЬ" : "🔒 ОПЕЧАТАТЬ"}
+        </button>
+        <button onClick={onEdit} style={{ ...styles.iconBtn, ...styles.iconEdit }} title="Редактировать">✎</button>
+        <button onClick={onDelete} style={{ ...styles.iconBtn, ...styles.iconDel }} title="Удалить">✕</button>
+      </div>
     </div>
   );
 }
 
+/* ============================================================
+   UPLOAD FORM — create new record with full field set
+   ============================================================ */
 function UploadForm({
   type,
   onDone,
@@ -291,12 +409,32 @@ function UploadForm({
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [sigil, setSigil] = useState("i-skull");
+  const [puzzleType, setPuzzleType] = useState("none");
+  const [puzzleHint, setPuzzleHint] = useState("");
+  const [puzzleData, setPuzzleData] = useState("");
+  const [shardWord, setShardWord] = useState("");
+  const [prophecyBonusText, setProphecyBonusText] = useState("");
+  const [mapX, setMapX] = useState("0");
+  const [mapY, setMapY] = useState("0");
+  const [customTrigger, setCustomTrigger] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { setErr("Name is required."); return; }
+    if (!name.trim()) { setErr("Имя обязательно."); return; }
+    let puzzleDataParsed: unknown = null;
+    let customTriggerParsed: unknown = null;
+    try {
+      if (puzzleData.trim()) puzzleDataParsed = JSON.parse(puzzleData);
+    } catch {
+      setErr("puzzle_data: неверный JSON"); return;
+    }
+    try {
+      if (customTrigger.trim()) customTriggerParsed = JSON.parse(customTrigger);
+    } catch {
+      setErr("custom_trigger: неверный JSON"); return;
+    }
     setSubmitting(true);
     setErr("");
     try {
@@ -311,17 +449,26 @@ function UploadForm({
           description: description.trim() || null,
           image_url: imageUrl.trim() || null,
           sigil,
+          // Extended fields — sent for forward-compat; backend persists what the schema supports.
+          puzzle_type: puzzleType,
+          puzzle_hint: puzzleHint.trim() || null,
+          puzzle_data: puzzleDataParsed,
+          shard_word: shardWord.trim() || null,
+          prophecy_bonus_text: prophecyBonusText.trim() || null,
+          map_x: Number(mapX) || 0,
+          map_y: Number(mapY) || 0,
+          custom_trigger: customTriggerParsed,
         }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setErr(j.error || "upload failed");
+        setErr(j.error || "загрузка не удалась");
         return;
       }
-      flash("UPLOADED TO ARCHIVE");
+      flash("ЗАГРУЖЕНО В АРХИВ");
       onDone();
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "network error");
+      setErr(e instanceof Error ? e.message : "сетевая ошибка");
     } finally {
       setSubmitting(false);
     }
@@ -329,37 +476,576 @@ function UploadForm({
 
   return (
     <form onSubmit={submit} style={styles.uploadForm}>
-      <div style={styles.uploadTitle}>+ NEW {type.toUpperCase().slice(0, -1)} RECORD</div>
+      <div style={styles.uploadTitle}>+ НОВАЯ ЗАПИСЬ · {type.toUpperCase()}</div>
 
-      <label style={styles.fieldLabel}>NAME *</label>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Kaelen Ashbringer" style={styles.input} />
+      <label style={styles.fieldLabel}>ИМЯ *</label>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="напр. Kaelen Ashbringer" style={styles.input} />
 
-      <label style={styles.fieldLabel}>CATEGORY</label>
-      <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. UNDEAD, FIEND, LORE…" style={styles.input} />
+      <label style={styles.fieldLabel}>КАТЕГОРИЯ</label>
+      <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="напр. UNDEAD, FIEND, LORE…" style={styles.input} />
 
-      <label style={styles.fieldLabel}>TITLE / EPITHET</label>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. // the Fallen Paladin" style={styles.input} />
+      <label style={styles.fieldLabel}>ТИТУЛ / ЭПИТЕТ</label>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. // the Fallen Paladin" style={styles.input} />
 
-      <label style={styles.fieldLabel}>DESCRIPTION / LORE</label>
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="The lore text…" rows={4} style={{ ...styles.input, resize: "vertical" }} />
+      <label style={styles.fieldLabel}>ОПИСАНИЕ / ЛОР</label>
+      <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Текст лора…" rows={4} style={{ ...styles.input, resize: "vertical" }} />
 
-      <label style={styles.fieldLabel}>IMAGE URL (optional)</label>
+      <label style={styles.fieldLabel}>URL ИЗОБРАЖЕНИЯ (опц.)</label>
       <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…/image.png" style={styles.input} type="url" />
 
-      <label style={styles.fieldLabel}>SIGIL</label>
+      <label style={styles.fieldLabel}>СИГИЛ</label>
       <select value={sigil} onChange={(e) => setSigil(e.target.value)} style={styles.select}>
         {SIGILS.map((s) => (<option key={s} value={s}>{s}</option>))}
       </select>
 
+      <label style={styles.fieldLabel}>ТИП ГОЛОВОЛОМКИ</label>
+      <select value={puzzleType} onChange={(e) => setPuzzleType(e.target.value)} style={styles.select}>
+        {PUZZLE_TYPES.map((p) => (<option key={p} value={p}>{p}</option>))}
+      </select>
+
+      <label style={styles.fieldLabel}>ПОДСКАЗКА ГОЛОВОЛОМКИ</label>
+      <input value={puzzleHint} onChange={(e) => setPuzzleHint(e.target.value)} placeholder="напр. // произнеси истинное имя" style={styles.input} />
+
+      <label style={styles.fieldLabel}>ДАННЫЕ ГОЛОВОЛОМКИ (JSON)</label>
+      <textarea value={puzzleData} onChange={(e) => setPuzzleData(e.target.value)} placeholder={'{\n  "answer": "shadow",\n  "tries": 3\n}'} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "'Share Tech Mono', monospace" }} />
+
+      <label style={styles.fieldLabel}>СЛОВО-ОСКОЛОК</label>
+      <input value={shardWord} onChange={(e) => setShardWord(e.target.value)} placeholder="напр. ПЕПЕЛ" style={styles.input} />
+
+      <label style={styles.fieldLabel}>БОНУСНОЕ ПРОРОЧЕСТВО</label>
+      <textarea value={prophecyBonusText} onChange={(e) => setProphecyBonusText(e.target.value)} placeholder="// дополнительная строка пророчества…" rows={3} style={{ ...styles.input, resize: "vertical" }} />
+
+      <div style={styles.fieldRow}>
+        <div>
+          <label style={styles.fieldLabel}>MAP X</label>
+          <input value={mapX} onChange={(e) => setMapX(e.target.value)} placeholder="0" type="number" style={styles.input} />
+        </div>
+        <div>
+          <label style={styles.fieldLabel}>MAP Y</label>
+          <input value={mapY} onChange={(e) => setMapY(e.target.value)} placeholder="0" type="number" style={styles.input} />
+        </div>
+      </div>
+
+      <label style={styles.fieldLabel}>КАСТОМНЫЙ ТРИГГЕР (JSON)</label>
+      <textarea value={customTrigger} onChange={(e) => setCustomTrigger(e.target.value)} placeholder={'{\n  "on_unlock": "spawn_boss"\n}'} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "'Share Tech Mono', monospace" }} />
+
       {err && <div style={styles.err}>{err}</div>}
 
       <button type="submit" disabled={submitting} style={{ ...styles.btn, ...(submitting ? styles.btnDisabled : {}) }}>
-        {submitting ? "UPLOADING…" : "UPLOAD TO ARCHIVE"}
+        {submitting ? "ЗАГРУЗКА…" : "ЗАГРУЗИТЬ В АРХИВ"}
       </button>
     </form>
   );
 }
 
+/* ============================================================
+   EDIT MODAL — edit existing record (pre-filled from list)
+   ============================================================ */
+function EditModal({
+  rec,
+  type,
+  onClose,
+  onSaved,
+  flash,
+}: {
+  rec: ArchiveRecord;
+  type: RecordType;
+  onClose: () => void;
+  onSaved: () => void;
+  flash: (m: string) => void;
+}) {
+  // Pre-fill from the list record (the list route uses select("*") so extended
+  // fields like puzzle_type, shard_word are present when the DB has them).
+  const [name, setName] = useState(rec.name || "");
+  const [category, setCategory] = useState(rec.category || "");
+  const [title, setTitle] = useState(rec.title || "");
+  const [description, setDescription] = useState(rec.description || "");
+  const [imageUrl, setImageUrl] = useState(rec.image_url || "");
+  const [sigil, setSigil] = useState(rec.sigil || "i-skull");
+  const [puzzleType, setPuzzleType] = useState(rec.puzzle_type || "none");
+  const [puzzleHint, setPuzzleHint] = useState(rec.puzzle_hint || "");
+  const [puzzleData, setPuzzleData] = useState(() => stringifyMaybe(rec.puzzle_data));
+  const [shardWord, setShardWord] = useState(rec.shard_word || "");
+  const [prophecyBonusText, setProphecyBonusText] = useState(rec.prophecy_bonus_text || "");
+  const [mapX, setMapX] = useState(rec.map_x != null ? String(rec.map_x) : "0");
+  const [mapY, setMapY] = useState(rec.map_y != null ? String(rec.map_y) : "0");
+  const [customTrigger, setCustomTrigger] = useState(() => stringifyMaybe(rec.custom_trigger));
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState("");
+
+  // ESC closes the modal
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) { setErr("Имя обязательно."); return; }
+    let puzzleDataParsed: unknown = null;
+    let customTriggerParsed: unknown = null;
+    try {
+      if (puzzleData.trim()) puzzleDataParsed = JSON.parse(puzzleData);
+    } catch {
+      setErr("puzzle_data: неверный JSON"); return;
+    }
+    try {
+      if (customTrigger.trim()) customTriggerParsed = JSON.parse(customTrigger);
+    } catch {
+      setErr("custom_trigger: неверный JSON"); return;
+    }
+    setSubmitting(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/admin/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          id: rec.id,
+          name: name.trim(),
+          category: category.trim() || "UNCATEGORIZED",
+          title: title.trim() || null,
+          description: description.trim() || null,
+          image_url: imageUrl.trim() || null,
+          sigil,
+          puzzle_type: puzzleType,
+          puzzle_hint: puzzleHint.trim() || null,
+          puzzle_data: puzzleDataParsed,
+          shard_word: shardWord.trim() || null,
+          prophecy_bonus_text: prophecyBonusText.trim() || null,
+          map_x: Number(mapX) || 0,
+          map_y: Number(mapY) || 0,
+          custom_trigger: customTriggerParsed,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setErr(j.error || "сохранение не удалось");
+        return;
+      }
+      flash("ЗАПИСЬ ОБНОВЛЕНА");
+      onSaved();
+      onClose();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "сетевая ошибка");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <span style={styles.modalTitle}>✎ РЕДАКТИРОВАНИЕ · {type}</span>
+          <button onClick={onClose} style={styles.modalClose}>×</button>
+        </div>
+        <form onSubmit={submit} style={styles.modalForm}>
+          <label style={styles.fieldLabel}>ИМЯ *</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} style={styles.input} />
+
+          <label style={styles.fieldLabel}>КАТЕГОРИЯ</label>
+          <input value={category} onChange={(e) => setCategory(e.target.value)} style={styles.input} />
+
+          <label style={styles.fieldLabel}>ТИТУЛ / ЭПИТЕТ</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} style={styles.input} />
+
+          <label style={styles.fieldLabel}>ОПИСАНИЕ / ЛОР</label>
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} style={{ ...styles.input, resize: "vertical" }} />
+
+          <label style={styles.fieldLabel}>URL ИЗОБРАЖЕНИЯ</label>
+          <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} type="url" style={styles.input} />
+
+          <label style={styles.fieldLabel}>СИГИЛ</label>
+          <select value={sigil} onChange={(e) => setSigil(e.target.value)} style={styles.select}>
+            {SIGILS.map((s) => (<option key={s} value={s}>{s}</option>))}
+          </select>
+
+          <label style={styles.fieldLabel}>ТИП ГОЛОВОЛОМКИ</label>
+          <select value={puzzleType} onChange={(e) => setPuzzleType(e.target.value)} style={styles.select}>
+            {PUZZLE_TYPES.map((p) => (<option key={p} value={p}>{p}</option>))}
+          </select>
+
+          <label style={styles.fieldLabel}>ПОДСКАЗКА ГОЛОВОЛОМКИ</label>
+          <input value={puzzleHint} onChange={(e) => setPuzzleHint(e.target.value)} style={styles.input} />
+
+          <label style={styles.fieldLabel}>ДАННЫЕ ГОЛОВОЛОМКИ (JSON)</label>
+          <textarea value={puzzleData} onChange={(e) => setPuzzleData(e.target.value)} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "'Share Tech Mono', monospace" }} />
+
+          <label style={styles.fieldLabel}>СЛОВО-ОСКОЛОК</label>
+          <input value={shardWord} onChange={(e) => setShardWord(e.target.value)} style={styles.input} />
+
+          <label style={styles.fieldLabel}>БОНУСНОЕ ПРОРОЧЕСТВО</label>
+          <textarea value={prophecyBonusText} onChange={(e) => setProphecyBonusText(e.target.value)} rows={3} style={{ ...styles.input, resize: "vertical" }} />
+
+          <div style={styles.fieldRow}>
+            <div>
+              <label style={styles.fieldLabel}>MAP X</label>
+              <input value={mapX} onChange={(e) => setMapX(e.target.value)} type="number" style={styles.input} />
+            </div>
+            <div>
+              <label style={styles.fieldLabel}>MAP Y</label>
+              <input value={mapY} onChange={(e) => setMapY(e.target.value)} type="number" style={styles.input} />
+            </div>
+          </div>
+
+          <label style={styles.fieldLabel}>КАСТОМНЫЙ ТРИГГЕР (JSON)</label>
+          <textarea value={customTrigger} onChange={(e) => setCustomTrigger(e.target.value)} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "'Share Tech Mono', monospace" }} />
+
+          {err && <div style={styles.err}>{err}</div>}
+
+          <div style={styles.modalActions}>
+            <button type="button" onClick={onClose} style={{ ...styles.btn, ...styles.btnSecondary, maxWidth: "none" }}>ОТМЕНА</button>
+            <button type="submit" disabled={submitting} style={{ ...styles.btn, maxWidth: "none", ...(submitting ? styles.btnDisabled : {}) }}>
+              {submitting ? "СОХРАНЕНИЕ…" : "СОХРАНИТЬ"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function stringifyMaybe(v: unknown): string {
+  if (v == null || v === "") return "";
+  if (typeof v === "string") return v;
+  try { return JSON.stringify(v, null, 2); } catch { return String(v); }
+}
+
+/* ============================================================
+   WARDENS PANEL — manage player accounts
+   ============================================================ */
+interface WardenPlayer {
+  id: string;
+  warden_name: string;
+  created_at: string | null;
+  achievements: string[];
+}
+
+function WardensPanel({ flash, onChanged }: { flash: (m: string) => void; onChanged: () => void }) {
+  const [players, setPlayers] = useState<WardenPlayer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [name, setName] = useState("");
+  const [cipher, setCipher] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/admin/players");
+      if (!res.ok) {
+        setErr("Не удалось загрузить стражей.");
+        setPlayers([]);
+        return;
+      }
+      const j = await res.json();
+      const arr: WardenPlayer[] = Array.isArray(j?.data) ? j.data : Array.isArray(j) ? j : [];
+      setPlayers(arr);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "сетевая ошибка");
+      setPlayers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function create(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !cipher.trim()) {
+      setErr("Имя и шифр обязательны.");
+      return;
+    }
+    setSubmitting(true);
+    setErr("");
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ warden_name: name.trim(), password: cipher.trim() }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setErr(j.error || "Создание не удалось");
+        return;
+      }
+      flash("СТРАЖ СОЗДАН");
+      setName("");
+      setCipher("");
+      load();
+      onChanged();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "сетевая ошибка");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function resetPassword(p: WardenPlayer) {
+    const np = window.prompt(`Новый шифр для ${p.warden_name}:`);
+    if (!np) return;
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_password", id: p.id, new_password: np }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        flash(j.error || "СБРОС НЕ УДАЛСЯ");
+        return;
+      }
+      flash("ПАРОЛЬ СБРОШЕН");
+    } catch {
+      flash("сетевая ошибка");
+    }
+  }
+
+  async function resetAchievements(p: WardenPlayer) {
+    if (!window.confirm(`Сбросить достижения стража ${p.warden_name}?`)) return;
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_achievements", id: p.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        flash(j.error || "СБРОС НЕ УДАЛСЯ");
+        return;
+      }
+      flash("ДОСТИЖЕНИЯ СБРОШЕНЫ");
+      load();
+    } catch {
+      flash("сетевая ошибка");
+    }
+  }
+
+  async function remove(p: WardenPlayer) {
+    if (!window.confirm(`Удалить стража ${p.warden_name}?`)) return;
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id: p.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        flash(j.error || "УДАЛЕНИЕ НЕ УДАЛОСЬ");
+        return;
+      }
+      flash("СТРАЖ УДАЛЁН");
+      load();
+      onChanged();
+    } catch {
+      flash("сетевая ошибка");
+    }
+  }
+
+  return (
+    <div style={styles.listWrap}>
+      <form onSubmit={create} style={styles.uploadForm}>
+        <div style={styles.uploadTitle}>+ НОВЫЙ СТРАЖ</div>
+        <label style={styles.fieldLabel}>ИМЯ СТРАЖА *</label>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="имя стража" style={styles.input} />
+        <label style={styles.fieldLabel}>ШИФР *</label>
+        <input value={cipher} onChange={(e) => setCipher(e.target.value)} placeholder="пароль" type="password" style={styles.input} />
+        {err && <div style={styles.err}>{err}</div>}
+        <button type="submit" disabled={submitting} style={{ ...styles.btn, ...(submitting ? styles.btnDisabled : {}) }}>
+          {submitting ? "СОЗДАНИЕ…" : "СОЗДАТЬ СТРАЖА"}
+        </button>
+      </form>
+
+      {loading ? (
+        <div style={styles.empty}>ЗАГРУЗКА СТРАЖЕЙ…</div>
+      ) : players.length === 0 ? (
+        <div style={styles.empty}>{"// стражей пока нет."}</div>
+      ) : (
+        players.map((p) => (
+          <div key={p.id} style={{ ...styles.card, ...styles.cardWarden }}>
+            <div style={styles.cardHead}>
+              <span style={styles.cardName}>{p.warden_name}</span>
+              <span style={{ ...styles.cardStatus, ...styles.statusOpen }}>
+                {(p.achievements?.length ?? 0)} дост.
+              </span>
+            </div>
+            <div style={styles.cardId}>
+              {p.created_at ? new Date(p.created_at).toLocaleString() : "—"}
+            </div>
+            <div style={styles.cardActions}>
+              <button onClick={() => resetPassword(p)} style={{ ...styles.miniBtn, ...styles.miniAmber }}>СБРОС ПАРОЛЯ</button>
+              <button onClick={() => resetAchievements(p)} style={{ ...styles.miniBtn, ...styles.miniGreen }}>СБРОС ДОСТ.</button>
+              <button onClick={() => remove(p)} style={{ ...styles.miniBtn, ...styles.miniRed }}>УДАЛИТЬ</button>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   EVENTS PANEL (Этап 12) — Witching Hour + God's Gaze controls.
+   Writes to localStorage only (the frontend console polls these keys):
+     - ashen_events_config_v2   {witching_hour:{enabled,startHour,startMinute,
+                                  endHour,endMinute,timezone(NUMBER),boost(NUMBER),
+                                  title,msg}}
+     - ashen_witching_manual    "true" | "false"
+     - ashen_gaze_cmd           {action:"open_eye",amount} | {action:"close_eye"}
+   ============================================================ */
+interface WitchingConfig {
+  enabled: boolean;
+  startHour: number;
+  startMinute: number;
+  endHour: number;
+  endMinute: number;
+  timezone: number; // UTC offset in hours (e.g. 3 for Moscow). Frontend does tz*3600000.
+  boost: number;    // gaze % added when witching triggers. Frontend does addGaze(cfg.boost||5).
+  title: string;
+  msg: string;
+}
+
+const DEFAULT_WITCHING: WitchingConfig = {
+  enabled: false,
+  startHour: 3,
+  startMinute: 0,
+  endHour: 4,
+  endMinute: 0,
+  timezone: 3, // UTC+3 (Moscow) — matches frontend DEFAULT_EVT
+  boost: 15,
+  title: "ЧАС ВЕДЬМЫ",
+  msg: "бог смотрит пристальнее",
+};
+
+const EVENTS_KEY = "ashen_events_config_v2";
+
+function EventsPanel({ flash }: { flash: (m: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [cfg, setCfg] = useState<WitchingConfig>(() => {
+    if (typeof window === "undefined") return DEFAULT_WITCHING;
+    try {
+      const raw = window.localStorage.getItem(EVENTS_KEY);
+      if (!raw) return DEFAULT_WITCHING;
+      const parsed = JSON.parse(raw) as { witching?: Partial<WitchingConfig> } | Partial<WitchingConfig>;
+      const witching = ("witching" in parsed && parsed.witching ? parsed.witching : parsed) as Partial<WitchingConfig>;
+      return { ...DEFAULT_WITCHING, ...witching };
+    } catch {
+      return DEFAULT_WITCHING;
+    }
+  });
+
+  function update(patch: Partial<WitchingConfig>) {
+    setCfg((prev) => {
+      const next: WitchingConfig = { ...prev, ...patch };
+      try {
+        localStorage.setItem(EVENTS_KEY, JSON.stringify({ witching: next }));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
+  function godCommand(cmd: "wh_on" | "wh_off" | "eye_open" | "eye_close") {
+    try {
+      if (cmd === "wh_on") {
+        localStorage.setItem("ashen_witching_manual", "true");
+        flash("🌙 ЧАС ВЕДЬМЫ ВКЛЮЧЁН");
+      } else if (cmd === "wh_off") {
+        // Frontend checks === "false" and then removes the key.
+        localStorage.setItem("ashen_witching_manual", "false");
+        flash("ЧАС ВЕДЬМЫ ВЫКЛЮЧЕН");
+      } else if (cmd === "eye_open") {
+        localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "open_eye", amount: 50 }));
+        flash("👁 ОКО ОТКРЫВАЕТСЯ +50%");
+      } else if (cmd === "eye_close") {
+        localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "close_eye" }));
+        flash("👁 ОКО ЗАКРЫВАЕТСЯ");
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return (
+    <div style={styles.eventsWrap}>
+      <button onClick={() => setOpen((o) => !o)} style={styles.eventsToggle}>
+        {open ? "▼" : "▶"} ⚙ ПАНЕЛЬ СОБЫТИЙ
+      </button>
+      {open && (
+        <div style={styles.eventsBody}>
+          <div style={styles.eventsSectionTitle}>🌙 ЧАС ВЕДЬМЫ</div>
+
+          <label style={styles.checkRow}>
+            <input
+              type="checkbox"
+              checked={cfg.enabled}
+              onChange={(e) => update({ enabled: e.target.checked })}
+              style={styles.checkbox}
+            />
+            <span>ВКЛЮЧИТЬ ЧАС ВЕДЬМЫ</span>
+          </label>
+
+          <label style={styles.fieldLabel}>НАЧАЛО (ЧЧ:ММ)</label>
+          <div style={styles.timeRow}>
+            <input type="number" min={0} max={23} value={cfg.startHour} onChange={(e) => update({ startHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "80px" }} />
+            <span style={{ color: "#5d685c" }}>:</span>
+            <input type="number" min={0} max={59} value={cfg.startMinute} onChange={(e) => update({ startMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "80px" }} />
+          </div>
+
+          <label style={styles.fieldLabel}>КОНЕЦ (ЧЧ:ММ)</label>
+          <div style={styles.timeRow}>
+            <input type="number" min={0} max={23} value={cfg.endHour} onChange={(e) => update({ endHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "80px" }} />
+            <span style={{ color: "#5d685c" }}>:</span>
+            <input type="number" min={0} max={59} value={cfg.endMinute} onChange={(e) => update({ endMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "80px" }} />
+          </div>
+
+          <label style={styles.fieldLabel}>ЧАСОВОЙ ПОЯС (UTC, напр. 3 = Москва)</label>
+          <input type="number" step="1" value={cfg.timezone} onChange={(e) => update({ timezone: Number(e.target.value) || 0 })} style={styles.input} />
+
+          <label style={styles.fieldLabel}>МНОЖИТЕЛЬ ВЗГЛЯДА (% добавки)</label>
+          <input type="number" step="1" value={cfg.boost} onChange={(e) => update({ boost: Number(e.target.value) || 0 })} style={styles.input} />
+
+          <label style={styles.fieldLabel}>ЗАГОЛОВОК</label>
+          <input value={cfg.title} onChange={(e) => update({ title: e.target.value })} placeholder="ЧАС ВЕДЬМЫ" style={styles.input} />
+
+          <label style={styles.fieldLabel}>СООБЩЕНИЕ</label>
+          <textarea value={cfg.msg} onChange={(e) => update({ msg: e.target.value })} rows={3} style={{ ...styles.input, resize: "vertical" }} />
+
+          <div style={styles.eventsSectionTitle}>👁 УПРАВЛЕНИЕ ВЗГЛЯДОМ БОГА</div>
+          <div style={styles.godRow}>
+            <button onClick={() => godCommand("wh_on")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>🌙 ВКЛ. ЧАС ВЕДЬМЫ</button>
+            <button onClick={() => godCommand("wh_off")} style={{ ...styles.miniBtn, ...styles.miniGreen }}>ВЫКЛ. ЧАС</button>
+            <button onClick={() => godCommand("eye_open")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>👁 ОТКРЫТЬ ОКО +50%</button>
+            <button onClick={() => godCommand("eye_close")} style={{ ...styles.miniBtn, ...styles.miniGreen }}>👁 ЗАКРЫТЬ ОКО</button>
+          </div>
+          <div style={styles.hint}>
+            {"// команды пишутся в localStorage и подхватываются консолью (опрос 1с / 30с)"}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function clampNum(v: string, min: number, max: number): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, Math.floor(n)));
+}
+
+/* ============================================================
+   STYLES — CRT terminal aesthetic
+   ============================================================ */
 const styles: Record<string, React.CSSProperties> = {
   shell: { minHeight: "100vh", background: "#050505", color: "#b6c2b2", fontFamily: "'Share Tech Mono', 'Courier New', monospace", padding: "0 0 80px 0", maxWidth: "640px", margin: "0 auto", position: "relative" },
   boot: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", color: "#4af626", fontSize: "16px", letterSpacing: "2px" },
@@ -370,13 +1056,14 @@ const styles: Record<string, React.CSSProperties> = {
   input: { width: "100%", maxWidth: "360px", background: "#0a0d0a", border: "1px solid #2c8a17", color: "#4af626", fontFamily: "'Share Tech Mono', monospace", fontSize: "16px", padding: "12px 14px", letterSpacing: "1px", borderRadius: "2px", outline: "none", boxSizing: "border-box" },
   btn: { width: "100%", maxWidth: "360px", background: "linear-gradient(180deg,rgba(74,246,38,.15),rgba(74,246,38,.04))", border: "1px solid #4af626", color: "#4af626", fontFamily: "'Share Tech Mono', monospace", fontSize: "16px", letterSpacing: "2px", padding: "12px", cursor: "pointer", borderRadius: "2px", textShadow: "0 0 8px rgba(74,246,38,.5)", transition: "all .15s" },
   btnDisabled: { opacity: 0.5, cursor: "not-allowed" },
+  btnSecondary: { background: "none", borderColor: "#5d685c", color: "#8a9588", textShadow: "none" },
   err: { color: "#ff2424", fontSize: "13px", padding: "8px 12px", border: "1px solid #a01212", background: "rgba(255,36,36,.08)", letterSpacing: "1px", maxWidth: "360px", width: "100%", boxSizing: "border-box" },
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid #1a201a", background: "linear-gradient(180deg,#0a0d0a,#050505)", position: "sticky", top: 0, zIndex: 10 },
   headerTitle: { fontFamily: "'MedievalSharp', serif", fontSize: "16px", letterSpacing: "2px", color: "#8a9588", display: "flex", alignItems: "center", gap: "8px" },
   headerDot: { width: "8px", height: "8px", borderRadius: "50%", background: "#4af626", boxShadow: "0 0 8px #4af626", display: "inline-block" },
   logoutBtn: { background: "none", border: "1px solid #a01212", color: "#ff2424", fontFamily: "'Share Tech Mono', monospace", fontSize: "12px", padding: "5px 12px", cursor: "pointer", letterSpacing: "1px", borderRadius: "2px" },
   tabs: { display: "flex", gap: "0", padding: "0 16px", borderBottom: "1px solid #1a201a" },
-  tab: { flex: 1, background: "none", border: "none", borderBottom: "2px solid transparent", color: "#5d685c", fontFamily: "'Share Tech Mono', monospace", fontSize: "14px", letterSpacing: "2px", padding: "12px 4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", transition: "all .15s" },
+  tab: { flex: 1, background: "none", border: "none", borderBottom: "2px solid transparent", color: "#5d685c", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", letterSpacing: "1px", padding: "12px 4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", transition: "all .15s" },
   tabActive: { color: "#4af626", borderBottomColor: "#4af626", textShadow: "0 0 8px rgba(74,246,38,.5)" },
   tabCount: { fontSize: "11px", color: "#5d685c", background: "#0a0d0a", border: "1px solid #1a201a", padding: "1px 6px", borderRadius: "2px" },
   subHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", fontSize: "12px", letterSpacing: "1px", borderBottom: "1px solid #1a201a" },
@@ -389,6 +1076,7 @@ const styles: Record<string, React.CSSProperties> = {
   empty: { padding: "40px 16px", textAlign: "center", color: "#5d685c", fontSize: "14px", lineHeight: "1.6", border: "1px dashed #1a201a" },
   card: { border: "1px solid #1a201a", background: "linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9))", padding: "12px 14px", borderRadius: "2px", position: "relative" },
   cardLocked: { borderColor: "#3a1414", background: "linear-gradient(180deg,rgba(20,8,8,.9),rgba(10,4,4,.9))" },
+  cardWarden: { borderColor: "#3a2c14", background: "linear-gradient(180deg,rgba(20,16,8,.9),rgba(14,10,4,.9))" },
   cardHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" },
   cardId: { fontSize: "11px", color: "#5d685c", letterSpacing: "1px", fontFamily: "'VT323', monospace" },
   cardStatus: { fontSize: "11px", padding: "2px 8px", border: "1px solid", letterSpacing: "1px", fontFamily: "'VT323', monospace" },
@@ -398,9 +1086,34 @@ const styles: Record<string, React.CSSProperties> = {
   cardTitle: { fontSize: "12px", color: "#2c8a17", letterSpacing: "1px", marginTop: "2px", fontFamily: "'VT323', monospace" },
   cardCat: { fontSize: "11px", color: "#5d685c", letterSpacing: "1px", marginTop: "4px" },
   cardDesc: { fontSize: "13px", color: "#8a9588", lineHeight: "1.5", marginTop: "6px" },
-  toggleBtn: { width: "100%", marginTop: "10px", padding: "8px", fontSize: "13px", letterSpacing: "2px", cursor: "pointer", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", border: "1px solid", transition: "all .15s" },
+  cardActions: { display: "flex", gap: "6px", marginTop: "10px", alignItems: "stretch" },
+  toggleBtn: { width: "100%", marginTop: "10px", padding: "8px", fontSize: "12px", letterSpacing: "1px", cursor: "pointer", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", border: "1px solid", transition: "all .15s" },
   toggleUnlock: { background: "linear-gradient(180deg,rgba(74,246,38,.12),rgba(74,246,38,.03))", borderColor: "#4af626", color: "#4af626", textShadow: "0 0 6px rgba(74,246,38,.4)" },
   toggleLock: { background: "linear-gradient(180deg,rgba(255,36,36,.1),rgba(255,36,36,.02))", borderColor: "#a01212", color: "#ff2424", textShadow: "0 0 6px rgba(255,36,36,.4)" },
   refreshBtn: { display: "block", margin: "20px auto", background: "none", border: "1px solid #2c8a17", color: "#4af626", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", padding: "8px 20px", cursor: "pointer", letterSpacing: "2px", borderRadius: "2px" },
   toast: { position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)", background: "#0a0d0a", border: "1px solid #4af626", color: "#4af626", padding: "10px 24px", fontSize: "14px", letterSpacing: "2px", fontFamily: "'Share Tech Mono', monospace", borderRadius: "2px", boxShadow: "0 0 20px rgba(74,246,38,.3)", zIndex: 100 },
+  iconBtn: { width: "38px", minWidth: "38px", padding: "8px 0", fontSize: "15px", cursor: "pointer", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", border: "1px solid", transition: "all .15s", display: "flex", alignItems: "center", justifyContent: "center" },
+  iconEdit: { background: "linear-gradient(180deg,rgba(232,161,58,.12),rgba(232,161,58,.03))", borderColor: "#e8a13a", color: "#e8a13a" },
+  iconDel: { background: "linear-gradient(180deg,rgba(255,36,36,.1),rgba(255,36,36,.02))", borderColor: "#a01212", color: "#ff2424" },
+  miniBtn: { flex: 1, padding: "7px 4px", fontSize: "11px", letterSpacing: "1px", cursor: "pointer", borderRadius: "2px", fontFamily: "'Share Tech Mono', monospace", border: "1px solid", transition: "all .15s" },
+  miniGreen: { background: "linear-gradient(180deg,rgba(74,246,38,.1),rgba(74,246,38,.02))", borderColor: "#4af626", color: "#4af626" },
+  miniAmber: { background: "linear-gradient(180deg,rgba(232,161,58,.1),rgba(232,161,58,.02))", borderColor: "#e8a13a", color: "#e8a13a" },
+  miniRed: { background: "linear-gradient(180deg,rgba(255,36,36,.1),rgba(255,36,36,.02))", borderColor: "#a01212", color: "#ff2424" },
+  eventsWrap: { borderBottom: "1px solid #1a201a", background: "rgba(10,13,10,.4)" },
+  eventsToggle: { width: "100%", background: "none", border: "none", color: "#e8a13a", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", letterSpacing: "2px", padding: "10px 16px", cursor: "pointer", textAlign: "left", textShadow: "0 0 8px rgba(232,161,58,.4)" },
+  eventsBody: { padding: "12px 16px 16px", display: "flex", flexDirection: "column", gap: "4px" },
+  eventsSectionTitle: { fontFamily: "'MedievalSharp', serif", fontSize: "14px", color: "#e8a13a", letterSpacing: "2px", marginTop: "12px", marginBottom: "6px", paddingBottom: "4px", borderBottom: "1px solid #1a201a" },
+  checkRow: { display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#b6c2b2", letterSpacing: "1px", cursor: "pointer", padding: "4px 0" },
+  checkbox: { width: "16px", height: "16px", accentColor: "#4af626", cursor: "pointer" },
+  fieldRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" },
+  timeRow: { display: "flex", gap: "6px", alignItems: "center" },
+  godRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "6px" },
+  hint: { fontSize: "11px", color: "#5d685c", letterSpacing: "1px", marginTop: "10px", fontStyle: "italic", lineHeight: 1.5 },
+  modalOverlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,.78)", zIndex: 200, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "20px 12px", overflowY: "auto" },
+  modalContent: { background: "#050505", border: "1px solid #4af626", borderRadius: "2px", maxWidth: "560px", width: "100%", margin: "auto", boxShadow: "0 0 40px rgba(74,246,38,.2)" },
+  modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: "1px solid #1a201a", position: "sticky", top: 0, background: "#050505", zIndex: 1 },
+  modalTitle: { fontFamily: "'MedievalSharp', serif", fontSize: "16px", color: "#4af626", letterSpacing: "2px", textShadow: "0 0 8px rgba(74,246,38,.5)" },
+  modalClose: { background: "none", border: "1px solid #a01212", color: "#ff2424", width: "32px", height: "32px", cursor: "pointer", borderRadius: "2px", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center" },
+  modalForm: { padding: "16px", display: "flex", flexDirection: "column", gap: "4px" },
+  modalActions: { display: "flex", gap: "8px", marginTop: "12px" },
 };
