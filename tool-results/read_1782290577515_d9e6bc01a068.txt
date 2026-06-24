@@ -1,0 +1,1476 @@
+     1→<!DOCTYPE html>
+     2→<html lang="ru">
+     3→<head>
+     4→<meta charset="UTF-8" />
+     5→<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     6→<title>АШЕНОВ КОДЕКС // БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ v4.1</title>
+     7→<link rel="preconnect" href="https://fonts.googleapis.com" />
+     8→<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+     9→<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=MedievalSharp&display=swap" rel="stylesheet" />
+    10→<style>
+    11→  /* ============================================================
+    12→     АШЕНОВ КОДЕКС — Библиотека утраченных знаний  v4.1-archive
+    13→     Pure HTML / CSS / Vanilla JS — single file
+    14→     Атмосферная читалка-архив тёмного фэнтези.
+    15→     ============================================================ */
+    16→
+    17→  :root{
+    18→    --bg:#050505;
+    19→    --bg-deep:#020202;
+    20→    --panel:#0a0d0a;
+    21→    --panel-2:#0e120e;
+    22→    --line:#1a201a;
+    23→    --green:#4af626;
+    24→    --green-dim:#2c8a17;
+    25→    --green-deep:#163d0d;
+    26→    --cyan:#3fd6c8;
+    27→    --cyan-dim:#1f7d76;
+    28→    --red:#ff2424;
+    29→    --red-dim:#a01212;
+    30→    --amber:#e8a13a;
+    31→    --text:#b6c2b2;
+    32→    --text-dim:#5d685c;
+    33→    --text-dead:#8a9588;
+    34→    --rust:#3a2a1c;
+    35→  }
+    36→
+    37→  *{box-sizing:border-box;margin:0;padding:0}
+    38→  html,body{height:100%}
+    39→  body{
+    40→    background:var(--bg);
+    41→    color:var(--text);
+    42→    font-family:'Share Tech Mono',monospace;
+    43→    overflow:hidden;
+    44→    position:relative;
+    45→    -webkit-font-smoothing:antialiased;
+    46→    cursor:default;
+    47→  }
+    48→
+    49→  /* ---------- CRT / screen overlays ---------- */
+    50→  .crt-scanlines,
+    51→  .crt-vignette,
+    52→  .crt-flicker,
+    53→  .crt-noise{
+    54→    position:fixed;inset:0;pointer-events:none;z-index:9000;
+    55→  }
+    56→  .crt-scanlines{
+    57→    background:repeating-linear-gradient(
+    58→      to bottom,
+    59→      rgba(0,0,0,0) 0px,
+    60→      rgba(0,0,0,0) 2px,
+    61→      rgba(0,0,0,.28) 3px,
+    62→      rgba(0,0,0,.28) 4px
+    63→    );
+    64→    mix-blend-mode:multiply;
+    65→    opacity:.55;
+    66→    transition:opacity .8s;
+    67→  }
+    68→  .crt-vignette{
+    69→    background:
+    70→      radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 85%, rgba(0,0,0,.95) 100%),
+    71→      radial-gradient(ellipse at center, rgba(10,40,15,.05) 0%, rgba(0,0,0,0) 60%);
+    72→    box-shadow:inset 0 0 200px 40px rgba(0,0,0,.9);
+    73→    transition:background .8s;
+    74→  }
+    75→  .crt-flicker{
+    76→    background:rgba(74,246,38,.012);
+    77→    animation:flicker 5s infinite steps(60);
+    78→  }
+    79→  .crt-noise{
+    80→    opacity:.04;
+    81→    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.5  0 0 0 0 0.25  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    82→    animation:noiseShift .4s steps(4) infinite;
+    83→    transition:opacity .8s;
+    84→  }
+    85→  @keyframes flicker{
+    86→    0%,96%,100%{opacity:.012}
+    87→    97%{opacity:.06}
+    88→    97.5%{opacity:.005}
+    89→    98%{opacity:.04}
+    90→    98.5%{opacity:.01}
+    91→  }
+    92→  @keyframes noiseShift{
+    93→    0%{transform:translate(0,0)}25%{transform:translate(-3px,2px)}
+    94→    50%{transform:translate(2px,-2px)}75%{transform:translate(-2px,-1px)}
+    95→    100%{transform:translate(3px,1px)}
+    96→  }
+    97→
+    98→  /* ---------- Boot overlay ---------- */
+    99→  .boot{
+   100→    position:fixed;inset:0;z-index:9500;background:#000;
+   101→    display:flex;flex-direction:column;align-items:center;justify-content:center;
+   102→    transition:opacity .8s ease;
+   103→  }
+   104→  .boot.gone{opacity:0;pointer-events:none}
+   105→  .boot-sweep{
+   106→    position:absolute;left:0;right:0;height:3px;
+   107→    background:linear-gradient(90deg,transparent,rgba(74,246,38,.0),rgba(74,246,38,.9),#fff,rgba(74,246,38,.9),transparent);
+   108→    box-shadow:0 0 24px 6px rgba(74,246,38,.7),0 0 60px 14px rgba(74,246,38,.35);
+   109→    top:-4px;animation:sweepDown 1.6s cubic-bezier(.7,.05,.3,1) forwards;
+   110→  }
+   111→  @keyframes sweepDown{
+   112→    0%{top:-4px;opacity:0}
+   113→    8%{opacity:1}
+   114→    90%{opacity:1}
+   115→    100%{top:100%;opacity:0}
+   116→  }
+   117→  .boot-flash{
+   118→    position:absolute;inset:0;background:#fff;opacity:0;
+   119→    animation:bflash 1.6s ease-out forwards;
+   120→  }
+   121→  @keyframes bflash{
+   122→    0%{opacity:0}4%{opacity:.9}8%{opacity:.05}12%{opacity:.5}16%{opacity:0}100%{opacity:0}
+   123→  }
+   124→  .boot-log{
+   125→    font-family:'VT323',monospace;color:var(--green);
+   126→    font-size:18px;line-height:1.4;text-shadow:0 0 6px rgba(74,246,38,.6);
+   127→    max-width:640px;width:90%;min-height:220px;
+   128→    opacity:0;animation:bootLogIn .2s .55s forwards;
+   129→  }
+   130→  @keyframes bootLogIn{to{opacity:1}}
+   131→  .boot-log .ln{white-space:pre-wrap}
+   132→  .boot-log .ok{color:var(--green)}
+   133→  .boot-log .warn{color:var(--amber)}
+   134→  .boot-log .err{color:var(--red)}
+   135→  .boot-bar{
+   136→    margin-top:14px;width:60%;height:8px;border:1px solid var(--green-dim);
+   137→    background:#06120a;position:relative;opacity:0;animation:bootLogIn .2s .6s forwards;
+   138→  }
+   139→  .boot-bar::after{
+   140→    content:"";position:absolute;left:0;top:0;bottom:0;width:0%;
+   141→    background:repeating-linear-gradient(45deg,var(--green) 0 6px,#0c2a08 6px 12px);
+   142→    animation:bootFill 2.6s .7s forwards;
+   143→  }
+   144→  @keyframes bootFill{to{width:100%}}
+   145→
+   146→  /* ---------- Console frame (scratched metal / cracked glass) ---------- */
+   147→  .stage{
+   148→    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+   149→    padding:14px;opacity:0;transition:opacity 1s .2s ease;
+   150→    z-index:10;
+   151→  }
+   152→  .stage.live{opacity:1}
+   153→  .console{
+   154→    width:100%;max-width:1280px;height:100%;max-height:920px;
+   155→    display:flex;flex-direction:column;
+   156→    background:
+   157→      linear-gradient(180deg,rgba(20,18,14,.6),rgba(8,8,8,.9)),
+   158→      var(--panel);
+   159→    border:1px solid #241a12;
+   160→    border-radius:10px;
+   161→    box-shadow:
+   162→      0 0 0 1px #000,
+   163→      0 0 0 2px #2a2018,
+   164→      0 0 0 3px #0a0806,
+   165→      inset 0 0 0 1px rgba(120,90,50,.15),
+   166→      inset 0 0 60px rgba(0,0,0,.9),
+   167→      0 30px 80px rgba(0,0,0,.9),
+   168→      0 0 90px rgba(74,246,38,.05);
+   169→    position:relative;
+   170→    overflow:hidden;
+   171→  }
+   172→  .console .curvature{
+   173→    position:absolute;inset:0;pointer-events:none;z-index:4;
+   174→    background:radial-gradient(ellipse 130% 120% at 50% 50%,transparent 60%,rgba(0,0,0,.35) 100%);
+   175→    border-radius:10px;
+   176→  }
+   177→  .console .phosphor{
+   178→    position:absolute;inset:0;pointer-events:none;z-index:4;
+   179→    background:radial-gradient(ellipse at 50% 40%,rgba(74,246,38,.04),transparent 55%);
+   180→    mix-blend-mode:screen;opacity:.6;
+   181→  }
+   182→  .console::before{
+   183→    content:"";position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.5;
+   184→    background:
+   185→      repeating-linear-gradient(117deg, rgba(255,255,255,.012) 0 1px, transparent 1px 7px),
+   186→      repeating-linear-gradient(63deg, rgba(255,255,255,.008) 0 1px, transparent 1px 11px),
+   187→      radial-gradient(circle at 18% 12%, rgba(180,120,60,.05), transparent 30%),
+   188→      radial-gradient(circle at 88% 88%, rgba(90,40,20,.07), transparent 35%);
+   189→  }
+   190→  .console::after{
+   191→    content:"";position:absolute;inset:0;pointer-events:none;z-index:2;opacity:.18;
+   192→    background:
+   193→      linear-gradient(135deg,transparent 49.6%,rgba(180,200,170,.5) 49.8%,transparent 50.2%),
+   194→      linear-gradient(60deg,transparent 69.4%,rgba(180,200,170,.35) 69.5%,transparent 69.8%);
+   195→    background-size:340px 340px,260px 260px;
+   196→    background-position:20% 80%,70% 20%;
+   197→    background-repeat:no-repeat;
+   198→    mix-blend-mode:screen;
+   199→  }
+   200→
+   201→  /* ---------- Title bar ---------- */
+   202→  .titlebar{
+   203→    display:flex;align-items:center;gap:14px;
+   204→    padding:8px 14px;
+   205→    background:linear-gradient(180deg,#161310,#0a0807);
+   206→    border-bottom:1px solid #2a2017;
+   207→    border-radius:10px 10px 0 0;
+   208→    position:relative;z-index:3;
+   209→    flex-shrink:0;
+   210→  }
+   211→  .titlebar::before,.titlebar::after{
+   212→    content:"";position:absolute;top:50%;transform:translateY(-50%);
+   213→    width:5px;height:5px;border-radius:50%;
+   214→    background:radial-gradient(circle at 30% 30%,#6a5230,#1a1208);
+   215→    box-shadow:0 0 2px #000,inset 0 0 1px rgba(255,200,120,.3);
+   216→  }
+   217→  .titlebar::before{left:6px}
+   218→  .titlebar::after{right:6px}
+   219→  .tb-leds{display:flex;gap:6px}
+   220→  .led{width:9px;height:9px;border-radius:50%;box-shadow:inset 0 0 2px #000}
+   221→  .led.r{background:var(--red);box-shadow:0 0 6px var(--red),inset 0 0 2px #000}
+   222→  .led.a{background:var(--amber);box-shadow:0 0 6px var(--amber),inset 0 0 2px #000}
+   223→  .led.g{background:var(--green);box-shadow:0 0 6px var(--green),inset 0 0 2px #000;animation:ledBlink 2.2s infinite}
+   224→  @keyframes ledBlink{0%,90%,100%{opacity:1}93%{opacity:.2}96%{opacity:1}}
+   225→  .tb-title{
+   226→    font-family:'MedievalSharp',serif;font-size:16px;letter-spacing:2px;
+   227→    color:var(--text-dead);text-shadow:0 0 6px rgba(74,246,38,.25);
+   228→    flex:1;text-align:center;
+   229→  }
+   230→  .tb-title b{color:var(--green);text-shadow:0 0 8px rgba(74,246,38,.7)}
+   231→  .tb-meta{font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px}
+   232→  .tb-meta span{color:var(--green)}
+   233→  .audio-btn{
+   234→    background:none;border:1px solid var(--green-deep);color:var(--green-dim);
+   235→    font-family:'VT323',monospace;font-size:13px;letter-spacing:1px;
+   236→    padding:3px 9px;cursor:pointer;border-radius:2px;
+   237→    transition:all .15s;min-width:74px;text-align:center;
+   238→  }
+   239→  .audio-btn:hover{color:var(--green);border-color:var(--green);box-shadow:0 0 8px rgba(74,246,38,.4)}
+   240→  .audio-btn.off{color:var(--text-dim);border-color:#2a2017}
+   241→  .audio-btn.off:hover{color:var(--red);border-color:var(--red-dim)}
+   242→
+   243→  /* ---------- Body layout ---------- */
+   244→  .body{
+   245→    flex:1;display:flex;min-height:0;position:relative;z-index:3;
+   246→  }
+   247→  .sidebar{
+   248→    width:260px;flex-shrink:0;
+   249→    border-right:1px solid #1c1610;
+   250→    background:linear-gradient(180deg,rgba(10,12,10,.7),rgba(6,8,6,.7));
+   251→    display:flex;flex-direction:column;
+   252→    padding:14px 10px;
+   253→  }
+   254→  .side-head{
+   255→    font-size:12px;color:var(--text-dim);letter-spacing:3px;
+   256→    padding:4px 8px 10px;border-bottom:1px dashed #1a201a;margin-bottom:10px;
+   257→  }
+   258→  .menu{display:flex;flex-direction:column;gap:4px}
+   259→  .menu-item{
+   260→    position:relative;display:block;width:100%;text-align:left;
+   261→    background:none;border:1px solid transparent;
+   262→    color:var(--text);font-family:'Share Tech Mono',monospace;font-size:14px;
+   263→    padding:9px 12px;cursor:pointer;letter-spacing:1px;
+   264→    transition:background .15s,border-color .15s,color .15s;
+   265→    clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%);
+   266→  }
+   267→  .menu-item .chev{color:var(--green-dim);margin-right:8px}
+   268→  .menu-item .tag{float:right;font-size:11px;color:var(--text-dim);font-family:'VT323',monospace}
+   269→  .menu-item:hover{
+   270→    background:linear-gradient(90deg,rgba(74,246,38,.08),transparent);
+   271→    border-color:rgba(74,246,38,.35);color:var(--green);
+   272→    text-shadow:0 0 6px rgba(74,246,38,.6);
+   273→    animation:glitchHover .5s steps(2) infinite;
+   274→  }
+   275→  .menu-item:hover .chev{color:var(--green)}
+   276→  .menu-item.active{
+   277→    background:linear-gradient(90deg,rgba(74,246,38,.14),transparent);
+   278→    border-color:rgba(74,246,38,.5);color:var(--green);
+   279→    text-shadow:0 0 8px rgba(74,246,38,.8);
+   280→  }
+   281→  .menu-item.active .chev{color:var(--green)}
+   282→  @keyframes glitchHover{
+   283→    0%{transform:translate(0,0)}
+   284→    25%{transform:translate(1px,-1px)}
+   285→    50%{transform:translate(-1px,1px)}
+   286→    75%{transform:translate(1px,1px)}
+   287→    100%{transform:translate(0,0)}
+   288→  }
+   289→  .menu-item:hover::before,.menu-item:hover::after{
+   290→    content:attr(data-txt);position:absolute;left:12px;top:9px;
+   291→    pointer-events:none;opacity:.7;mix-blend-mode:screen;
+   292→  }
+   293→  .menu-item:hover::before{color:#ff003c;transform:translate(-2px,0);animation:gl .6s steps(2) infinite}
+   294→  .menu-item:hover::after{color:#00e5ff;transform:translate(2px,0);animation:gl .5s steps(2) infinite reverse}
+   295→  @keyframes gl{0%{transform:translate(-2px,0)}50%{transform:translate(-1px,1px)}100%{transform:translate(-2px,-1px)}}
+   296→
+   297→  .side-foot{margin-top:auto;padding-top:12px;border-top:1px dashed #1a201a}
+   298→  .meter{margin:6px 8px;font-size:12px;font-family:'VT323',monospace}
+   299→  .meter .lbl{color:var(--text-dim);letter-spacing:1px;display:flex;justify-content:space-between}
+   300→  .meter .lbl b{color:var(--green)}
+   301→  .meter .bar{height:6px;background:#0c140c;border:1px solid #1a201a;margin-top:3px;overflow:hidden}
+   302→  .meter .bar i{display:block;height:100%;background:repeating-linear-gradient(45deg,var(--green) 0 4px,#0c2a08 4px 8px)}
+   303→  .meter .bar i.red{background:repeating-linear-gradient(45deg,var(--red) 0 4px,#2a0808 4px 8px)}
+   304→
+   305→  /* ---------- Main viewport ---------- */
+   306→  .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+   307→  .crumbs{
+   308→    display:flex;align-items:center;gap:8px;
+   309→    padding:6px 14px;border-bottom:1px solid #1a201a;
+   310→    font-size:12px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:2px;
+   311→    background:rgba(6,8,6,.5);
+   312→  }
+   313→  .crumbs .sep{color:var(--green-dim)}
+   314→  .crumbs b{color:var(--green)}
+   315→  .crumbs .right{margin-left:auto;display:flex;gap:14px}
+   316→  .crumbs .right span{color:var(--text-dim)}
+   317→
+   318→  .viewport{
+   319→    flex:1;min-height:0;position:relative;overflow:hidden;
+   320→    background:
+   321→      radial-gradient(ellipse at 50% 0%,rgba(74,246,38,.04),transparent 60%),
+   322→      linear-gradient(180deg,#070907,#040504);
+   323→  }
+   324→  .loader{
+   325→    position:absolute;inset:0;padding:24px 28px;
+   326→    font-family:'VT323',monospace;font-size:18px;line-height:1.5;
+   327→    color:var(--green);text-shadow:0 0 6px rgba(74,246,38,.6);
+   328→    display:flex;flex-direction:column;
+   329→    background:#040504;
+   330→  }
+   331→  .loader .ln{white-space:pre-wrap;min-height:1.5em}
+   332→  .loader .ln.ok::before{content:"[ OK ] ";color:var(--green)}
+   333→  .loader .ln.warn::before{content:"[WARN] ";color:var(--amber)}
+   334→  .loader .ln.err::before{content:"[FAIL] ";color:var(--red)}
+   335→  .loader .ln.dim{color:var(--text-dim)}
+   336→  .loader .cursor{display:inline-block;width:10px;height:18px;background:var(--green);vertical-align:-3px;animation:cur 1s steps(2) infinite;box-shadow:0 0 8px var(--green)}
+   337→  @keyframes cur{50%{opacity:0}}
+   338→  .loader .progress{margin-top:auto}
+   339→  .loader .pbar{height:8px;border:1px solid var(--green-dim);background:#06120a;margin-top:6px;position:relative}
+   340→  .loader .pbar i{position:absolute;inset:0;width:0;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#0c2a08 6px 12px);transition:width .2s linear}
+   341→
+   342→  .content{position:absolute;inset:0;padding:18px 22px;overflow-y:auto;opacity:0;transition:opacity .3s}
+   343→  .content.show{opacity:1;animation:contentFadeIn .3s ease-out}
+   344→  @keyframes contentFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+   345→  .content::-webkit-scrollbar{width:10px}
+   346→  .content::-webkit-scrollbar-track{background:#0a0d0a}
+   347→  .content::-webkit-scrollbar-thumb{background:linear-gradient(var(--green-dim),#0c2a08);border:1px solid #1a201a}
+   348→  .content::-webkit-scrollbar-thumb:hover{background:linear-gradient(var(--green),var(--green-dim))}
+   349→
+   350→  .panel-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;gap:14px;flex-wrap:wrap}
+   351→  .panel-head h2{
+   352→    font-family:'MedievalSharp',serif;font-size:26px;color:var(--text-dead);
+   353→    letter-spacing:2px;text-shadow:0 0 10px rgba(74,246,38,.25);
+   354→  }
+   355→  .panel-head h2 .g{color:var(--green);text-shadow:0 0 12px rgba(74,246,38,.7)}
+   356→  .panel-head .sub{font-size:13px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px}
+   357→
+   358→  /* ---------- Archive: list + detail ---------- */
+   359→  .archive-wrap{display:grid;grid-template-columns:230px 1fr;gap:14px;min-height:0}
+   360→  .npc-list{display:flex;flex-direction:column;gap:5px;max-height:560px;overflow-y:auto;padding-right:4px}
+   361→  .npc-list::-webkit-scrollbar{width:6px}
+   362→  .npc-list::-webkit-scrollbar-thumb{background:var(--green-deep)}
+   363→  .npc-row{
+   364→    border:1px solid #1c1610;background:linear-gradient(90deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+   365→    padding:8px 10px;cursor:pointer;position:relative;
+   366→    clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%);
+   367→    transition:all .15s;
+   368→  }
+   369→  .npc-row:hover{border-color:rgba(74,246,38,.4);background:linear-gradient(90deg,rgba(74,246,38,.08),transparent)}
+   370→  .npc-row.sel{border-color:var(--green);background:linear-gradient(90deg,rgba(74,246,38,.16),transparent);box-shadow:inset 2px 0 0 var(--green)}
+   371→  .npc-row.corrupt{border-color:#2a1414}
+   372→  .npc-row.corrupt.sel{border-color:var(--red);background:linear-gradient(90deg,rgba(255,36,36,.14),transparent);box-shadow:inset 2px 0 0 var(--red)}
+   373→  .npc-row .rid{font-size:11px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px}
+   374→  .npc-row .rnm{font-family:'MedievalSharp',serif;font-size:15px;color:var(--text-dead);line-height:1.1;margin-top:1px}
+   375→  .npc-row.sel .rnm{color:var(--green);text-shadow:0 0 6px rgba(74,246,38,.5)}
+   376→  .npc-row.corrupt .rnm{color:var(--red);text-shadow:0 0 5px rgba(255,36,36,.4)}
+   377→  .npc-row .rtag{position:absolute;right:8px;top:8px;font-size:10px;font-family:'VT323',monospace;color:var(--text-dim)}
+   378→  .npc-row.corrupt .rtag{color:var(--red-dim)}
+   379→
+   380→  .detail-slot{min-width:0}
+   381→
+   382→  /* ---------- Archive cards ---------- */
+   383→  .card{
+   384→    border:1px solid #2a2017;
+   385→    background:linear-gradient(180deg,rgba(12,14,12,.9),rgba(6,8,6,.9));
+   386→    padding:16px;position:relative;
+   387→    clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+   388→    box-shadow:inset 0 0 30px rgba(0,0,0,.7);
+   389→  }
+   390→  .card::before{
+   391→    content:"";position:absolute;inset:0;pointer-events:none;
+   392→    background:repeating-linear-gradient(0deg,rgba(74,246,38,.02) 0 1px,transparent 1px 4px);
+   393→  }
+   394→  .card.corrupt{border-color:#3a1414}
+   395→  .card.corrupt::before{background:repeating-linear-gradient(0deg,rgba(255,36,36,.03) 0 1px,transparent 1px 4px)}
+   396→  .card.image-card{padding:0;overflow:hidden}
+   397→  .card.image-card .card-top{padding:12px 16px 0}
+   398→
+   399→  .card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+   400→  .card-id{font-size:12px;color:var(--text-dim);letter-spacing:2px;font-family:'VT323',monospace}
+   401→  .card-id b{color:var(--green)}
+   402→  .card.corrupt .card-id b{color:var(--red)}
+   403→  .card-status{font-size:12px;font-family:'VT323',monospace;letter-spacing:1px;padding:2px 8px;border:1px solid var(--green-dim);color:var(--green)}
+   404→  .card-status.locked{border-color:var(--red-dim);color:var(--red);animation:statusBlink 1.4s steps(2) infinite}
+   405→  @keyframes statusBlink{50%{opacity:.3}}
+   406→
+   407→  .card-body{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;align-items:stretch}
+   408→  .card-info{display:flex;flex-direction:column;gap:8px;min-width:0;padding:0 16px 16px}
+   409→  .npc-name{
+   410→    font-family:'MedievalSharp',serif;font-size:22px;letter-spacing:1px;
+   411→    color:var(--text-dead);text-shadow:0 0 8px rgba(74,246,38,.3);
+   412→    line-height:1.15;
+   413→  }
+   414→  .npc-name .g{color:var(--green);text-shadow:0 0 10px rgba(74,246,38,.7)}
+   415→  .npc-name.corrupt{
+   416→    color:var(--red);text-shadow:0 0 8px rgba(255,36,36,.7);
+   417→    animation:corruptGlitch 2.2s infinite steps(10);
+   418→    position:relative;
+   419→  }
+   420→  @keyframes corruptGlitch{
+   421→    0%,100%{transform:translate(0,0);filter:none}
+   422→    4%{transform:translate(-2px,1px);filter:hue-rotate(20deg)}
+   423→    8%{transform:translate(2px,-1px)}
+   424→    12%{transform:translate(-1px,0)}
+   425→    16%{transform:translate(0,0)}
+   426→    60%{transform:translate(0,0)}
+   427→    62%{transform:translate(1px,1px) skewX(3deg)}
+   428→    64%{transform:translate(-1px,-1px)}
+   429→  }
+   430→  .npc-title{font-size:13px;color:var(--green-dim);font-family:'VT323',monospace;letter-spacing:1px}
+   431→  .card.corrupt .npc-title{color:var(--red-dim)}
+   432→
+   433→  .stat-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+   434→  .chip{font-size:12px;font-family:'VT323',monospace;padding:1px 7px;border:1px solid var(--green-deep);color:var(--green);letter-spacing:1px;background:rgba(74,246,38,.05)}
+   435→  .card.corrupt .chip{border-color:#3a1414;color:var(--red-dim);background:rgba(255,36,36,.04)}
+   436→
+   437→  .desc{font-size:14px;line-height:1.55;color:var(--text);margin-top:4px;position:relative;white-space:pre-wrap}
+   438→  .desc.dim{color:var(--text-dim)}
+   439→  .censor{display:inline-block;background:#000;border:1px solid #1a1a1a;height:.9em;vertical-align:-1px;margin:0 1px}
+   440→  .desc-block{position:relative}
+   441→  .desc-block .garble{color:var(--text-dim);letter-spacing:1px;word-break:break-all}
+   442→
+   443→  /* ---------- Hologram ---------- */
+   444→  .holo{
+   445→    position:relative;aspect-ratio:1/1;min-height:200px;
+   446→    border:1px solid var(--green-deep);
+   447→    background:
+   448→      radial-gradient(circle at 50% 60%,rgba(74,246,38,.10),transparent 60%),
+   449→      linear-gradient(180deg,#04140a,#020805);
+   450→    overflow:hidden;
+   451→    box-shadow:inset 0 0 40px rgba(0,0,0,.8),inset 0 0 14px rgba(74,246,38,.15);
+   452→  }
+   453→  .card.corrupt .holo{border-color:#3a1414;background:radial-gradient(circle at 50% 50%,rgba(255,36,36,.10),transparent 60%),linear-gradient(180deg,#140404,#080202);box-shadow:inset 0 0 40px rgba(0,0,0,.8),inset 0 0 14px rgba(255,36,36,.18)}
+   454→
+   455→  .holo .bracket{position:absolute;width:18px;height:18px;border:2px solid var(--green);box-shadow:0 0 8px rgba(74,246,38,.5)}
+   456→  .card.corrupt .holo .bracket{border-color:var(--red);box-shadow:0 0 8px rgba(255,36,36,.5)}
+   457→  .holo .bracket.tl{top:6px;left:6px;border-right:none;border-bottom:none}
+   458→  .holo .bracket.tr{top:6px;right:6px;border-left:none;border-bottom:none}
+   459→  .holo .bracket.bl{bottom:6px;left:6px;border-right:none;border-top:none}
+   460→  .holo .bracket.br{bottom:6px;right:6px;border-left:none;border-top:none}
+   461→
+   462→  .holo .crosshair{position:absolute;inset:0;pointer-events:none;opacity:.35}
+   463→  .holo .crosshair::before,.holo .crosshair::after{content:"";position:absolute;background:var(--green-dim)}
+   464→  .holo .crosshair::before{left:50%;top:0;bottom:0;width:1px;transform:translateX(-.5px)}
+   465→  .holo .crosshair::after{top:50%;left:0;right:0;height:1px;transform:translateY(-.5px)}
+   466→  .card.corrupt .holo .crosshair::before,.card.corrupt .holo .crosshair::after{background:var(--red-dim)}
+   467→
+   468→  .holo .rings{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:.5}
+   469→  .holo .rings .ring{position:absolute;border:1px solid var(--green-dim);border-radius:50%}
+   470→  .ring.r1{width:78%;height:78%}
+   471→  .ring.r2{width:58%;height:58%;border-style:dashed}
+   472→  .ring.r3{width:38%;height:38%}
+   473→
+   474→  /* ---------- 3D Hologram stage ---------- */
+   475→  .holo-stage{
+   476→    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+   477→    perspective:900px;
+   478→    transform-style:preserve-3d;
+   479→  }
+   480→  /* 3D wireframe cage — rotating cube of energy */
+   481→  .holo-cage{
+   482→    position:absolute;width:76%;height:76%;
+   483→    transform-style:preserve-3d;
+   484→    animation:cageSpin 16s linear infinite;
+   485→    pointer-events:none;
+   486→  }
+   487→  .holo-cage .cage-face{
+   488→    position:absolute;inset:0;
+   489→    border:1px solid rgba(74,246,38,.16);
+   490→    background:linear-gradient(135deg,rgba(74,246,38,.022),transparent 50%,rgba(63,214,200,.022));
+   491→    box-shadow:inset 0 0 24px rgba(74,246,38,.04);
+   492→  }
+   493→  .holo-cage .cage-face.f1{transform:translateZ(38%)}
+   494→  .holo-cage .cage-face.f2{transform:rotateY(180deg) translateZ(38%)}
+   495→  .holo-cage .cage-face.f3{transform:rotateY(90deg) translateZ(38%)}
+   496→  .holo-cage .cage-face.f4{transform:rotateY(-90deg) translateZ(38%)}
+   497→  .holo-cage .cage-face.f5{transform:rotateX(90deg) translateZ(38%)}
+   498→  .holo-cage .cage-face.f6{transform:rotateX(-90deg) translateZ(38%)}
+   499→  .card.corrupt .holo-cage .cage-face{border-color:rgba(255,36,36,.16);background:linear-gradient(135deg,rgba(255,36,38,.022),transparent 50%,rgba(255,36,38,.02));box-shadow:inset 0 0 24px rgba(255,36,38,.04)}
+   500→  @keyframes cageSpin{
+   501→    0%{transform:rotateX(20deg) rotateY(0) rotateZ(0)}
+   502→    50%{transform:rotateX(-20deg) rotateY(180deg) rotateZ(180deg)}
+   503→    100%{transform:rotateX(20deg) rotateY(360deg) rotateZ(360deg)}
+   504→  }
+   505→  /* 3D rotating subject — extruded depth layers create volume */
+   506→  .holo-subj{
+   507→    width:56%;height:56%;display:flex;align-items:center;justify-content:center;
+   508→    transform-style:preserve-3d;
+   509→    animation:holoSpin3D 8s linear infinite, holoFloat 4s ease-in-out infinite;
+   510→    color:var(--cyan);
+   511→    filter:drop-shadow(0 0 12px rgba(63,214,200,.7));
+   512→    position:relative;z-index:2;
+   513→  }
+   514→  @keyframes holoSpin3D{
+   515→    from{transform:rotateY(0) rotateX(-8deg)}
+   516→    to{transform:rotateY(360deg) rotateX(-8deg)}
+   517→  }
+   518→  @keyframes holoFloat{0%,100%{translate:0 -3px}50%{translate:0 5px}}
+   519→  /* depth-extruded layers — 5 copies at different Z create 3D volume */
+   520→  .holo-layer{
+   521→    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+   522→  }
+   523→  .holo-layer svg,.holo-layer img{width:100%;height:100%}
+   524→  .holo-layer.l1{transform:translateZ(-28px);opacity:.14;filter:blur(1.5px)}
+   525→  .holo-layer.l2{transform:translateZ(-14px);opacity:.3;filter:blur(.5px)}
+   526→  .holo-layer.l3{transform:translateZ(0);opacity:.95}
+   527→  .holo-layer.l4{transform:translateZ(14px);opacity:.3;filter:blur(.5px)}
+   528→  .holo-layer.l5{transform:translateZ(28px);opacity:.14;filter:blur(1.5px)}
+   529→  .holo-layer img{object-fit:cover;border-radius:4px;filter:contrast(1.15) brightness(.78) hue-rotate(-12deg) drop-shadow(0 0 8px rgba(63,214,200,.5))}
+   530→  /* floating data motes inside hologram — 3D depth particles */
+   531→  .holo-motes{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none;z-index:3}
+   532→  .holo-motes .mote{
+   533→    position:absolute;width:3px;height:3px;border-radius:50%;
+   534→    background:var(--green);box-shadow:0 0 6px var(--green);
+   535→    left:var(--x);top:var(--y);
+   536→    animation:moteFloat 7s ease-in-out infinite;
+   537→    animation-delay:var(--d);
+   538→    transform-style:preserve-3d;
+   539→  }
+   540→  @keyframes moteFloat{
+   541→    0%,100%{transform:translateZ(-35px) translateY(0);opacity:0}
+   542→    20%{opacity:.7}
+   543→    50%{transform:translateZ(35px) translateY(-12px);opacity:1}
+   544→    80%{opacity:.5}
+   545→  }
+   546→  .card.corrupt .holo-motes .mote{background:var(--red);box-shadow:0 0 6px var(--red)}
+   547→  /* legacy single-subj compat (corrupt err icon) */
+   548→  .holo-subj.err{
+   549→    color:var(--red);
+   550→    filter:drop-shadow(0 0 10px rgba(255,36,36,.7));
+   551→    animation:errSpin 1.6s linear infinite, errJit .12s steps(2) infinite;
+   552→  }
+   553→  @keyframes errSpin{from{transform:rotateY(0) rotateZ(0)}to{transform:rotateY(360deg) rotateZ(8deg)}}
+   554→  @keyframes errJit{0%{translate:0 0}50%{translate:2px -1px}100%{translate:-2px 1px}}
+   555→  .holo-subj.err svg{opacity:.9}
+   556→
+   557→  .holo .scan{
+   558→    position:absolute;left:0;right:0;height:14px;top:-14px;
+   559→    background:linear-gradient(180deg,transparent,rgba(74,246,38,.0),rgba(74,246,38,.55),transparent);
+   560→    box-shadow:0 0 14px rgba(74,246,38,.4);
+   561→    animation:holoScan 3.4s linear infinite;
+   562→    z-index:5;
+   563→  }
+   564→  @keyframes holoScan{0%{top:-14px}100%{top:100%}}
+   565→  .card.corrupt .holo .scan{background:linear-gradient(180deg,transparent,rgba(255,36,36,.5),transparent);box-shadow:0 0 14px rgba(255,36,36,.4);animation-duration:1.3s}
+   566→
+   567→  .holo .floor{position:absolute;bottom:8%;left:18%;right:18%;height:14px;background:radial-gradient(ellipse at center,rgba(74,246,38,.35),transparent 70%);filter:blur(2px);z-index:1}
+   568→  .card.corrupt .holo .floor{background:radial-gradient(ellipse at center,rgba(255,36,36,.35),transparent 70%)}
+   569→
+   570→  .holo .tag{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:11px;font-family:'VT323',monospace;color:var(--green-dim);letter-spacing:2px;white-space:nowrap;z-index:6}
+   571→  .card.corrupt .holo .tag{color:var(--red-dim)}
+   572→
+   573→  .holo .static{position:absolute;inset:0;mix-blend-mode:screen;opacity:.18;
+   574→    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.2  0 0 0 0 0.2  0 0 0 0.8 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+   575→    animation:noiseShift .25s steps(3) infinite;
+   576→  }
+   577→
+   578→  /* ---------- Status bar ---------- */
+   579→  .statusbar{
+   580→    display:flex;align-items:center;gap:18px;
+   581→    padding:6px 14px;border-top:1px solid #2a2017;
+   582→    background:linear-gradient(180deg,#0a0807,#161310);
+   583→    font-size:12px;font-family:'VT323',monospace;letter-spacing:1px;
+   584→    color:var(--text-dim);flex-shrink:0;position:relative;z-index:3;
+   585→  }
+   586→  .statusbar .s{display:flex;align-items:center;gap:6px}
+   587→  .statusbar .s b{color:var(--green)}
+   588→  .statusbar .s.r b{color:var(--red)}
+   589→  .statusbar .s.a b{color:var(--amber)}
+   590→  .statusbar .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:ledBlink 2s infinite}
+   591→  .statusbar .sep{color:#2a2017}
+   592→  .statusbar .right{margin-left:auto;display:flex;gap:18px}
+   593→
+   594→  /* ---------- Alert overlay ---------- */
+   595→  .alert-overlay{
+   596→    position:fixed;inset:0;z-index:9600;display:flex;align-items:center;justify-content:center;
+   597→    background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;
+   598→  }
+   599→  .alert-overlay.show{opacity:1}
+   600→  .alert-box{
+   601→    position:relative;border:2px solid var(--green);background:#0a0805;padding:24px 40px 22px;
+   602→    text-align:center;min-width:340px;max-width:540px;
+   603→    box-shadow:0 0 50px rgba(74,246,38,.4),inset 0 0 30px rgba(74,246,38,.12);
+   604→    clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+   605→    font-family:'VT323',monospace;
+   606→    animation:alertIn .25s ease-out,alertPulse .8s ease-in-out infinite;
+   607→  }
+   608→  @keyframes alertIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+   609→  @keyframes alertPulse{0%,100%{box-shadow:0 0 50px rgba(74,246,38,.4),inset 0 0 30px rgba(74,246,38,.12)}50%{box-shadow:0 0 70px rgba(74,246,38,.7),inset 0 0 40px rgba(74,246,38,.2)}}
+   610→  .alert-head{font-family:'MedievalSharp',serif;font-size:24px;color:var(--green);text-shadow:0 0 12px rgba(74,246,38,.8);letter-spacing:3px;margin-bottom:6px;margin-top:4px}
+   611→  .alert-msg{font-size:15px;color:var(--text);letter-spacing:1px;line-height:1.4}
+   612→
+   613→  /* ---------- key-code indicator ---------- */
+   614→  .keybuf{
+   615→    position:fixed;left:14px;bottom:30px;z-index:9200;
+   616→    font-family:'VT323',monospace;font-size:13px;color:var(--text-dim);
+   617→    letter-spacing:2px;pointer-events:none;opacity:0;transition:opacity .2s;
+   618→  }
+   619→  .keybuf.show{opacity:.7}
+   620→  .keybuf b{color:var(--green)}
+   621→
+   622→  /* ---------- Ambient particle layer ---------- */
+   623→  .ambient-particles{
+   624→    position:fixed;inset:0;pointer-events:none;z-index:8999;overflow:hidden;
+   625→  }
+   626→  .ambient-particles .p{
+   627→    position:absolute;width:2px;height:2px;background:var(--green);border-radius:50%;opacity:0;
+   628→    animation:particleDrift linear infinite;
+   629→  }
+   630→  @keyframes particleDrift{
+   631→    0%{opacity:0;transform:translateY(0) translateX(0)}
+   632→    10%{opacity:.4}
+   633→    90%{opacity:.2}
+   634→    100%{opacity:0;transform:translateY(-120px) translateX(20px)}
+   635→  }
+   636→
+   637→  /* ---------- Footer / signature ---------- */
+   638→  .signature{
+   639→    position:fixed;left:50%;bottom:6px;transform:translateX(-50%);
+   640→    font-size:11px;font-family:'VT323',monospace;color:#2a332a;letter-spacing:2px;
+   641→    z-index:5;pointer-events:none;
+   642→  }
+   643→
+   644→  /* ---------- Empty / loading states ---------- */
+   645→  .empty-state{
+   646→    font-family:'VT323',monospace;font-size:15px;color:var(--text-dim);
+   647→    line-height:1.7;padding:30px 14px;text-align:center;
+   648→    border:1px dashed #1a201a;
+   649→    clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+   650→  }
+   651→  .empty-state b{color:var(--green-dim)}
+   652→
+   653→  /* ---------- Responsive ---------- */
+   654→  @media (max-width:900px){
+   655→    .body{flex-direction:column}
+   656→    .sidebar{width:100%;border-right:none;border-bottom:1px solid #1c1610;flex-direction:row;flex-wrap:wrap;padding:8px}
+   657→    .side-head{display:none}
+   658→    .menu{flex-direction:row;flex-wrap:wrap;flex:1}
+   659→    .menu-item{width:auto;clip-path:none;padding:6px 10px;font-size:12px}
+   660→    .menu-item .tag{display:none}
+   661→    .side-foot{display:none}
+   662→    .archive-wrap{grid-template-columns:1fr}
+   663→    .npc-list{flex-direction:row;overflow-x:auto;max-height:none}
+   664→    .npc-row{min-width:160px}
+   665→    .card-body{grid-template-columns:1fr 1fr}
+   666→    .titlebar{flex-wrap:wrap}
+   667→    .panel-head h2{font-size:20px}
+   668→  }
+   669→  @media (max-width:560px){
+   670→    .card-body{grid-template-columns:1fr}
+   671→    .holo{min-height:220px}
+   672→    .crumbs .right{display:none}
+   673→    .statusbar{flex-wrap:wrap;gap:10px;font-size:11px}
+   674→    .statusbar .right{gap:10px}
+   675→    .audio-btn{font-size:11px;min-width:60px;padding:2px 6px}
+   676→  }
+   677→</style>
+   678→</head>
+   679→<body>
+   680→
+   681→<!-- screen overlays -->
+   682→<div class="crt-scanlines"></div>
+   683→<div class="crt-vignette"></div>
+   684→<div class="crt-noise"></div>
+   685→<div class="crt-flicker"></div>
+   686→
+   687→<!-- BOOT -->
+   688→<div class="boot" id="boot">
+   689→  <div class="boot-flash"></div>
+   690→  <div class="boot-sweep"></div>
+   691→  <div class="boot-log" id="bootLog"></div>
+   692→  <div class="boot-bar"></div>
+   693→</div>
+   694→
+   695→<!-- AMBIENT PARTICLES -->
+   696→<div class="ambient-particles" id="ambientParticles"></div>
+   697→
+   698→<!-- ALERT OVERLAY -->
+   699→<div class="alert-overlay" id="alertOverlay">
+   700→  <div class="alert-box">
+   701→    <div class="alert-head" id="alertHead">NOTICE</div>
+   702→    <div class="alert-msg" id="alertMsg"></div>
+   703→  </div>
+   704→</div>
+   705→
+   706→<!-- KEY BUFFER HINT -->
+   707→<div class="keybuf" id="keybuf">&gt; <b id="keybufTxt"></b><span style="color:var(--text-dim)">_</span></div>
+   708→
+   709→<!-- CONSOLE -->
+   710→<div class="stage" id="stage">
+   711→  <div class="console">
+   712→    <div class="curvature"></div>
+   713→    <div class="phosphor"></div>
+   714→
+   715→    <!-- TITLEBAR -->
+   716→    <div class="titlebar">
+   717→      <div class="tb-leds">
+   718→        <span class="led r"></span>
+   719→        <span class="led a"></span>
+   720→        <span class="led g"></span>
+   721→      </div>
+   722→      <div class="tb-title">А&nbsp;Ш&nbsp;Е&nbsp;Н&nbsp;О&nbsp;В&nbsp;&nbsp;К&nbsp;О&nbsp;Д&nbsp;Е&nbsp;К&nbsp;С &nbsp;//&nbsp; <b>БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ</b> &nbsp;v4.1-archive</div>
+   723→      <button class="audio-btn off" id="audioBtn" title="Включить звук">ЗВУК:ВЫКЛ</button>
+   724→      <div class="tb-meta">СЕКТОР <span>07</span> // АРХИВ <span>В СЕТИ</span></div>
+   725→    </div>
+   726→
+   727→    <!-- BODY -->
+   728→    <div class="body">
+   729→
+   730→      <!-- SIDEBAR -->
+   731→      <aside class="sidebar">
+   732→        <div class="side-head">// АРХИВНЫЙ_ИНДЕКС</div>
+   733→        <nav class="menu" id="menu">
+   734→          <button class="menu-item active" data-panel="npcs" data-txt="> ЗАПРОС_АРХИВ_НПС"><span class="chev">&gt;</span>ЗАПРОС_АРХИВ_НПС<span class="tag" id="tag-npcs">…</span></button>
+   735→          <button class="menu-item" data-panel="lore" data-txt="> БАЗА_ЛОРА"><span class="chev">&gt;</span>БАЗА_ЛОРА<span class="tag" id="tag-lore">…</span></button>
+   736→          <button class="menu-item" data-panel="rulers" data-txt="> РЕЕСТР_ПРАВИТЕЛЕЙ"><span class="chev">&gt;</span>РЕЕСТР_ПРАВИТЕЛЕЙ<span class="tag" id="tag-rulers">…</span></button>
+   737→        </nav>
+   738→
+   739→        <div class="side-foot">
+   740→          <div class="meter">
+   741→            <div class="lbl"><span>ЦЕЛОСТНОСТЬ_АРХИВА</span><b id="m1v">--%</b></div>
+   742→            <div class="bar"><i id="m1" style="width:--%"></i></div>
+   743→          </div>
+   744→          <div class="meter">
+   745→            <div class="lbl"><span>ПОРЧА</span><b id="m2v">--%</b></div>
+   746→            <div class="bar"><i id="m2" class="red" style="width:--%"></i></div>
+   747→          </div>
+   748→          <div class="meter">
+   749→            <div class="lbl"><span>СИГНАЛ</span><b id="m3v">--%</b></div>
+   750→            <div class="bar"><i id="m3" style="width:--%"></i></div>
+   751→          </div>
+   752→        </div>
+   753→      </aside>
+   754→
+   755→      <!-- MAIN -->
+   756→      <main class="main">
+   757→        <div class="crumbs">
+   758→          <span>КОРЕНЬ</span><span class="sep">&gt;</span>
+   759→          <span>СЕКТОР_07</span><span class="sep">&gt;</span>
+   760→          <b id="crumbCur">АРХИВ_НПС</b>
+   761→          <div class="right">
+   762→            <span>КАНАЛ: <b style="color:var(--green)">СТАБИЛЕН</b></span>
+   763→            <span>ИСТОЧНИК: <b style="color:var(--cyan)">SUPABASE</b></span>
+   764→            <span id="clock">--:--:--</span>
+   765→          </div>
+   766→        </div>
+   767→
+   768→        <div class="viewport" id="viewport">
+   769→          <div class="loader" id="loader">
+   770→            <div class="ln" id="loaderOut"></div>
+   771→            <div class="progress">
+   772→              <div style="display:flex;justify-content:space-between"><span id="loaderTask">INITIALIZING</span><span id="loaderPct">0%</span></div>
+   773→              <div class="pbar" id="loaderPbar"><i></i></div>
+   774→            </div>
+   775→          </div>
+   776→          <div class="content" id="content"></div>
+   777→        </div>
+   778→      </main>
+   779→    </div>
+   780→
+   781→    <!-- STATUSBAR -->
+   782→    <div class="statusbar">
+   783→      <div class="s"><span class="dot"></span> В СЕТИ</div>
+   784→      <span class="sep">|</span>
+   785→      <div class="s">БД <b>SUPABASE</b></div>
+   786→      <span class="sep">|</span>
+   787→      <div class="s">ЗАПИСЕЙ <b id="sbRecords">0</b></div>
+   788→      <span class="sep">|</span>
+   789→      <div class="s r">ОПЕЧАТАНО <b id="sbLocked">0</b></div>
+   790→      <div class="right">
+   791→        <div class="s">ПОРЧА <b id="sbCorr">--%</b></div>
+   792→        <span class="sep">|</span>
+   793→        <div class="s">СТРАЖ: <b>страж_07</b></div>
+   794→        <span class="sep">|</span>
+   795→        <div class="s" id="sbClock">--:--:--</div>
+   796→      </div>
+   797→    </div>
+   798→  </div>
+   799→</div>
+   800→
+   801→<div class="signature">// АШЕНОВ_КОДЕКС — БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ — НЕ ДОВЕРЯЙ СВЕТУ</div>
+   802→
+   803→<!-- ============ SVG TEMPLATES ============ -->
+   804→<svg width="0" height="0" style="position:absolute">
+   805→  <defs>
+   806→    <symbol id="i-skull" viewBox="0 0 120 120">
+   807→      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+   808→        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".5"/>
+   809→        <circle cx="60" cy="60" r="42" opacity=".35"/>
+   810→        <path d="M60 20 C40 20 28 36 28 56 C28 66 32 73 38 79 L38 90 L48 90 L48 84 L56 84 L56 90 L64 90 L64 84 L72 84 L72 90 L82 90 L82 79 C88 73 92 66 92 56 C92 36 80 20 60 20 Z"/>
+   811→        <ellipse cx="46" cy="55" rx="8" ry="10"/>
+   812→        <ellipse cx="74" cy="55" rx="8" ry="10"/>
+   813→        <circle cx="46" cy="55" r="2" fill="currentColor"/>
+   814→        <circle cx="74" cy="55" r="2" fill="currentColor"/>
+   815→        <path d="M60 62 L53 75 L67 75 Z"/>
+   816→        <line x1="48" y1="84" x2="48" y2="90"/><line x1="56" y1="84" x2="56" y2="90"/>
+   817→        <line x1="64" y1="84" x2="64" y2="90"/><line x1="72" y1="84" x2="72" y2="90"/>
+   818→      </g>
+   819→    </symbol>
+   820→    <symbol id="i-err" viewBox="0 0 120 120">
+   821→      <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+   822→        <circle cx="60" cy="60" r="46" stroke-dasharray="6 6" opacity=".6"/>
+   823→        <path d="M44 46 C44 30 76 30 76 48 C76 58 60 58 60 70"/>
+   824→        <circle cx="60" cy="88" r="3" fill="currentColor"/>
+   825→      </g>
+   826→    </symbol>
+   827→    <symbol id="i-eye" viewBox="0 0 120 120">
+   828→      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+   829→        <circle cx="60" cy="60" r="50" stroke-dasharray="2 5" opacity=".4"/>
+   830→        <path d="M16 60 C30 38 90 38 104 60 C90 82 30 82 16 60 Z"/>
+   831→        <circle cx="60" cy="60" r="18"/>
+   832→        <circle cx="60" cy="60" r="7" fill="currentColor"/>
+   833→      </g>
+   834→    </symbol>
+   835→    <symbol id="i-serpent" viewBox="0 0 120 120">
+   836→      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+   837→        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".4"/>
+   838→        <path d="M30 40 C20 55 25 70 40 72 C55 74 60 60 50 52 C40 44 55 36 70 44 C85 52 95 50 92 38"/>
+   839→        <path d="M92 38 L100 34 L96 44 Z" fill="currentColor"/>
+   840→      </g>
+   841→    </symbol>
+   842→    <symbol id="i-crown" viewBox="0 0 120 120">
+   843→      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+   844→        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".4"/>
+   845→        <path d="M24 78 L24 50 L40 64 L60 36 L80 64 L96 50 L96 78 Z"/>
+   846→        <line x1="24" y1="78" x2="96" y2="78"/>
+   847→        <circle cx="60" cy="36" r="4" fill="currentColor"/>
+   848→      </g>
+   849→    </symbol>
+   850→    <symbol id="i-flame" viewBox="0 0 120 120">
+   851→      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+   852→        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".4"/>
+   853→        <path d="M60 96 C38 96 30 78 36 64 C40 54 50 52 50 40 C56 46 58 54 56 60 C62 54 66 40 60 26 C78 36 88 52 86 68 C92 60 92 50 88 44 C100 58 98 80 84 90 C78 94 70 96 60 96 Z"/>
+   854→      </g>
+   855→    </symbol>
+   856→    <symbol id="i-hourglass" viewBox="0 0 120 120">
+   857→      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+   858→        <circle cx="60" cy="60" r="50" stroke-dasharray="3 4" opacity=".4"/>
+   859→        <path d="M34 22 L86 22 L86 30 L66 58 L86 90 L86 98 L34 98 L34 90 L54 58 L34 30 Z"/>
+   860→      </g>
+   861→    </symbol>
+   862→    <symbol id="i-ritual" viewBox="0 0 120 120">
+   863→      <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+   864→        <circle cx="60" cy="60" r="52"/>
+   865→        <circle cx="60" cy="60" r="44" stroke-dasharray="4 4"/>
+   866→        <polygon points="60,20 96,78 24,78" opacity=".6"/>
+   867→        <polygon points="60,100 24,42 96,42" opacity=".5"/>
+   868→        <circle cx="60" cy="60" r="8"/>
+   869→        <circle cx="60" cy="60" r="3" fill="currentColor"/>
+   870→      </g>
+   871→    </symbol>
+   872→    <symbol id="i-god" viewBox="0 0 120 120">
+   873→      <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+   874→        <circle cx="60" cy="60" r="50" stroke-dasharray="6 3" opacity=".5"/>
+   875→        <path d="M60 14 C70 30 80 40 80 56 C80 72 70 80 60 80 C50 80 40 72 40 56 C40 40 50 30 60 14 Z"/>
+   876→        <path d="M60 80 L60 100"/>
+   877→      </g>
+   878→    </symbol>
+   879→  </defs>
+   880→</svg>
+   881→
+   882→<script>
+   883→/* ============================================================
+   884→   АШЕНОВ КОДЕКС — логика библиотеки  v4.1-archive
+   885→   Fetches from /api/archive (Supabase-backed).
+   886→   ============================================================ */
+   887→(function(){
+   888→  "use strict";
+   889→  const $ = (s,p=document)=>p.querySelector(s);
+   890→  const $$ = (s,p=document)=>[...p.querySelectorAll(s)];
+   891→
+   892→  /* =========================================================
+   893→     AUDIO SYSTEM (Web Audio API — synthesized, no files)
+   894→     ========================================================= */
+   895→  const Audio = (function(){
+   896→    let ctx=null, master=null, humNode=null, humGain=null, started=false, muted=true;
+   897→    function init(){
+   898→      if(started) return;
+   899→      try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+   900→      master=ctx.createGain(); master.gain.value=0.0; master.connect(ctx.destination);
+   901→      humGain=ctx.createGain(); humGain.gain.value=0.0; humGain.connect(master);
+   902→      const o1=ctx.createOscillator(); o1.type="sine"; o1.frequency.value=55;
+   903→      const o2=ctx.createOscillator(); o2.type="sine"; o2.frequency.value=55.4;
+   904→      const o3=ctx.createOscillator(); o3.type="triangle"; o3.frequency.value=110;
+   905→      const o3g=ctx.createGain(); o3g.gain.value=0.12;
+   906→      o3.connect(o3g); o3g.connect(humGain);
+   907→      o1.connect(humGain); o2.connect(humGain);
+   908→      o1.start();o2.start();o3.start();
+   909→      const noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+   910→      const nd=noiseBuf.getChannelData(0);
+   911→      for(let i=0;i<nd.length;i++) nd[i]=(Math.random()*2-1)*0.5;
+   912→      const ns=ctx.createBufferSource(); ns.buffer=noiseBuf; ns.loop=true;
+   913→      const nf=ctx.createBiquadFilter(); nf.type="lowpass"; nf.frequency.value=180; nf.Q.value=0.7;
+   914→      const ng=ctx.createGain(); ng.gain.value=0.08;
+   915→      ns.connect(nf); nf.connect(ng); ng.connect(humGain); ns.start();
+   916→      const lfo=ctx.createOscillator(); lfo.type="sine"; lfo.frequency.value=0.08;
+   917→      const lfoGain=ctx.createGain(); lfoGain.gain.value=90;
+   918→      lfo.connect(lfoGain); lfoGain.connect(nf.frequency); lfo.start();
+   919→      const lfo2=ctx.createOscillator(); lfo2.type="sine"; lfo2.frequency.value=0.05;
+   920→      const lfo2g=ctx.createGain(); lfo2g.gain.value=0.04;
+   921→      lfo2.connect(lfo2g); lfo2g.connect(humGain.gain); lfo2.start();
+   922→      humNode=humGain;
+   923→      started=true;
+   924→    }
+   925→    function setMuted(m){
+   926→      muted=m;
+   927→      if(!ctx) return;
+   928→      const tgt=m?0.0:0.30;
+   929→      master.gain.cancelScheduledValues(ctx.currentTime);
+   930→      master.gain.setValueAtTime(master.gain.value,ctx.currentTime);
+   931→      master.gain.linearRampToValueAtTime(tgt,ctx.currentTime+0.4);
+   932→    }
+   933→    function blip(freq=440,dur=0.06,vol=0.12,type="square"){
+   934→      if(!ctx||muted) return;
+   935→      const o=ctx.createOscillator(),g=ctx.createGain();
+   936→      o.type=type;o.frequency.value=freq;
+   937→      g.gain.setValueAtTime(0,ctx.currentTime);
+   938→      g.gain.linearRampToValueAtTime(vol,ctx.currentTime+0.005);
+   939→      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+   940→      o.connect(g);g.connect(master);o.start();o.stop(ctx.currentTime+dur+0.02);
+   941→    }
+   942→    function beep(freq=880,dur=0.08,vol=0.14){ blip(freq,dur,vol,"square"); }
+   943→    function glitch(vol=0.18){
+   944→      if(!ctx||muted) return;
+   945→      const dur=0.18;
+   946→      const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();
+   947→      o.type="sawtooth"; o.frequency.setValueAtTime(120,ctx.currentTime);
+   948→      o.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+dur);
+   949→      f.type="bandpass"; f.frequency.value=800; f.Q.value=2;
+   950→      g.gain.setValueAtTime(vol,ctx.currentTime);
+   951→      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+   952→      o.connect(f);f.connect(g);g.connect(master);o.start();o.stop(ctx.currentTime+dur);
+   953→    }
+   954→    function thud(vol=0.22){
+   955→      if(!ctx||muted) return;
+   956→      const o=ctx.createOscillator(),g=ctx.createGain();
+   957→      o.type="sine"; o.frequency.setValueAtTime(90,ctx.currentTime);
+   958→      o.frequency.exponentialRampToValueAtTime(30,ctx.currentTime+0.3);
+   959→      g.gain.setValueAtTime(vol,ctx.currentTime);
+   960→      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.4);
+   961→      o.connect(g);g.connect(master);o.start();o.stop(ctx.currentTime+0.45);
+   962→    }
+   963→    function whisper(vol=0.14){
+   964→      if(!ctx||muted) return;
+   965→      const dur=1.4;
+   966→      const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+   967→      const d=buf.getChannelData(0);
+   968→      for(let i=0;i<d.length;i++){ const t=i/d.length; d[i]=(Math.random()*2-1)*(1-t)*0.6; }
+   969→      const src=ctx.createBufferSource(); src.buffer=buf;
+   970→      src.playbackRate.value=0.7;
+   971→      const f=ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=1200; f.Q.value=4;
+   972→      f.frequency.setValueAtTime(2400,ctx.currentTime);
+   973→      f.frequency.exponentialRampToValueAtTime(400,ctx.currentTime+dur);
+   974→      const g=ctx.createGain();
+   975→      g.gain.setValueAtTime(0,ctx.currentTime);
+   976→      g.gain.linearRampToValueAtTime(vol,ctx.currentTime+0.3);
+   977→      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+   978→      src.connect(f); f.connect(g); g.connect(master); src.start(); src.stop(ctx.currentTime+dur+0.05);
+   979→    }
+   980→    function setActive(active){
+   981→      if(!ctx) return;
+   982→      if(active){
+   983→        master.gain.cancelScheduledValues(ctx.currentTime);
+   984→        master.gain.setValueAtTime(master.gain.value,ctx.currentTime);
+   985→        master.gain.linearRampToValueAtTime(0.30,ctx.currentTime+0.6);
+   986→      }else{
+   987→        master.gain.cancelScheduledValues(ctx.currentTime);
+   988→        master.gain.setValueAtTime(master.gain.value,ctx.currentTime);
+   989→        master.gain.linearRampToValueAtTime(0.0,ctx.currentTime+0.3);
+   990→      }
+   991→    }
+   992→    return {
+   993→      init, setMuted, isMuted(){return muted;}, isStarted(){return started;},
+   994→      blip, beep, glitch, thud, whisper, setActive,
+   995→      ensure(){ if(!started) init(); if(ctx&&ctx.state==="suspended") ctx.resume(); }
+   996→    };
+   997→  })();
+   998→
+   999→  /* ---------- BOOT SEQUENCE ---------- */
+  1000→  const bootLines = [
+  1001→    {t:"> АШЕНОВ КОДЕКС АРХИВ v4.1 ...",c:"ok",snd:"beep"},
+  1002→    {t:"> МОНТИРОВАНИЕ /dev/lore_reservoir ... [ OK ]",c:"ok",snd:"beep"},
+  1003→    {t:"> МОНТИРОВАНИЕ /dev/archive_index .... [ OK ]",c:"ok",snd:"beep"},
+  1004→    {t:"> ЗАГРУЗКА rune_table.bin ............ [ OK ]",c:"ok",snd:"beep"},
+  1005→    {t:"> ПОДКЛЮЧЕНИЕ к хранилищу SUPABASE .. [ OK ]",c:"ok",snd:"beep"},
+  1006→    {t:"> ПРОВЕРКА целостности архива ....... [ OK ]",c:"ok",snd:"beep"},
+  1007→    {t:"> УСТАНОВКА канала к WARDEN_NET ..... [ OK ]",c:"ok",snd:"beep"},
+  1008→    {t:"> РУКОПОЖАТИЕ с СЕКТОР_07 ........... [ OK ]",c:"ok",snd:"beep"},
+  1009→    {t:"> ПРЕДУПРЕЖДЕНИЕ: некоторые записи ПОВРЕЖДЕНЫ или ОПЕЧАТАНЫ.",c:"warn",snd:"glitch"},
+  1010→    {t:"> РЕНДЕРИНГ интерфейса ............. готово",c:"ok",snd:"beep"},
+  1011→  ];
+  1012→  const bootLog = $("#bootLog");
+  1013→  let bi=0;
+  1014→  function bootStep(){
+  1015→    if(bi>=bootLines.length){
+  1016→      setTimeout(()=>{
+  1017→        $("#boot").classList.add("gone");
+  1018→        $("#stage").classList.add("live");
+  1019→        Audio.thud();
+  1020→        startPanel("npcs",true);
+  1021→      },700);
+  1022→      return;
+  1023→    }
+  1024→    const l=bootLines[bi++];
+  1025→    const d=document.createElement("div");
+  1026→    d.className="ln "+l.c;
+  1027→    d.textContent=l.t;
+  1028→    bootLog.appendChild(d);
+  1029→    if(l.snd==="beep") Audio.beep(720+Math.random()*120,0.05,0.08);
+  1030→    else if(l.snd==="glitch") Audio.glitch(0.1);
+  1031→    setTimeout(bootStep, 130+Math.random()*90);
+  1032→  }
+  1033→  setTimeout(bootStep,650);
+  1034→
+  1035→  /* ---------- CLOCK ---------- */
+  1036→  function tick(){
+  1037→    const d=new Date();
+  1038→    const s=d.toLocaleTimeString("en-GB",{hour12:false});
+  1039→    const c=$("#clock"); if(c)c.textContent=s;
+  1040→    const s2=$("#sbClock"); if(s2)s2.textContent=s;
+  1041→  }
+  1042→  setInterval(tick,1000); tick();
+  1043→
+  1044→  /* =========================================================
+  1045→     DATA STORE — cache for fetched records
+  1046→     ========================================================= */
+  1047→  const STORE={
+  1048→    npcs: [],
+  1049→    lore: [],
+  1050→    rulers: [],
+  1051→    selectedIdx: { npcs:0, lore:0, rulers:0 },
+  1052→  };
+  1053→  const META={
+  1054→    npcs:{ label:"АРХИВ_НПС", crumb:"АРХИВ_НПС", tag:"npcs" },
+  1055→    lore:{ label:"БАЗА_ЛОРА", crumb:"МИРОВОЙ_ЛОР", tag:"lore" },
+  1056→    rulers:{ label:"РЕЕСТР_ПРАВИТЕЛЕЙ", crumb:"ПРАВИТЕЛИ", tag:"rulers" },
+  1057→  };
+  1058→  let corruptionLevel=27; // decorative — drives CRT degradation
+  1059→
+  1060→  const GARBLE="█▓▒░▚▞▒▓█░▒▓";
+  1061→  function garble(n){let s="";for(let i=0;i<n;i++)s+=GARBLE[Math.floor(Math.random()*GARBLE.length)];return s;}
+  1062→  function garble2(n){return garble(n).split("").sort(()=>Math.random()-.5).join("");}
+  1063→
+  1064→  /* ---------- fetch records from /api/archive ---------- */
+  1065→  async function fetchRecords(type){
+  1066→    try{
+  1067→      const res=await fetch("/api/archive?type="+type);
+  1068→      if(!res.ok) return [];
+  1069→      const json=await res.json();
+  1070→      return json.data||[];
+  1071→    }catch(e){
+  1072→      console.error("[fetch]",type,e);
+  1073→      return [];
+  1074→    }
+  1075→  }
+  1076→
+  1077→  /* ---------- update tags + meters ---------- */
+  1078→  function updateTags(){
+  1079→    ["npcs","lore","rulers"].forEach(t=>{
+  1080→      const recs=STORE[t];
+  1081→      const locked=recs.filter(r=>r.is_locked).length;
+  1082→      const el=$("#tag-"+t);
+  1083→      if(el) el.textContent = recs.length+" rec"+(locked>0?" // "+locked+" 🔒":"");
+  1084→    });
+  1085→    const total=STORE.npcs.length+STORE.lore.length+STORE.rulers.length;
+  1086→    const locked=STORE.npcs.filter(r=>r.is_locked).length+STORE.lore.filter(r=>r.is_locked).length+STORE.rulers.filter(r=>r.is_locked).length;
+  1087→    const sbRec=$("#sbRecords"); if(sbRec) sbRec.textContent=total;
+  1088→    const sbLk=$("#sbLocked"); if(sbLk) sbLk.textContent=locked;
+  1089→    // archive integrity = % unlocked
+  1090→    const integrity = total>0 ? Math.round((total-locked)/total*100) : 100;
+  1091→    const m1=$("#m1"),m1v=$("#m1v"); if(m1){m1.style.width=integrity+"%";m1v.textContent=integrity+"%";}
+  1092→    const m2=$("#m2"),m2v=$("#m2v"); if(m2){m2.style.width=corruptionLevel+"%";m2v.textContent=corruptionLevel+"%";}
+  1093→    const m3=$("#m3"),m3v=$("#m3v"); const sig=Math.max(40,Math.min(99,100-Math.round(corruptionLevel/3))); if(m3){m3.style.width=sig+"%";m3v.textContent=sig+"%";}
+  1094→    const sbC=$("#sbCorr"); if(sbC) sbC.textContent=corruptionLevel+"%";
+  1095→  }
+  1096→
+  1097→  /* ---------- alert ---------- */
+  1098→  let alertTimer=null;
+  1099→  function triggerAlert(title,msg){
+  1100→    const ov=$("#alertOverlay");
+  1101→    $("#alertHead").textContent=title;
+  1102→    $("#alertMsg").innerHTML=msg;
+  1103→    // color: green for info, red for warning
+  1104→    const box=ov.querySelector(".alert-box");
+  1105→    const isErr = /СБОЙ|ОШИБКА|ОТКАЗ|ПОВРЕЖД|ОПЕЧАТА/i.test(title);
+  1106→    box.style.borderColor = isErr ? "var(--red)" : "var(--green)";
+  1107→    box.style.boxShadow = isErr
+  1108→      ? "0 0 50px rgba(255,36,36,.5),inset 0 0 30px rgba(255,36,36,.15)"
+  1109→      : "0 0 50px rgba(74,246,38,.4),inset 0 0 30px rgba(74,246,38,.12)";
+  1110→    const head=$("#alertHead");
+  1111→    head.style.color = isErr ? "var(--red)" : "var(--green)";
+  1112→    head.style.textShadow = isErr ? "0 0 12px rgba(255,36,36,.8)" : "0 0 12px rgba(74,246,38,.8)";
+  1113→    ov.classList.add("show");
+  1114→    Audio.beep(440,0.1,0.14);
+  1115→    clearTimeout(alertTimer);
+  1116→    alertTimer=setTimeout(()=>ov.classList.remove("show"),2800);
+  1117→  }
+  1118→
+  1119→  /* ---------- render archive list+detail ---------- */
+  1120→  function renderArchive(type){
+  1121→    const recs=STORE[type];
+  1122→    const meta=META[type];
+  1123→    if(recs.length===0){
+  1124→      return `<div class="panel-head">
+  1125→          <h2><span class="g">&gt;</span> ${meta.label}</h2>
+  1126→          <div class="sub">нет записей в хранилище // архив пуст или недоступен</div>
+  1127→        </div>
+  1128→        <div class="empty-state">
+  1129→          // хранилище молчит.<br>// ни одна запись не была восстановлена из этого архива.<br><br>
+  1130→          <b>// проверьте подключение к Supabase или добавьте записи через /admin.</b>
+  1131→        </div>`;
+  1132→    }
+  1133→    const sel=STORE.selectedIdx[type]||0;
+  1134→    const list = recs.map((r,i)=>{
+  1135→      const isSel=i===sel;
+  1136→      const isLocked=r.is_locked;
+  1137→      const cls = (isSel?" sel":"")+(isLocked?" corrupt":"");
+  1138→      const name = isLocked ? "[ДАННЫЕ ПОВРЕЖДЕНЫ]" : (r.name||"[без имени]");
+  1139→      const tag = isLocked ? "ОПЕЧАТАНО" : (r.category||"?");
+  1140→      return `<div class="npc-row${cls}" data-i="${i}">
+  1141→        <div class="rid">${(r.id||"").toString().slice(0,8).toUpperCase()||"—"}</div>
+  1142→        <div class="rnm">${name}</div>
+  1143→        <div class="rtag">${tag}</div>
+  1144→      </div>`;
+  1145→    }).join("");
+  1146→    const detail = renderRecordCard(recs[sel], type);
+  1147→    return `<div class="panel-head">
+  1148→        <h2><span class="g">&gt;</span> ${meta.label} <span class="g">::</span> СЕКТОР_07</h2>
+  1149→        <div class="sub">${recs.length} записей // ${recs.filter(r=>r.is_locked).length} повреждено/опечатано // источник: SUPABASE</div>
+  1150→      </div>
+  1151→      <div class="archive-wrap">
+  1152→        <div class="npc-list" id="npcList">${list}</div>
+  1153→        <div class="detail-slot" id="detailSlot">${detail}</div>
+  1154→      </div>`;
+  1155→  }
+  1156→
+  1157→  function renderRecordCard(r, type){
+  1158→    if(!r) return `<div class="empty-state">// выберите запись из списка.</div>`;
+  1159→    const isLocked=r.is_locked;
+  1160→    const sigil = r.sigil || (type==="rulers"?"i-crown":type==="lore"?"i-flame":"i-skull");
+  1161→    const idShort = (r.id||"").toString().slice(0,8).toUpperCase()||"—";
+  1162→
+  1163→    // 3D hologram helper: builds wireframe cage + depth-extruded subject + floating motes
+  1164→    function holo3d(innerSvgOrImg, tagText, isCorrupt){
+  1165→      const cageFaces = ['f1','f2','f3','f4','f5','f6'].map(f=>`<div class="cage-face ${f}"></div>`).join("");
+  1166→      // 8 floating motes at random positions
+  1167→      const motes = Array.from({length:8},(_,i)=>{
+  1168→        const x=10+Math.random()*80, y=10+Math.random()*80, d=(Math.random()*7).toFixed(2)+"s";
+  1169→        return `<span class="mote" style="--x:${x}%;--y:${y}%;--d:${d}"></span>`;
+  1170→      }).join("");
+  1171→      // 5 depth layers for 3D volume
+  1172→      const layers = ['l1','l2','l3','l4','l5'].map(l=>`<div class="holo-layer ${l}">${innerSvgOrImg}</div>`).join("");
+  1173→      const cageStyle = isCorrupt ? ' style="filter:hue-rotate(0deg)"' : '';
+  1174→      return `<div class="holo-stage">
+  1175→        <div class="holo-cage"${cageStyle}>${cageFaces}</div>
+  1176→        <div class="holo-subj${isCorrupt?' err':''}">${layers}</div>
+  1177→        <div class="holo-motes">${motes}</div>
+  1178→      </div>
+  1179→      <div class="scan"></div>${isCorrupt?'<div class="static"></div>':''}
+  1180→      <div class="floor"></div>
+  1181→      <div class="tag">${tagText}</div>`;
+  1182→    }
+  1183→
+  1184→    // If has image_url and not locked — render image card with 3D hologram
+  1185→    if(!isLocked && r.image_url){
+  1186→      const chips = [r.category||"НЕИЗВЕСТНО"].map(c=>`<span class="chip">${c}</span>`).join("");
+  1187→      const imgTag = `<img src="${escapeAttr(r.image_url)}" alt="${escapeAttr(r.name||"")}" />`;
+  1188→      return `<div class="card image-card">
+  1189→        <div class="card-top">
+  1190→          <div class="card-id">ИД: <b>${idShort}</b> // ИСТ: ${type==="npcs"?"НПС":type==="lore"?"ЛОР":"ПРАВ"}</div>
+  1191→          <div class="card-status">РАСШИФРОВАНО</div>
+  1192→        </div>
+  1193→        <div class="card-body">
+  1194→          <div class="card-info">
+  1195→            <div class="npc-name">${escapeHtml(r.name)}</div>
+  1196→            ${r.title?`<div class="npc-title">${escapeHtml(r.title)}</div>`:""}
+  1197→            <div class="stat-row">${chips}</div>
+  1198→            <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
+  1199→          </div>
+  1200→          <div class="holo">
+  1201→            <div class="bracket tl"></div><div class="bracket tr"></div>
+  1202→            <div class="bracket bl"></div><div class="bracket br"></div>
+  1203→            <div class="crosshair"></div>
+  1204→            <div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+  1205→            ${holo3d(imgTag, "ГОЛО_ПРОЕКЦИЯ :: ИЗОБРАЖЕНИЕ", false)}
+  1206→          </div>
+  1207→        </div>
+  1208→      </div>`;
+  1209→    }
+  1210→
+  1211→    // Locked / corrupted card
+  1212→    if(isLocked){
+  1213→      const errSvg = `<svg><use href="#i-err"/></svg>`;
+  1214→      return `<div class="card corrupt">
+  1215→        <div class="card-top">
+  1216→          <div class="card-id">ИД: <b>${idShort}</b> // КЛАСС: <span style="color:var(--red)">НЕИЗВЕСТНО</span></div>
+  1217→          <div class="card-status locked">ПОВРЕЖДЕНО</div>
+  1218→        </div>
+  1219→        <div class="card-body">
+  1220→          <div class="card-info">
+  1221→            <div class="npc-name corrupt" id="corrName">${escapeHtml(r.name||"[ДАННЫЕ ПОВРЕЖДЕНЫ]")}</div>
+  1222→            <div class="npc-title">${escapeHtml(r.title||"// обозначение невосстановимо")}</div>
+  1223→            <div class="stat-row">
+  1224→              <span class="chip">???</span><span class="chip">НЕИЗВЕСТНО</span><span class="chip">ОПЕЧАТАНО</span>
+  1225→            </div>
+  1226→            <p class="desc desc-block">
+  1227→              <span class="garble" id="gar1"></span><br>
+  1228→              Некто <span class="censor" style="width:64px"></span> шёл по <span class="censor" style="width:90px"></span> до того, как <span class="censor" style="width:48px"></span> пал. Он говорит <span class="censor" style="width:72px"></span> и торгует <span class="censor" style="width:54px"></span>. Не <span class="censor" style="width:40px"></span> его имя.<br>
+  1229→              <span class="garble" id="gar2"></span>
+  1230→            </p>
+  1231→          </div>
+  1232→          <div class="holo">
+  1233→            <div class="bracket tl"></div><div class="bracket tr"></div>
+  1234→            <div class="bracket bl"></div><div class="bracket br"></div>
+  1235→            <div class="crosshair"></div>
+  1236→            <div class="rings"><div class="ring r1" style="border-color:var(--red-dim)"></div><div class="ring r2" style="border-color:var(--red-dim)"></div><div class="ring r3" style="border-color:var(--red-dim)"></div></div>
+  1237→            ${holo3d(errSvg, "ГОЛО_ПРОЕКЦИЯ :: СБОЙ // 0x4E53", true)}
+  1238→          </div>
+  1239→        </div>
+  1240→      </div>`;
+  1241→    }
+  1242→
+  1243→    // Normal decrypted card with sigil 3D hologram
+  1244→    const chips = [r.category||"НЕИЗВЕСТНО"].map(c=>`<span class="chip">${c}</span>`).join("");
+  1245→    const sigilSvg = `<svg><use href="#${sigil}"/></svg>`;
+  1246→    return `<div class="card">
+  1247→      <div class="card-top">
+  1248→        <div class="card-id">ИД: <b>${idShort}</b> // ИСТ: ${type==="npcs"?"НПС":type==="lore"?"ЛОР":"ПРАВ"}</div>
+  1249→        <div class="card-status">РАСШИФРОВАНО</div>
+  1250→      </div>
+  1251→      <div class="card-body">
+  1252→        <div class="card-info">
+  1253→          <div class="npc-name">${formatName(r.name)}</div>
+  1254→          ${r.title?`<div class="npc-title">${escapeHtml(r.title)}</div>`:""}
+  1255→          <div class="stat-row"><span class="chip">${r.category||"НЕИЗВЕСТНО"}</span>${chips}</div>
+  1256→          <p class="desc">${escapeHtml(r.description||"// описание не архивировано.")}</p>
+  1257→        </div>
+  1258→        <div class="holo">
+  1259→          <div class="bracket tl"></div><div class="bracket tr"></div>
+  1260→          <div class="bracket bl"></div><div class="bracket br"></div>
+  1261→          <div class="crosshair"></div>
+  1262→          <div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+  1263→          ${holo3d(sigilSvg, "ГОЛО_ПРОЕКЦИЯ :: СТАБИЛЬНА", false)}
+  1264→        </div>
+  1265→      </div>
+  1266→    </div>`;
+  1267→  }
+  1268→
+  1269→  function formatName(name){
+  1270→    if(!name) return "[без имени]";
+  1271→    // Highlight the last word in green (the "epithet")
+  1272→    const parts = escapeHtml(name).split(" ");
+  1273→    if(parts.length>1){
+  1274→      const last=parts.pop();
+  1275→      return parts.join(" ") + ' <span class="g">'+last+'</span>';
+  1276→    }
+  1277→    return '<span class="g">'+escapeHtml(name)+'</span>';
+  1278→  }
+  1279→  function escapeHtml(s){
+  1280→    if(s==null) return "";
+  1281→    return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  1282→  }
+  1283→  function escapeAttr(s){
+  1284→    return escapeHtml(s);
+  1285→  }
+  1286→
+  1287→  function selectRecord(type, i){
+  1288→    const recs=STORE[type];
+  1289→    if(i<0||i>=recs.length) return;
+  1290→    STORE.selectedIdx[type]=i;
+  1291→    const slot=$("#detailSlot"); if(!slot) return;
+  1292→    slot.innerHTML=renderRecordCard(recs[i], type);
+  1293→    $$("#npcList .npc-row").forEach((r,j)=>r.classList.toggle("sel",j===i));
+  1294→    Audio.blip(520,0.05,0.08);
+  1295→    initPanelExtras("detail");
+  1296→  }
+  1297→
+  1298→  /* ---------- loader + panel switching ---------- */
+  1299→  const loader=$("#loader"),content=$("#content");
+  1300→  let busy=false, currentPanel=null;
+  1301→  async function startPanel(name,instant){
+  1302→    if(busy && !instant) return;
+  1303→    busy=true; currentPanel=name;
+  1304→    content.classList.remove("show");
+  1305→    loader.style.display="flex";
+  1306→    const out=$("#loaderOut"); out.innerHTML="";
+  1307→    const task=$("#loaderTask"),pct=$("#loaderPct"),pbar=$("#loaderPbar");
+  1308→    task.textContent="INITIALIZING";pct.textContent="0%";
+  1309→    let fill=pbar.querySelector("i"); if(fill) fill.style.width="0%";
+  1310→
+  1311→    // Ensure data is loaded
+  1312→    const logs = await buildLogs(name);
+  1313→
+  1314→    let li=0,total=logs.length;
+  1315→    function next(){
+  1316→      if(li<total){
+  1317→        const l=logs[li++];
+  1318→        const d=document.createElement("div");d.className="ln "+l.c;d.textContent=l.t;
+  1319→        out.appendChild(d);
+  1320→        const prog=Math.round(li/total*100);
+  1321→        pct.textContent=prog+"%";
+  1322→        task.textContent=l.t.replace(/^\>\s/,"").split(" ")[0]+"...";
+  1323→        if(fill) fill.style.width=prog+"%";
+  1324→        if(l.c==="err") Audio.glitch(0.08);
+  1325→        else if(l.c==="ok") Audio.blip(560+li*30,0.04,0.06);
+  1326→        out.parentElement && (out.parentElement.scrollTop=out.parentElement.scrollHeight);
+  1327→        setTimeout(next,100+Math.random()*80);
+  1328→      }else{
+  1329→        setTimeout(reveal,200);
+  1330→      }
+  1331→    }
+  1332→    function reveal(){
+  1333→      content.innerHTML=renderArchive(name);
+  1334→      content.scrollTop=0;
+  1335→      loader.style.display="none";
+  1336→      content.classList.add("show");
+  1337→      $("#crumbCur").textContent=META[name].crumb;
+  1338→      busy=false;
+  1339→      wirePanel(name);
+  1340→      initPanelExtras(name);
+  1341→    }
+  1342→    next();
+  1343→  }
+  1344→
+  1345→  async function buildLogs(name){
+  1346→    const meta=META[name];
+  1347→    const logs=[
+  1348→      {t:"открытие "+meta.label+" :: СЕКТОР_07 ...",c:"ok"},
+  1349→      {t:"запрос SUPABASE хранилища ......... /api/archive?type="+name,c:"ok"},
+  1350→    ];
+  1351→    // fetch if not yet loaded
+  1352→    if(STORE[name].length===0){
+  1353→      const recs=await fetchRecords(name);
+  1354→      STORE[name]=recs;
+  1355→    }
+  1356→    if(STORE[name].length===0){
+  1357→      logs.push({t:"хранилище вернуло 0 записей ...... [ВНИМАНИЕ]",c:"warn"});
+  1358→      logs.push({t:"проверьте таблицы Supabase или сид-данные.",c:"err"});
+  1359→    }else{
+  1360→      const locked=STORE[name].filter(r=>r.is_locked).length;
+  1361→      logs.push({t:"получено "+STORE[name].length+" записей ........ [ OK ]",c:"ok"});
+  1362→      if(locked>0) logs.push({t:locked+" записей ПОВРЕЖДЕНО/ОПЕЧАТАНО — частичный рендер.",c:"warn"});
+  1363→      logs.push({t:"рендеринг голо-сетки ................ [ OK ]",c:"ok"});
+  1364→    }
+  1365→    logs.push({t:"архив готов.",c:"ok"});
+  1366→    updateTags();
+  1367→    return logs;
+  1368→  }
+  1369→
+  1370→  function wirePanel(name){
+  1371→    $$("#npcList .npc-row").forEach(r=>{
+  1372→      r.addEventListener("click",()=>selectRecord(name, parseInt(r.dataset.i,10)));
+  1373→    });
+  1374→  }
+  1375→
+  1376→  function initPanelExtras(name){
+  1377→    if(name==="detail"||name==="npcs"||name==="lore"||name==="rulers"){
+  1378→      const corr=$("#corrName");
+  1379→      if(corr){
+  1380→        const corruptNames=["[ДАННЫЕ ПОВРЕЖДЕНЫ]","[Д_Н_Ы_ П_ВР_Ж_Н_]","[??Н? ??ВР?Ж??]","[ДАННЫЕ ПØВРЕЖДЕНЫ]","[_Д_А_Н_Н_Ы_Е_ П_О_В_Р_Е_Ж_Д_Е_Н_Ы_]","[ Д А Н Н Ы Е   П О В Р Е Ж Д ]"];
+  1381→        let ci=0;
+  1382→        corr._iv=setInterval(()=>{
+  1383→          if(!document.body.contains(corr)){clearInterval(corr._iv);return;}
+  1384→          corr.textContent=corruptNames[ci%corruptNames.length];ci++;
+  1385→        },220);
+  1386→        refreshGarble(["gar1","gar2"],18);
+  1387→      }
+  1388→    }
+  1389→  }
+  1390→  function refreshGarble(ids,len){
+  1391→    ids.forEach(id=>{
+  1392→      const el=document.getElementById(id);
+  1393→      if(!el)return;
+  1394→      el._iv=setInterval(()=>{
+  1395→        if(!document.body.contains(el)){clearInterval(el._iv);return;}
+  1396→        el.textContent=garble2(len);
+  1397→      },180);
+  1398→    });
+  1399→  }
+  1400→
+  1401→  /* ---------- menu wiring ---------- */
+  1402→  $$("#menu .menu-item").forEach(b=>{
+  1403→    b.addEventListener("click",()=>{
+  1404→      Audio.ensure();
+  1405→      $$("#menu .menu-item").forEach(x=>x.classList.remove("active"));
+  1406→      b.classList.add("active");
+  1407→      Audio.blip(440,0.05,0.09);
+  1408→      startPanel(b.dataset.panel);
+  1409→    });
+  1410→  });
+  1411→
+  1412→  /* ---------- audio toggle ---------- */
+  1413→  const audioBtn=$("#audioBtn");
+  1414→  audioBtn.addEventListener("click",()=>{
+  1415→    Audio.ensure();
+  1416→    if(Audio.isMuted()){ Audio.setMuted(false); audioBtn.classList.remove("off"); audioBtn.textContent="ЗВУК:ВКЛ"; Audio.beep(660,0.08,0.12); }
+  1417→    else { Audio.setMuted(true); audioBtn.classList.add("off"); audioBtn.textContent="ЗВУК:ВЫКЛ"; }
+  1418→  });
+  1419→
+  1420→  /* ---------- ambient particles ---------- */
+  1421→  (function initParticles(){
+  1422→    const container=$("#ambientParticles"); if(!container) return;
+  1423→    for(let i=0;i<18;i++){
+  1424→      const p=document.createElement("div"); p.className="p";
+  1425→      p.style.left=Math.random()*100+"%";
+  1426→      p.style.top=(40+Math.random()*60)+"%";
+  1427→      p.style.animationDuration=(4+Math.random()*8)+"s";
+  1428→      p.style.animationDelay=(Math.random()*6)+"s";
+  1429→      p.style.width=(1+Math.random()*2)+"px";
+  1430→      p.style.height=p.style.width;
+  1431→      container.appendChild(p);
+  1432→    }
+  1433→  })();
+  1434→
+  1435→  /* ---------- first user gesture ---------- */
+  1436→  function firstGesture(){
+  1437→    Audio.ensure();
+  1438→    document.removeEventListener("pointerdown",firstGesture);
+  1439→    document.removeEventListener("keydown",firstGesture);
+  1440→  }
+  1441→  document.addEventListener("pointerdown",firstGesture);
+  1442→  document.addEventListener("keydown",firstGesture);
+  1443→
+  1444→  /* ---------- visibility power-down/up ---------- */
+  1445→  let poweredDown=false;
+  1446→  document.addEventListener("visibilitychange",()=>{
+  1447→    const console_el=document.querySelector(".console");
+  1448→    if(document.hidden && !poweredDown){
+  1449→      poweredDown=true;
+  1450→      Audio.setActive(false);
+  1451→      if(console_el){
+  1452→        console_el.style.transition="filter .3s, opacity .3s";
+  1453→        console_el.style.filter="brightness(0.15) contrast(1.3)";
+  1454→        console_el.style.opacity="0.5";
+  1455→      }
+  1456→    }else if(!document.hidden && poweredDown){
+  1457→      poweredDown=false;
+  1458→      Audio.setActive(true);
+  1459→      if(console_el){
+  1460→        console_el.style.filter="brightness(2.2) contrast(1.1)";
+  1461→        setTimeout(()=>{ console_el.style.filter="brightness(1.3) contrast(1.1)"; },80);
+  1462→        setTimeout(()=>{ console_el.style.filter=""; console_el.style.opacity="1"; },350);
+  1463→      }
+  1464→      Audio.beep(120,0.08,0.10);
+  1465→      setTimeout(()=>Audio.beep(220,0.08,0.10),80);
+  1466→    }
+  1467→  });
+  1468→
+  1469→  // initial tag update
+  1470→  updateTags();
+  1471→
+  1472→})();
+  1473→</script>
+  1474→</body>
+  1475→</html>
+  1476→

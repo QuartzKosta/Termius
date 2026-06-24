@@ -25,6 +25,15 @@ export interface ArchiveRecord {
   image_url: string | null;
   sigil: string | null;
   is_locked: boolean;
+  puzzle_type: string | null;
+  puzzle_data: string | null;
+  puzzle_hint: string | null;
+  shard_word: string | null;
+  prophecy_bonus_text: string | null;
+  prophecy_date: string | null;
+  map_x: number | null;
+  map_y: number | null;
+  custom_trigger: string | null;
   created_at: string | null;
 }
 
