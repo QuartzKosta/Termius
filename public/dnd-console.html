@@ -1215,6 +1215,20 @@
   ];
   const bootLog = $("#bootLog");
   let bi=0;
+  // Background preload of lore/rulers counts so menu tags show real numbers
+  // without requiring the user to click each tab. Runs in parallel, silent on error.
+  async function preloadCounts(){
+    const types=["lore","rulers"];
+    await Promise.all(types.map(async t=>{
+      try{
+        if(STORE[t] && STORE[t].length>0) return;
+        const recs=await fetchRecords(t);
+        if(recs && recs.length>0){ STORE[t]=recs; }
+      }catch(e){}
+    }));
+    updateTags();
+  }
+
   function bootStep(){
     if(bi>=bootLines.length){
       setTimeout(()=>{
@@ -1222,6 +1236,8 @@
         $("#stage").classList.add("live");
         Audio.thud();
         startPanel("npcs",true);
+        // Kick off background preload for the other two archives
+        preloadCounts();
       },700);
       return;
     }

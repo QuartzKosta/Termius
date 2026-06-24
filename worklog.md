@@ -523,3 +523,56 @@ Stage Summary:
 - Site is now fully Russian (main console + admin panel + metadata).
 - Hologram upgraded to true 3D: wireframe cage + 5-layer depth extrusion + floating motes + cinematic rotation.
 - Note: 3D hologram only visible when records exist in Supabase. Run supabase-migration.sql to populate tables.
+
+---
+Task ID: AUDIT-1
+Agent: main (z.ai code)
+Task: Перепроверить всё, что было написано в предыдущих сессиях — убедиться, что ничего не отлетело/потерялось во время записи. Провести полный QA через agent-browser.
+
+Work Log:
+- Прочитал worklog.md — последняя запись про v4.1 (руссификация + 3D-голограмма). Сводка в контексте описывает v6.0 с гораздо большим функционалом (Warden's Gate, God's Gaze, 8 головоломок, достижения, осколки, map view, witching hour, projection mode).
+- Проверил dev.log — сервер работает стабильно, только /api/admin/players возвращает 500.
+- Проверил размер public/dnd-console.html: 1808 строк (сводка заявляла "2300+", но фактический размер меньше — строка в сводке была приблизительной).
+- Проверил все overlay-элементы в DOM: wardensGate ✅, bypassOverlay ✅, unveilOverlay ✅, projectionOverlay ✅, witchingIndicator ✅, achToastContainer ✅.
+- Проверил 4 пункта меню (data-panel): npcs ✅, lore ✅, rulers ✅, achievements ✅.
+- Проверил STORE: achievements Set ✅, readRecords Set ✅, collectedFragments Set ✅, selectedIdx ✅.
+- Проверил все ключевые функции: checkSession ✅, showGate ✅, hideGate ✅, applyGazeClass ✅, addGaze ✅, isValidImageUrl ✅, safeImgTag ✅, openBypass ✅, bypassFail ✅, bypassSuccess ✅, closeBypass ✅, unlockAchievement ✅ (2 ref), renderAchievements ✅, tryCollectShard ✅, renderShardLog ✅, trackRead ✅, showUnveil ✅, openProjection ✅, renderMapView ✅, checkWitching ✅, fetchRecords ✅, buildLogs ✅. logout и closeProjection реализованы как inline-обработчики (не отдельных функций) — корректно.
+- Проверил 8 типов головоломок: renderKeyword ✅, renderTumbler ✅, renderConstellation ✅, renderAlchemy ✅, renderCircuit ✅, renderRunes ✅, renderMeta ✅, "fragment" — inline-сообщение (не отдельная функция, корректно по замыслу).
+- Проверил CSS-классы: gaze-low/med/high/extreme ✅, wardens-gate ✅, bypass-overlay ✅, unveil-overlay ✅, projection-overlay ✅, witching-indicator ✅, achievement-toast ✅ (не "ach-toast"), shard-log ✅ (не "shard-meta"), map-container ✅, map-svg ✅, meter-tooltip ✅, cooldown ✅. "gaze-meter" в сводке был описательным названием — фактически используется существующий класс .meter + .meter .bar.
+- Проверил метрику ВЗГЛЯД БОГА: на месте, заменяет ПОРЧА, с тултипом (пороги 30/60/90/100%).
+- Проверил админку (src/app/admin/page.tsx): WardensPanel ✅, EventsPanel ✅, EditModal ✅, UploadForm ✅, RecordCard ✅, custom_trigger (20 refs) ✅.
+
+QA через agent-browser (http://localhost:3000/dnd-console.html):
+- Страница грузится, boot-sequence на русском отрабатывает.
+- Warden's Gate показывается поверх архива (WARDEN NAME + CIPHER + ENTER THE ARCHIVE).
+- Найден UX-баг: метки меню ЛОРА и ПРАВИТЕЛИ показывали "0 rec" пока не кликнёшь на вкладку (ленивая загрузка). Данные в API есть (lore=37, rulers=27).
+- ИСПРАВЛЕНО: добавил функцию preloadCounts() — фоновая предзагрузка lore+rulers сразу после boot, updateTags() вызывается по завершении. Теперь все 3 вкладки показывают реальные счётчики сразу: НПС 47 (14🔒), ЛОР 37 (20🔒), ПРАВИТЕЛИ 27 (8🔒). Всего 111 записей, 42 запечатано.
+- Login с несуществующим стражем → graceful 404 "// Страж не найден" (error handling работает).
+- Клик по запечатанной записи (Mourven the Hollow) → кнопка "⚠ СНЯТЬ ПЕЧАТЬ" → открывается bypass-overlay с головоломкой типа "circuit" (9 ячеек 3×3, 1 уже в потоке, клики вращают плитки).
+- Вкладка ДОСТИЖЕНИЯ: "0 / 10 получено", 10 слотов (все скрыты/???).
+- Map view: рендерится SVG с кластерами (ОПЕЧАТАНО, UNDEAD, ABERRATION, ДЬЯВОЛ, НЕЖИТЬ и т.д.), узлами и легендой.
+- Клик по открытой записи (The Cinder-King) → кнопка "📽 ПРОЕКЦИЯ" → projection-overlay показывает имя + титул.
+- Witching indicator: hidden (корректно — сейчас день по Москве).
+- Gaze meter: 3% (корректно — ничего не решено).
+- Shard log: "0 / 5" (5 осколков доступно).
+
+QA админки (/admin):
+- Логин паролем WARDEN → ОК.
+- Dashboard: NPC 47, LORE 37, RULERS 27 (совпадает с фронтом!), WARDENS "—" (проблема).
+- ПАНЕЛЬ СОБЫТИЙ: Час Ведьмы (toggle + время 0:00-4:00 + timezone + cooldown + label + message), Управление Взглядом Бога (ВКЛ/ВЫКЛ ЧАС, ОТКРЫТЬ ОКО +50%, ЗАКРЫТЬ ОКО).
+- WARDENS: форма создания (имя + пароль + СОЗДАТЬ СТРАЖА), но список пуст.
+- Record list: кнопки UNLOCK/LOCK/✎/✕ для каждой записи.
+
+Найденная проблема БД (НЕ устранима из sandbox):
+- POST /api/admin/players и /api/auth/login возвращают "permission denied for table players".
+- Причина: таблицы players и player_achievements в Supabase созданы БЕЗ GRANT для роли service_role. Таблицы npcs/lore/rulers имеют GRANT — поэтому работают.
+- Service key (sb_secret_...) корректно настроен и мапится на service_role, но Postgres-level GRANT отсутствует именно на players/player_achievements.
+- Создан файл supabase-fix-players-grant.sql с безопасным фиксом (только GRANT, без удаления данных). Пользователь должен выполнить его в Supabase Dashboard → SQL Editor.
+- Без этого фикса: невозможно создавать стражей, входить в архив, сохранять достижения серверно. Однако архив полностью функционален в анонимном режиме (достижения сохраняются в localStorage).
+
+Stage Summary:
+- Всё, что заявлено в сводке v6.0, физически присутствует в коде: оверлеи, функции, головоломки, достижения, карта, проекция, witching hour, God's Gaze. Ничего не "отлетело".
+- JS syntax: чистый (node --check). ESLint: чистый.
+- Исправлен UX-баг с ленивой загрузкой меток меню (preloadCounts).
+- Создан supabase-fix-players-grant.sql для починки прав на таблицу players.
+- Критично для пользователя: выполнить supabase-fix-players-grant.sql в Supabase SQL Editor, чтобы заработали регистрация/вход/сохранение достижений.
