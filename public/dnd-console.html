@@ -680,6 +680,28 @@
   .bypass-box.denied{border-color:var(--red);box-shadow:0 0 80px rgba(255,36,36,.4),inset 0 0 40px rgba(255,36,36,.1),0 30px 60px rgba(0,0,0,.8);animation:bypassShake .3s steps(4) 2}
   .bypass-box.granted{border-color:var(--green);box-shadow:0 0 80px rgba(74,246,38,.4),inset 0 0 40px rgba(74,246,38,.1),0 30px 60px rgba(0,0,0,.8)}
   @keyframes bypassShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+  /* ============ BYPASS SUCCESS — dramatic multi-phase reveal ============ */
+  .bypass-box.charging{animation:bypassCharge 0.8s ease-out forwards}
+  @keyframes bypassCharge{
+    0%{box-shadow:0 0 80px rgba(74,246,38,.4),inset 0 0 40px rgba(74,246,38,.1),0 30px 60px rgba(0,0,0,.8)}
+    50%{box-shadow:0 0 120px rgba(74,246,38,.7),inset 0 0 60px rgba(74,246,38,.3),0 30px 60px rgba(0,0,0,.8);transform:scale(1.02)}
+    100%{box-shadow:0 0 160px rgba(74,246,38,.9),inset 0 0 80px rgba(74,246,38,.5),0 30px 60px rgba(0,0,0,.8);transform:scale(1.04)}
+  }
+  .bypass-box.bursting{animation:bypassBurst 0.6s ease-out forwards}
+  @keyframes bypassBurst{
+    0%{transform:scale(1.04);box-shadow:0 0 160px rgba(74,246,38,.9),inset 0 0 80px rgba(74,246,38,.5),0 30px 60px rgba(0,0,0,.8)}
+    30%{transform:scale(1.12) rotate(1deg);box-shadow:0 0 200px rgba(74,246,38,1),inset 0 0 100px rgba(74,246,38,.8),0 0 0 rgba(0,0,0,.8)}
+    60%{transform:scale(1.08) rotate(-1deg)}
+    100%{transform:scale(1.04) rotate(0);box-shadow:0 0 80px rgba(74,246,38,.4),inset 0 0 40px rgba(74,246,38,.1),0 30px 60px rgba(0,0,0,.8)}
+  }
+  .bypass-status.granted{font-size:18px;letter-spacing:4px;animation:statusReveal 0.6s ease-out}
+  @keyframes statusReveal{0%{opacity:0;transform:scale(0.8)}50%{opacity:1;transform:scale(1.1)}100%{transform:scale(1)}}
+  .bypass-particle{position:absolute;width:4px;height:4px;background:var(--green);border-radius:50%;pointer-events:none;box-shadow:0 0 8px var(--green)}
+  @keyframes particleFly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+  .bypass-progress-bar{height:3px;background:#0a0d0a;border:1px solid var(--green-dim);margin-top:14px;overflow:hidden;clip-path:polygon(0 0,calc(100% - 4px) 0,100% 4px,100% 100%,4px 100%,0 calc(100% - 4px))}
+  .bypass-progress-bar i{display:block;height:100%;width:0;background:repeating-linear-gradient(45deg,var(--green) 0 4px,#0c2a08 4px 8px);transition:width .1s linear}
+  .bypass-phase-text{font-family:'VT323',monospace;font-size:11px;color:var(--text-dim);letter-spacing:1px;margin-top:8px;min-height:14px;text-align:center}
   .bypass-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px dashed rgba(232,161,58,.3)}
   .bypass-title{font-family:'MedievalSharp',serif;font-size:22px;color:var(--amber);text-shadow:0 0 12px rgba(232,161,58,.6);letter-spacing:3px}
   .bypass-close{background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:16px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
@@ -2100,24 +2122,76 @@
   function bypassSuccess(){
     const box = $("#bypassBox");
     const status = $("#bypassStatus");
-    box.classList.add("granted");
+    const slot = $("#bypassPuzzle");
+    // Lock puzzle immediately
+    _puzzleLocked = true;
+    if(slot) slot.classList.add("puzzle-frozen");
+    // Phase 1: CHARGING — box glows brighter, scale up, status shows "ЗАРЯДКА..."
     box.classList.remove("denied");
-    status.textContent = "ДОСТУП РАЗРЕШЕН — печать снята";
+    box.classList.add("charging");
+    status.textContent = "⟡ ЗАРЯДКА МАНЫ...";
     status.className = "bypass-status granted";
-    // Green flash
-    const flash = document.createElement("div");
-    flash.style.cssText = "position:fixed;inset:0;background:radial-gradient(circle,rgba(74,246,38,0),rgba(74,246,38,.2));z-index:9400;pointer-events:none;animation:flicker .5s forwards";
-    document.body.appendChild(flash);
-    setTimeout(()=>flash.remove(), 500);
-    // Success chord
-    Audio.beep(523, 0.15, 0.16);
-    setTimeout(()=>Audio.beep(659, 0.15, 0.16), 120);
-    setTimeout(()=>Audio.beep(784, 0.2, 0.18), 240);
-    // After 1.1s: unlock server-side, refresh data, show unveil, grant achievements
+    status.style.color = "var(--cyan)";
+    status.style.textShadow = "0 0 12px rgba(63,214,200,.8)";
+    Audio.beep(220, 0.3, 0.12); // low hum
+    // Add progress bar + phase text
+    const progressBar = document.createElement("div");
+    progressBar.className = "bypass-progress-bar";
+    progressBar.innerHTML = "<i></i>";
+    box.appendChild(progressBar);
+    const phaseText = document.createElement("div");
+    phaseText.className = "bypass-phase-text";
+    phaseText.textContent = "// синхронизация с архивом...";
+    box.appendChild(phaseText);
+    // Animate progress bar 0→100% over 0.8s
+    const fill = progressBar.querySelector("i");
+    let prog = 0;
+    const progIv = setInterval(()=>{
+      prog = Math.min(100, prog + 8 + Math.random() * 6);
+      fill.style.width = prog + "%";
+    }, 60);
+    // Phase 2: BURST — at 0.8s, dramatic burst with particles + screen flash
+    setTimeout(()=>{
+      clearInterval(progIv);
+      fill.style.width = "100%";
+      box.classList.remove("charging");
+      box.classList.add("bursting");
+      phaseText.textContent = "// ПЕЧАТЬ СНИМАЕТСЯ...";
+      status.textContent = "⚡ ПРОРЫВ!";
+      status.style.color = "var(--green)";
+      status.style.textShadow = "0 0 16px rgba(74,246,38,1)";
+      // Screen flash
+      const flash = document.createElement("div");
+      flash.style.cssText = "position:fixed;inset:0;background:radial-gradient(circle,rgba(74,246,38,.4),rgba(74,246,38,0));z-index:9400;pointer-events:none;animation:flicker .6s forwards";
+      document.body.appendChild(flash);
+      setTimeout(()=>flash.remove(), 600);
+      // Particle burst from box center
+      const boxRect = box.getBoundingClientRect();
+      const cx = boxRect.left + boxRect.width / 2;
+      const cy = boxRect.top + boxRect.height / 2;
+      for(let p = 0; p < 24; p++){
+        const particle = document.createElement("div");
+        particle.className = "bypass-particle";
+        particle.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;z-index:9401;--dx:${(Math.random()-0.5)*400}px;--dy:${(Math.random()-0.5)*400}px;animation:particleFly ${0.6+Math.random()*0.4}s ease-out forwards`;
+        document.body.appendChild(particle);
+        setTimeout(()=>particle.remove(), 1000);
+      }
+      // Burst sound: rising chord + noise
+      Audio.beep(523, 0.1, 0.18);
+      setTimeout(()=>Audio.beep(659, 0.1, 0.18), 60);
+      setTimeout(()=>Audio.beep(784, 0.15, 0.2), 120);
+      setTimeout(()=>Audio.glitch(0.15), 180);
+    }, 800);
+    // Phase 3: REVEAL — at 1.4s, show "ДОСТУП РАЗРЕШЕН" + unlock server-side + unveil
     setTimeout(async ()=>{
       const ctx = bypassContext;
       if(!ctx) return;
       const garbled = ctx.record.name || "[ДАННЫЕ ПОВРЕЖДЕНЫ]";
+      box.classList.remove("bursting");
+      box.classList.add("granted");
+      status.textContent = "✓ ДОСТУП РАЗРЕШЕН";
+      status.style.color = "var(--green)";
+      phaseText.textContent = "// печать снята — извлекаю данные...";
       try{
         await fetch("/api/archive/unlock", {
           method: "POST",
@@ -2128,27 +2202,34 @@
         updateTags();
         const updated = STORE[ctx.type].find(r => r.id === ctx.record.id);
         const realName = updated ? (updated.name || "") : "";
-        // Achievements (stage 5)
         addGaze(8);
         unlockAchievement("FIRST_BREACH");
         if(ctx.record.puzzle_type) unlockAchievement("PUZZLE_" + ctx.record.puzzle_type.toUpperCase());
-        // SEALBREAKER: all records across all 3 archives are unlocked
         const allLocked = [];
         ["npcs","lore","rulers"].forEach(t => {
           allLocked.push(...STORE[t].filter(r => r.is_locked));
         });
         if(allLocked.length === 0) unlockAchievement("SEALBREAKER");
-        // Collect shard if the unlocked record carries one (stage 6)
         if(updated && updated.shard_word){
           tryCollectShard(updated);
         }
-        showUnveil(garbled, realName);
+        // Phase 4: UNVEIL — at 1.8s, show the dramatic name reveal overlay
+        setTimeout(()=>{
+          showUnveil(garbled, realName);
+          // Final triumphant chord
+          Audio.beep(523, 0.2, 0.18);
+          setTimeout(()=>Audio.beep(659, 0.2, 0.18), 100);
+          setTimeout(()=>Audio.beep(784, 0.3, 0.2), 200);
+          setTimeout(()=>Audio.beep(1047, 0.4, 0.22), 350);
+          closeBypass();
+          if(currentPanel) startPanel(currentPanel);
+        }, 400);
       }catch(e){
         showUnveil(garbled, garbled);
+        closeBypass();
+        if(currentPanel) startPanel(currentPanel);
       }
-      closeBypass();
-      if(currentPanel) startPanel(currentPanel);
-    }, 1100);
+    }, 1400);
   }
 
   function showUnveil(garbled, realName){
@@ -2319,58 +2400,68 @@
     render();
   }
 
-  /** Circuit puzzle — rotate L-shaped pipe tiles to connect source (cell 0) to drain (cell 8).
-   *  Each tile is an L-pipe with 2 open ends. Rotation 0: left+down, 1: down+right,
-   *  2: right+up, 3: up+left. Player must form a continuous pipe path from 0 to 8. */
+  /** Circuit puzzle — rotate pipe tiles to connect source to drain.
+   *  Tile types: 'L' (elbow, 2 ends), 'I' (straight, 2 ends opposite),
+   *  'T' (3 ends). Each tile randomized per cell. Source/drain positions
+   *  randomized on edges. Every game is a different layout. */
   function renderCircuit(slot, pd){
-    // L-pipe openings per rotation: [rot] = {ends: [dir1, dir2]}
     // Directions: 0=up, 1=right, 2=down, 3=left
-    // Rot 0: left+down (3,2), Rot 1: down+right (2,1), Rot 2: right+up (1,0), Rot 3: up+left (0,3)
-    const PIPE_ENDS = [
-      [3, 2], // rot 0: left + down
-      [2, 1], // rot 1: down + right
-      [1, 0], // rot 2: right + up
-      [0, 3], // rot 3: up + left
-    ];
-    // Opposite direction (for checking connection between neighbors)
-    const OPP = [2, 3, 0, 1]; // up↔down, left↔right
-    // Grid 3x3: index = row*3 + col
+    const OPP = [2, 3, 0, 1];
+    // Tile end-sets per type per rotation
+    // L-pipe (elbow): 2 adjacent ends, rotates through 4 orientations
+    const L_ENDS = [[3,2],[2,1],[1,0],[0,3]]; // left+down, down+right, right+up, up+left
+    // I-pipe (straight): 2 opposite ends, 2 unique orientations (horiz/vert)
+    const I_ENDS = [[1,3],[0,2],[1,3],[0,2]]; // left+right, up+down (rot 2 = rot 0)
+    // T-pipe: 3 ends, 4 orientations
+    const T_ENDS = [[0,1,2],[1,2,3],[2,3,0],[3,0,1]]; // missing one direction each
+    const END_POINTS = {0:"20 0", 1:"40 20", 2:"20 40", 3:"0 20"}; // dir → SVG coord
+
+    // Randomize tile types per cell (mix of L, I, T for variety)
+    const tileTypes = Array.from({length: 9}, () => {
+      const r = Math.random();
+      if(r < 0.5) return "L";      // 50% elbows (most common)
+      if(r < 0.8) return "I";      // 30% straight
+      return "T";                  // 20% T-junctions
+    });
+    // Source on top-edge or left-edge, drain on bottom-edge or right-edge
+    // Randomize to make each puzzle unique
+    const sourceOptions = [0, 1, 2, 3, 6]; // top row + left-bottom
+    const drainOptions = [2, 5, 8, 6, 7];  // right col + bottom row
+    const source = sourceOptions[Math.floor(Math.random() * sourceOptions.length)];
+    let drain;
+    do {
+      drain = drainOptions[Math.floor(Math.random() * drainOptions.length)];
+    } while(drain === source);
+
+    function tileEnds(idx, rot){
+      const t = tileTypes[idx];
+      const ends = t === "L" ? L_ENDS : t === "I" ? I_ENDS : T_ENDS;
+      return ends[rot % 4];
+    }
+    function hasOpening(idx, dir, rotations){
+      const ends = tileEnds(idx, rotations[idx]);
+      return ends.includes(dir);
+    }
     function neighbors(idx){
       const row = Math.floor(idx / 3), col = idx % 3;
       const n = [];
-      if(row > 0) n.push({idx: idx - 3, dir: 0}); // up neighbor
-      if(col < 2) n.push({idx: idx + 1, dir: 1}); // right neighbor
-      if(row < 2) n.push({idx: idx + 3, dir: 2}); // down neighbor
-      if(col > 0) n.push({idx: idx - 1, dir: 3}); // left neighbor
+      if(row > 0) n.push({idx: idx - 3, dir: 0});
+      if(col < 2) n.push({idx: idx + 1, dir: 1});
+      if(row < 2) n.push({idx: idx + 3, dir: 2});
+      if(col > 0) n.push({idx: idx - 1, dir: 3});
       return n;
     }
-    function tileEnds(idx, rot){
-      return PIPE_ENDS[rot % 4];
-    }
-    // Check if tile idx has an opening in direction dir
-    function hasOpening(idx, dir, rotations){
-      const ends = tileEnds(idx, rotations[idx]);
-      return ends[0] === dir || ends[1] === dir;
-    }
-    // BFS from source (cell 0) following connected pipe openings.
-    // Source is cell 0, drain is cell 8. Both must be on the path.
+    // BFS from source to drain
     function isConnected(rotations){
-      // Source cell 0 must have an opening to start the flow.
-      // We treat cell 0 as the source — flow enters from "outside" (left or up).
-      // For simplicity: flow starts at cell 0, must reach cell 8.
-      const visited = new Set();
-      const queue = [0];
-      visited.add(0);
+      const visited = new Set([source]);
+      const queue = [source];
       while(queue.length > 0){
         const cur = queue.shift();
-        if(cur === 8) return true; // reached drain
+        if(cur === drain) return true;
         const ends = tileEnds(cur, rotations[cur]);
-        // Check both openings of current tile connect to neighbors
         for(const dir of ends){
           const nb = neighbors(cur).find(n => n.dir === dir);
-          if(!nb) continue; // edge of grid, no neighbor
-          if(visited.has(nb.idx)) continue;
-          // Neighbor must have opening in opposite direction
+          if(!nb || visited.has(nb.idx)) continue;
           if(hasOpening(nb.idx, OPP[dir], rotations)){
             visited.add(nb.idx);
             queue.push(nb.idx);
@@ -2379,64 +2470,64 @@
       }
       return false;
     }
-    // Randomize rotations, but ensure NOT already solved
-    let rotations;
-    do {
-      rotations = Array.from({length: 9}, () => Math.floor(Math.random() * 4));
-    } while(isConnected(rotations));
-
-    function render(){
-      const cells = Array.from({length: 9}, (_, i) => {
-        const rot = rotations[i] * 90;
-        // L-pipe path: from center to two ends based on rotation
-        // Endpoints at edges: up=(20,0), right=(40,20), down=(20,40), left=(0,20)
-        const ends = PIPE_ENDS[rotations[i]];
-        const endPts = ends.map(d => {
-          if(d === 0) return "20 0";      // up
-          if(d === 1) return "40 20";     // right
-          if(d === 2) return "20 40";     // down
-          return "0 20";                   // left
-        });
-        return `<div class="circuit-cell" data-cell="${i}"><svg viewBox="0 0 40 40">
-          <path d="M ${endPts[0]} L 20 20 L ${endPts[1]}" transform="rotate(0 20 20)" style="stroke:var(--text-dim);stroke-width:8;fill:none"/>
-        </svg></div>`;
-      }).join("");
-      // Highlight connected cells if path exists
-      let pathCells = "";
-      if(isConnected(rotations)){
-        // Re-run BFS to mark path
-        const visited = new Set([0]);
-        const queue = [0];
-        while(queue.length > 0){
-          const cur = queue.shift();
-          const ends = PIPE_ENDS[rotations[cur]];
-          for(const dir of ends){
-            const nb = neighbors(cur).find(n => n.dir === dir);
-            if(!nb || visited.has(nb.idx)) continue;
-            if(hasOpening(nb.idx, OPP[dir], rotations)){
-              visited.add(nb.idx);
-              queue.push(nb.idx);
-            }
+    // Get path cells (for highlighting)
+    function getPathCells(rotations){
+      const visited = new Set([source]);
+      const queue = [source];
+      while(queue.length > 0){
+        const cur = queue.shift();
+        const ends = tileEnds(cur, rotations[cur]);
+        for(const dir of ends){
+          const nb = neighbors(cur).find(n => n.dir === dir);
+          if(!nb || visited.has(nb.idx)) continue;
+          if(hasOpening(nb.idx, OPP[dir], rotations)){
+            visited.add(nb.idx);
+            queue.push(nb.idx);
           }
         }
-        pathCells = [...visited];
       }
+      return [...visited];
+    }
+    // Randomize rotations, ensure NOT already solved
+    let rotations;
+    let attempts = 0;
+    do {
+      rotations = Array.from({length: 9}, () => Math.floor(Math.random() * 4));
+      attempts++;
+    } while(isConnected(rotations) && attempts < 50);
+
+    function buildPathSvg(tileType, rot, onPath){
+      const ends = tileType === "L" ? L_ENDS[rot] : tileType === "I" ? I_ENDS[rot] : T_ENDS[rot];
+      const pts = ends.map(d => END_POINTS[d]);
+      const color = onPath ? "var(--green)" : "var(--text-dim)";
+      const glow = onPath ? "filter:drop-shadow(0 0 4px var(--green))" : "";
+      // Build path: for L, two segments meeting at center; for I, straight line; for T, three segments
+      let d;
+      if(tileType === "I"){
+        d = `M ${pts[0]} L 20 20 L ${pts[1]}`;
+      } else if(tileType === "L"){
+        d = `M ${pts[0]} L 20 20 L ${pts[1]}`;
+      } else { // T: 3 ends, all connect to center
+        d = `M ${pts[0]} L 20 20 M 20 20 L ${pts[1]} M 20 20 L ${pts[2]}`;
+      }
+      return `<path d="${d}" style="stroke:${color};stroke-width:8;fill:none;${glow}"/>`;
+    }
+
+    function render(){
+      const pathCells = isConnected(rotations) ? getPathCells(rotations) : [];
       const cellsHtml = Array.from({length: 9}, (_, i) => {
-        const rot = rotations[i] * 90;
-        const ends = PIPE_ENDS[rotations[i]];
-        const endPts = ends.map(d => {
-          if(d === 0) return "20 0";
-          if(d === 1) return "40 20";
-          if(d === 2) return "20 40";
-          return "0 20";
-        });
-        const onPath = pathCells && pathCells.includes(i);
+        const onPath = pathCells.includes(i);
+        const isSource = i === source;
+        const isDrain = i === drain;
+        const pathSvg = buildPathSvg(tileTypes[i], rotations[i], onPath);
+        const marker = isSource ? `<circle cx="20" cy="20" r="6" style="fill:var(--cyan);filter:drop-shadow(0 0 8px var(--cyan))"/>` :
+                       isDrain ? `<circle cx="20" cy="20" r="6" style="fill:var(--amber);filter:drop-shadow(0 0 8px var(--amber))"/>` : "";
         return `<div class="circuit-cell${onPath?" flow":""}" data-cell="${i}"><svg viewBox="0 0 40 40">
-          <path d="M ${endPts[0]} L 20 20 L ${endPts[1]}" style="stroke:${onPath?"var(--green)":"var(--text-dim)"};stroke-width:8;fill:none;${onPath?"filter:drop-shadow(0 0 4px var(--green))":""}"/>
+          ${pathSvg}${marker}
         </svg></div>`;
       }).join("");
       slot.innerHTML = `<div>
-        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:10px">соедините трубы: источник (0) → сток (8)</div>
+        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:8px">соедините трубы: <span style="color:var(--cyan)">● источник</span> → <span style="color:var(--amber)">● сток</span></div>
         <div class="circuit-grid">${cellsHtml}</div>
       </div>`;
       $$(".circuit-cell", slot).forEach(c => {
