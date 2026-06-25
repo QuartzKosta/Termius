@@ -2178,8 +2178,8 @@
     else if(ptype === "alchemy") renderAlchemy(slot, pd);
     else if(ptype === "runes") renderRunes(slot, pd);
     else if(ptype === "meta") renderMeta(slot, pd);
-    else if(ptype === "fragment") slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// прочтите эту запись для осколка.<br>запись откроется после снятия печати.</div>`;
-    else slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// неизвестный тип печати: ${escapeHtml(ptype || "—")}</div>`;
+    else if(ptype === "fragment") slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// эта запись содержит осколок памяти.<br>закройте это окно и прочтите запись — осколок соберётся автоматически.</div>`;
+    else slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// печать без головоломки — запись нельзя открыть.</div>`;
   }
 
   /** Keyword puzzle — enter the correct code word. */
@@ -2192,6 +2192,7 @@
     </div>`;
     const inp = $("#pkInput");
     const submit = ()=>{
+      if(_puzzleLocked) return; // cooldown block
       const val = (inp.value || "").toLowerCase().trim();
       if(!val) return;
       if(val === answer) bypassSuccess();
@@ -2199,7 +2200,19 @@
     };
     $("#pkSubmit").addEventListener("click", submit);
     inp.addEventListener("keydown", e => { if(e.key === "Enter") submit(); });
-    setTimeout(()=>inp.focus(), 100);
+    // Disable input while cooldown active, re-enable when released
+    const syncLock = () => {
+      inp.disabled = _puzzleLocked;
+      const btn = $("#pkSubmit");
+      if(btn) btn.disabled = _puzzleLocked;
+      if(!_puzzleLocked) setTimeout(()=>inp.focus(), 50);
+    };
+    syncLock();
+    // Poll lock state (cooldown releases asynchronously)
+    const lockInterval = setInterval(()=>{
+      if(!document.body.contains(inp)){ clearInterval(lockInterval); return; }
+      syncLock();
+    }, 200);
   }
 
   /** Tumbler puzzle — rotate drum wheels to match the correct symbol sequence. */
@@ -2306,23 +2319,125 @@
     render();
   }
 
-  /** Circuit puzzle — rotate tiles to complete the mana flow path. */
+  /** Circuit puzzle — rotate L-shaped pipe tiles to connect source (cell 0) to drain (cell 8).
+   *  Each tile is an L-pipe with 2 open ends. Rotation 0: left+down, 1: down+right,
+   *  2: right+up, 3: up+left. Player must form a continuous pipe path from 0 to 8. */
   function renderCircuit(slot, pd){
-    const solution = pd.solution || [0, 1, 2, 5, 8];
-    let rotations = Array.from({length: 9}, () => Math.floor(Math.random() * 4));
-    // Expected rotation per solution cell (0=up-right, 1=right-down, 2=down-left, 3=left-up)
-    const expectedRot = { 0: 0, 1: 0, 2: 2, 5: 1, 8: 0 };
-    function isFlow(idx){
-      return solution.includes(idx) && rotations[idx] === expectedRot[idx];
+    // L-pipe openings per rotation: [rot] = {ends: [dir1, dir2]}
+    // Directions: 0=up, 1=right, 2=down, 3=left
+    // Rot 0: left+down (3,2), Rot 1: down+right (2,1), Rot 2: right+up (1,0), Rot 3: up+left (0,3)
+    const PIPE_ENDS = [
+      [3, 2], // rot 0: left + down
+      [2, 1], // rot 1: down + right
+      [1, 0], // rot 2: right + up
+      [0, 3], // rot 3: up + left
+    ];
+    // Opposite direction (for checking connection between neighbors)
+    const OPP = [2, 3, 0, 1]; // up↔down, left↔right
+    // Grid 3x3: index = row*3 + col
+    function neighbors(idx){
+      const row = Math.floor(idx / 3), col = idx % 3;
+      const n = [];
+      if(row > 0) n.push({idx: idx - 3, dir: 0}); // up neighbor
+      if(col < 2) n.push({idx: idx + 1, dir: 1}); // right neighbor
+      if(row < 2) n.push({idx: idx + 3, dir: 2}); // down neighbor
+      if(col > 0) n.push({idx: idx - 1, dir: 3}); // left neighbor
+      return n;
     }
+    function tileEnds(idx, rot){
+      return PIPE_ENDS[rot % 4];
+    }
+    // Check if tile idx has an opening in direction dir
+    function hasOpening(idx, dir, rotations){
+      const ends = tileEnds(idx, rotations[idx]);
+      return ends[0] === dir || ends[1] === dir;
+    }
+    // BFS from source (cell 0) following connected pipe openings.
+    // Source is cell 0, drain is cell 8. Both must be on the path.
+    function isConnected(rotations){
+      // Source cell 0 must have an opening to start the flow.
+      // We treat cell 0 as the source — flow enters from "outside" (left or up).
+      // For simplicity: flow starts at cell 0, must reach cell 8.
+      const visited = new Set();
+      const queue = [0];
+      visited.add(0);
+      while(queue.length > 0){
+        const cur = queue.shift();
+        if(cur === 8) return true; // reached drain
+        const ends = tileEnds(cur, rotations[cur]);
+        // Check both openings of current tile connect to neighbors
+        for(const dir of ends){
+          const nb = neighbors(cur).find(n => n.dir === dir);
+          if(!nb) continue; // edge of grid, no neighbor
+          if(visited.has(nb.idx)) continue;
+          // Neighbor must have opening in opposite direction
+          if(hasOpening(nb.idx, OPP[dir], rotations)){
+            visited.add(nb.idx);
+            queue.push(nb.idx);
+          }
+        }
+      }
+      return false;
+    }
+    // Randomize rotations, but ensure NOT already solved
+    let rotations;
+    do {
+      rotations = Array.from({length: 9}, () => Math.floor(Math.random() * 4));
+    } while(isConnected(rotations));
+
     function render(){
       const cells = Array.from({length: 9}, (_, i) => {
-        const flow = isFlow(i), rot = rotations[i] * 90;
-        return `<div class="circuit-cell${flow?" flow":""}" data-cell="${i}"><svg viewBox="0 0 40 40"><path d="M 0 20 L 20 20 L 20 40" transform="rotate(${rot} 20 20)"/></svg></div>`;
+        const rot = rotations[i] * 90;
+        // L-pipe path: from center to two ends based on rotation
+        // Endpoints at edges: up=(20,0), right=(40,20), down=(20,40), left=(0,20)
+        const ends = PIPE_ENDS[rotations[i]];
+        const endPts = ends.map(d => {
+          if(d === 0) return "20 0";      // up
+          if(d === 1) return "40 20";     // right
+          if(d === 2) return "20 40";     // down
+          return "0 20";                   // left
+        });
+        return `<div class="circuit-cell" data-cell="${i}"><svg viewBox="0 0 40 40">
+          <path d="M ${endPts[0]} L 20 20 L ${endPts[1]}" transform="rotate(0 20 20)" style="stroke:var(--text-dim);stroke-width:8;fill:none"/>
+        </svg></div>`;
+      }).join("");
+      // Highlight connected cells if path exists
+      let pathCells = "";
+      if(isConnected(rotations)){
+        // Re-run BFS to mark path
+        const visited = new Set([0]);
+        const queue = [0];
+        while(queue.length > 0){
+          const cur = queue.shift();
+          const ends = PIPE_ENDS[rotations[cur]];
+          for(const dir of ends){
+            const nb = neighbors(cur).find(n => n.dir === dir);
+            if(!nb || visited.has(nb.idx)) continue;
+            if(hasOpening(nb.idx, OPP[dir], rotations)){
+              visited.add(nb.idx);
+              queue.push(nb.idx);
+            }
+          }
+        }
+        pathCells = [...visited];
+      }
+      const cellsHtml = Array.from({length: 9}, (_, i) => {
+        const rot = rotations[i] * 90;
+        const ends = PIPE_ENDS[rotations[i]];
+        const endPts = ends.map(d => {
+          if(d === 0) return "20 0";
+          if(d === 1) return "40 20";
+          if(d === 2) return "20 40";
+          return "0 20";
+        });
+        const onPath = pathCells && pathCells.includes(i);
+        return `<div class="circuit-cell${onPath?" flow":""}" data-cell="${i}"><svg viewBox="0 0 40 40">
+          <path d="M ${endPts[0]} L 20 20 L ${endPts[1]}" style="stroke:${onPath?"var(--green)":"var(--text-dim)"};stroke-width:8;fill:none;${onPath?"filter:drop-shadow(0 0 4px var(--green))":""}"/>
+        </svg></div>`;
       }).join("");
       slot.innerHTML = `<div>
-        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:10px">поверните плитки для потока маны</div>
-        <div class="circuit-grid">${cells}</div>
+        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:10px">соедините трубы: источник (0) → сток (8)</div>
+        <div class="circuit-grid">${cellsHtml}</div>
       </div>`;
       $$(".circuit-cell", slot).forEach(c => {
         c.addEventListener("click", () => {
@@ -2330,7 +2445,7 @@
           const i = parseInt(c.dataset.cell, 10);
           rotations[i] = (rotations[i] + 1) % 4;
           Audio.blip(440 + i * 30, 0.04, 0.08);
-          if(solution.every(idx => isFlow(idx))){
+          if(isConnected(rotations)){
             render();
             bypassSuccess();
           } else {
@@ -2523,7 +2638,8 @@
     $("#projectionTitle").textContent = record.title || "";
     $("#projectionDesc").textContent = isLocked ? "// запись опечатана" : (record.description || "");
     ov.classList.add("show");
-    unlockAchievement("VOICE_OF_GOD");
+    // Note: VOICE_OF_GOD achievement requires TTS playback (not yet implemented).
+    // Do NOT grant it here just for opening projection.
     Audio.beep(220, 0.15, 0.14);
     setTimeout(()=>Audio.beep(330, 0.15, 0.14), 150);
   }
