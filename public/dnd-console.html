@@ -2032,15 +2032,25 @@
   let _puzzleErrors = 0; // error counter per bypass session — drives cooldown escalation
 
   function openBypass(record, type){
+    // Block opening a new puzzle while success animation is playing
+    // (prevents stale context race condition)
+    if($("#bypassBox").classList.contains("charging") || $("#bypassBox").classList.contains("bursting")){
+      return;
+    }
     bypassContext = { record, type };
     _puzzleErrors = 0;
     _puzzleLocked = false;
     const box = $("#bypassBox");
-    box.classList.remove("denied","granted","frozen");
+    box.classList.remove("denied","granted","frozen","charging","bursting");
     const hint = $("#bypassHint");
     const status = $("#bypassStatus");
     status.textContent = "";
     status.className = "bypass-status";
+    // Clear any inline styles left from previous success animation
+    status.style.color = "";
+    status.style.textShadow = "";
+    // Remove progress bar + phase text if they survived from a previous run
+    box.querySelectorAll(".bypass-progress-bar, .bypass-phase-text").forEach(el => el.remove());
     // Parse puzzle_data JSON (or default empty)
     let pd = {};
     try { pd = record.puzzle_data ? JSON.parse(record.puzzle_data) : {}; } catch(e){}
@@ -2123,8 +2133,12 @@
     const box = $("#bypassBox");
     const status = $("#bypassStatus");
     const slot = $("#bypassPuzzle");
-    // Lock puzzle immediately
+    // Lock puzzle immediately + capture context NOW (before async timeouts)
+    // This prevents a bug where opening another puzzle mid-animation would
+    // unlock the NEW (unsolved) puzzle via the stale bypassContext reference.
     _puzzleLocked = true;
+    const ctx = bypassContext; // capture snapshot
+    if(!ctx) return;
     if(slot) slot.classList.add("puzzle-frozen");
     // Phase 1: CHARGING — box glows brighter, scale up, status shows "ЗАРЯДКА..."
     box.classList.remove("denied");
@@ -2184,7 +2198,7 @@
     }, 800);
     // Phase 3: REVEAL — at 1.4s, show "ДОСТУП РАЗРЕШЕН" + unlock server-side + unveil
     setTimeout(async ()=>{
-      const ctx = bypassContext;
+      // Use captured ctx (not global bypassContext, which may have changed)
       if(!ctx) return;
       const garbled = ctx.record.name || "[ДАННЫЕ ПОВРЕЖДЕНЫ]";
       box.classList.remove("bursting");
