@@ -404,7 +404,7 @@
   .card-status.locked{border-color:var(--red-dim);color:var(--red);animation:statusBlink 1.4s steps(2) infinite}
   @keyframes statusBlink{50%{opacity:.3}}
 
-  .card-body{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;align-items:stretch}
+  .card-body{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;align-items:start}
   .card-info{display:flex;flex-direction:column;gap:8px;min-width:0;padding:0 16px 16px}
   .npc-name{
     font-family:'MedievalSharp',serif;font-size:22px;letter-spacing:1px;
@@ -442,7 +442,7 @@
 
   /* ---------- Hologram ---------- */
   .holo{
-    position:relative;aspect-ratio:1/1;min-height:200px;
+    position:relative;aspect-ratio:1/1;min-height:200px;max-height:400px;
     border:1px solid var(--green-deep);
     background:
       radial-gradient(circle at 50% 60%,rgba(74,246,38,.10),transparent 60%),
