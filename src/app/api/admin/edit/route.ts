@@ -27,8 +27,14 @@ export async function POST(req: NextRequest) {
     if (!table || !id) {
       return NextResponse.json({ error: "type and id required" }, { status: 400 });
     }
-    const str = (v: unknown, max: number) =>
-      typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
+    const str = (v: unknown, max: number) => {
+      if (typeof v === "string" && v.trim()) return v.trim().slice(0, max);
+      // If v is an object/array (e.g. admin sent parsed JSON), stringify it
+      if (typeof v === "object" && v !== null) {
+        try { return JSON.stringify(v).slice(0, max); } catch { return null; }
+      }
+      return null;
+    };
     const numOrNull = (v: unknown) => {
       if (v === null || v === undefined || v === "") return null;
       const n = Number(v);
