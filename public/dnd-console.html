@@ -436,7 +436,10 @@
 
   .desc{font-size:14px;line-height:1.55;color:var(--text);margin-top:4px;position:relative;white-space:pre-wrap}
   .desc.dim{color:var(--text-dim)}
-  .censor{display:inline-block;background:#000;border:1px solid #1a1a1a;height:.9em;vertical-align:-1px;margin:0 1px}
+  .censor{display:inline-block;background:#000;border:1px solid #1a1a1a;height:.9em;vertical-align:-1px;margin:0 1px;animation:censorGlitch 3s steps(8) infinite}
+  @keyframes censorGlitch{0%,90%,100%{background:#000}92%{background:#1a0808}94%{background:#0a0a0a}96%{background:#000}}
+  .desc-block.locked-glitch{filter:hue-rotate(0deg) contrast(.9);animation:lockedFlicker 4s steps(20) infinite}
+  @keyframes lockedFlicker{0%,88%,100%{opacity:.9}90%{opacity:.6}92%{opacity:.9}}
   .desc-block{position:relative}
   .desc-block .garble{color:var(--text-dim);letter-spacing:1px;word-break:break-all}
 
@@ -1623,11 +1626,11 @@
       clusters[cat].push(r);
     });
     const cNames = Object.keys(clusters), nC = cNames.length;
-    // Adapt cluster radius to number of clusters — keep nodes within 5-95 bounds
+    // Adapt cluster radius to number of clusters — spread clusters apart
     const cx = 50, cy = 50;
-    const cR = nC <= 2 ? 0 : (nC <= 4 ? 22 : (nC <= 6 ? 28 : 34));
-    // Node ring radius within cluster — smaller for fewer records
-    const irBase = recs.length <= 5 ? 5 : (recs.length <= 10 ? 6 : 8);
+    const cR = nC <= 1 ? 0 : (nC <= 2 ? 20 : (nC <= 4 ? 26 : (nC <= 6 ? 30 : 34)));
+    // Node ring radius within cluster — spread nodes within cluster
+    const irBase = recs.length <= 5 ? 10 : (recs.length <= 10 ? 12 : (recs.length <= 20 ? 10 : 8));
     let nodes = [], links = [], ccs = [];
     cNames.forEach((cn, ci) => {
       // Position cluster center on a circle around the map
@@ -1636,15 +1639,15 @@
       const ccy = nC <= 1 ? cy : (cy + Math.sin(a) * cR);
       ccs.push({ name: cn, x: ccx, y: ccy });
       const cr = clusters[cn];
-      const ir = Math.min(irBase, 3 + cr.length * 1.2);
+      const ir = Math.max(irBase, 5 + cr.length * 1.5);
       cr.forEach((r, ri) => {
         const ra = (ri / cr.length) * Math.PI * 2;
         let cls = "";
         if(r.is_locked) cls = "locked";
         else if(r.shard_word) cls = "fragment";
         const label = r.is_locked ? "🔒" : ((r.name || "?").split(" ")[0].slice(0, 10));
-        const nx = (r.map_x != null && r.map_x > 0) ? r.map_x : Math.max(5, Math.min(95, ccx + Math.cos(ra) * ir));
-        const ny = (r.map_y != null && r.map_y > 0) ? r.map_y : Math.max(5, Math.min(95, ccy + Math.sin(ra) * ir));
+        const nx = (r.map_x != null && r.map_x > 0) ? r.map_x : Math.max(8, Math.min(92, ccx + Math.cos(ra) * ir));
+        const ny = (r.map_y != null && r.map_y > 0) ? r.map_y : Math.max(8, Math.min(92, ccy + Math.sin(ra) * ir));
         nodes.push({ x: nx, y: ny, cls, label, id: r.id, name: r.name || "", locked: !!r.is_locked });
       });
       // Link nodes within a cluster in a ring
@@ -1758,9 +1761,27 @@
             <div class="stat-row">
               <span class="chip">???</span><span class="chip">НЕИЗВЕСТНО</span><span class="chip">ОПЕЧАТАНО</span>
             </div>
-            <p class="desc desc-block">
+            <p class="desc desc-block locked-glitch" id="lockedDesc">
               <span class="garble" id="gar1"></span><br>
-              ${r.description ? escapeHtml(r.description).slice(0, 200) + (r.description.length > 200 ? "…" : "") : "Некто <span class=\"censor\" style=\"width:64px\"></span> шёл по <span class=\"censor\" style=\"width:90px\"></span> до того, как <span class=\"censor\" style=\"width:48px\"></span> пал. Он говорит <span class=\"censor\" style=\"width:72px\"></span> и торгует <span class=\"censor\" style=\"width:54px\"></span>. Не <span class=\"censor\" style=\"width:40px\"></span> его имя."}
+              ${(() => {
+                if(!r.description) return "Некто <span class=\"censor\" style=\"width:64px\"></span> шёл по <span class=\"censor\" style=\"width:90px\"></span> до того, как <span class=\"censor\" style=\"width:48px\"></span> пал.";
+                // Censor: replace most words with ███ blocks, only show garble + occasional partial word
+                const words = r.description.split(/\s+/).slice(0, 40);
+                const censored = words.map(w => {
+                  const r2 = Math.random();
+                  if(r2 < 0.85){
+                    // 85% fully censored
+                    return `<span class="censor" style="width:${Math.max(30, Math.min(120, w.length * 8 + 10))}px"></span>`;
+                  } else if(w.length > 4){
+                    // 15% show 1-2 chars + censor rest
+                    const show = w.slice(0, Math.min(2, Math.floor(w.length/3)));
+                    return escapeHtml(show) + `<span class="censor" style="width:${Math.max(20, (w.length-show.length) * 8)}px"></span>`;
+                  } else {
+                    return `<span class="censor" style="width:${Math.max(30, w.length * 8 + 10)}px"></span>`;
+                  }
+                }).join(" ");
+                return censored + (r.description.split(/\s+/).length > 40 ? " …" : "");
+              })()}
               <br><span class="garble" id="gar2"></span>
             </p>
             ${r.puzzle_type ? `<button class="seal-btn" id="bypassBtn" data-id="${escapeAttr(r.id)}" data-type="${type}">⚠ СНЯТЬ ПЕЧАТЬ</button>` : `<div style="margin-top:10px;font-size:12px;color:var(--text-dim);text-align:center;font-style:italic">// печать без головоломки.</div>`}
