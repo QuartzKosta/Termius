@@ -1040,21 +1040,24 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
     });
   }
 
-  function godCommand(cmd: "wh_on" | "wh_off" | "eye_open" | "eye_close") {
+  function godCommand(cmd: "wh_on" | "wh_off" | "gaze_25" | "gaze_50" | "gaze_reset") {
     try {
       if (cmd === "wh_on") {
         localStorage.setItem("ashen_witching_manual", "true");
-        flash("🌙 ЧАС ВЕДЬМЫ ВКЛЮЧЁН");
+        flash("🌙 ЧАС ВЕДЬМЫ ВКЛЮЧЁН (ручной режим)");
       } else if (cmd === "wh_off") {
         // Frontend checks === "false" and then removes the key.
         localStorage.setItem("ashen_witching_manual", "false");
         flash("ЧАС ВЕДЬМЫ ВЫКЛЮЧЕН");
-      } else if (cmd === "eye_open") {
+      } else if (cmd === "gaze_25") {
+        localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "open_eye", amount: 25 }));
+        flash("ВЗГЛЯД УСИЛЕН +25%");
+      } else if (cmd === "gaze_50") {
         localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "open_eye", amount: 50 }));
-        flash("👁 ОКО ОТКРЫВАЕТСЯ +50%");
-      } else if (cmd === "eye_close") {
+        flash("ВЗГЛЯД УСИЛЕН +50%");
+      } else if (cmd === "gaze_reset") {
         localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "close_eye" }));
-        flash("👁 ОКО ЗАКРЫВАЕТСЯ");
+        flash("ВЗГЛЯД СБРОШЕН ДО 0%");
       }
     } catch {
       /* ignore */
@@ -1068,7 +1071,15 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
       </button>
       {open && (
         <div style={styles.eventsBody}>
-          <div style={styles.eventsSectionTitle}>🌙 ЧАС ВЕДЬМЫ</div>
+          {/* ===== ЧАС ВЕДЬМЫ — Schedule configuration ===== */}
+          <div style={styles.eventsSectionTitle}>🌙 ЧАС ВЕДЬМЫ — НАСТРОЙКА РАСПИСАНИЯ</div>
+          <div style={styles.eventsDesc}>
+            {"// Час Ведьмы — периодическое событие. В заданное время у игрока"}
+            <br />
+            {"// растёт Взгляд Бога и появляется индикатор в statusbar."}
+            <br />
+            {"// Можно включить по расписанию или вручную кнопкой ниже."}
+          </div>
 
           <label style={styles.checkRow}>
             <input
@@ -1077,42 +1088,70 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
               onChange={(e) => update({ enabled: e.target.checked })}
               style={styles.checkbox}
             />
-            <span>ВКЛЮЧИТЬ ЧАС ВЕДЬМЫ</span>
+            <span>Включить по расписанию</span>
           </label>
 
-          <label style={styles.fieldLabel}>НАЧАЛО (ЧЧ:ММ)</label>
-          <div style={styles.timeRow}>
-            <input type="number" min={0} max={23} value={cfg.startHour} onChange={(e) => update({ startHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "80px" }} />
-            <span style={{ color: "#5d685c" }}>:</span>
-            <input type="number" min={0} max={59} value={cfg.startMinute} onChange={(e) => update({ startMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "80px" }} />
+          <div style={styles.fieldRow}>
+            <div>
+              <label style={styles.fieldLabel}>Начало (ЧЧ:ММ)</label>
+              <div style={styles.timeRow}>
+                <input type="number" min={0} max={23} value={cfg.startHour} onChange={(e) => update({ startHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "80px" }} />
+                <span style={{ color: "#5d685c" }}>:</span>
+                <input type="number" min={0} max={59} value={cfg.startMinute} onChange={(e) => update({ startMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "80px" }} />
+              </div>
+            </div>
+            <div>
+              <label style={styles.fieldLabel}>Конец (ЧЧ:ММ)</label>
+              <div style={styles.timeRow}>
+                <input type="number" min={0} max={23} value={cfg.endHour} onChange={(e) => update({ endHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "80px" }} />
+                <span style={{ color: "#5d685c" }}>:</span>
+                <input type="number" min={0} max={59} value={cfg.endMinute} onChange={(e) => update({ endMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "80px" }} />
+              </div>
+            </div>
           </div>
 
-          <label style={styles.fieldLabel}>КОНЕЦ (ЧЧ:ММ)</label>
-          <div style={styles.timeRow}>
-            <input type="number" min={0} max={23} value={cfg.endHour} onChange={(e) => update({ endHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "80px" }} />
-            <span style={{ color: "#5d685c" }}>:</span>
-            <input type="number" min={0} max={59} value={cfg.endMinute} onChange={(e) => update({ endMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "80px" }} />
-          </div>
-
-          <label style={styles.fieldLabel}>ЧАСОВОЙ ПОЯС (UTC, напр. 3 = Москва)</label>
+          <label style={styles.fieldLabel}>Часовой пояс (UTC+, напр. 3 = Москва)</label>
           <input type="number" step="1" value={cfg.timezone} onChange={(e) => update({ timezone: Number(e.target.value) || 0 })} style={styles.input} />
 
-          <label style={styles.fieldLabel}>МНОЖИТЕЛЬ ВЗГЛЯДА (% добавки)</label>
+          <label style={styles.fieldLabel}>Усиление взгляда (% за срабатывание)</label>
           <input type="number" step="1" value={cfg.boost} onChange={(e) => update({ boost: Number(e.target.value) || 0 })} style={styles.input} />
 
-          <label style={styles.fieldLabel}>ЗАГОЛОВОК</label>
+          <label style={styles.fieldLabel}>Заголовок индикатора</label>
           <input value={cfg.title} onChange={(e) => update({ title: e.target.value })} placeholder="ЧАС ВЕДЬМЫ" style={styles.input} />
 
-          <label style={styles.fieldLabel}>СООБЩЕНИЕ</label>
+          <label style={styles.fieldLabel}>Текст сообщения (показывается в popup)</label>
           <textarea value={cfg.msg} onChange={(e) => update({ msg: e.target.value })} rows={3} style={{ ...styles.input, resize: "vertical" }} />
 
-          <div style={styles.eventsSectionTitle}>👁 УПРАВЛЕНИЕ ВЗГЛЯДОМ БОГА</div>
-          <div style={styles.godRow}>
-            <button onClick={() => godCommand("wh_on")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>🌙 ВКЛ. ЧАС ВЕДЬМЫ</button>
-            <button onClick={() => godCommand("wh_off")} style={{ ...styles.miniBtn, ...styles.miniGreen }}>ВЫКЛ. ЧАС</button>
-            <button onClick={() => godCommand("eye_open")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>👁 ОТКРЫТЬ ОКО +50%</button>
-            <button onClick={() => godCommand("eye_close")} style={{ ...styles.miniBtn, ...styles.miniGreen }}>👁 ЗАКРЫТЬ ОКО</button>
+          {/* ===== Divider between schedule and quick controls ===== */}
+          <div style={styles.eventsDivider} />
+
+          {/* ===== ВЗГЛЯД БОГА — Quick controls ===== */}
+          <div style={styles.eventsSectionTitle}>👁 ВЗГЛЯД БОГА — БЫСТРОЕ УПРАВЛЕНИЕ</div>
+          <div style={styles.eventsDesc}>
+            {"// Взгляд Бога — метра 0-100%. Чем больше игрок читает и решает,"}
+            <br />
+            {"// тем сильнее бог его замечает. При высоких значениях архив"}
+            <br />
+            {"// деградирует (помехи, виньетка, дрожь). Админ может мгновенно"}
+            <br />
+            {"// изменить значение кнопками ниже."}
           </div>
+
+          <label style={styles.fieldLabel}>Час Ведьмы — ручной режим</label>
+          <div style={styles.quickRow}>
+            <button onClick={() => godCommand("wh_on")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>🌙 Включить сейчас</button>
+            <button onClick={() => godCommand("wh_off")} style={{ ...styles.miniBtn, ...styles.miniGreen }}>Выключить</button>
+          </div>
+          <div style={styles.eventsHintLine}>{"// мгновенно включает или отключает Час Ведьмы (manual override)"}</div>
+
+          <label style={styles.fieldLabel}>Взгляд Бога — мгновенное изменение</label>
+          <div style={styles.quickRow}>
+            <button onClick={() => godCommand("gaze_25")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>Усилить взгляд +25%</button>
+            <button onClick={() => godCommand("gaze_50")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>Усилить взгляд +50%</button>
+            <button onClick={() => godCommand("gaze_reset")} style={{ ...styles.miniBtn, ...styles.miniGreen }}>Сбросить взгляд</button>
+          </div>
+          <div style={styles.eventsHintLine}>{"// мгновенно повышает или сбрасывает значение gaze (записывается в ashen_gaze_cmd)"}</div>
+
           <div style={styles.hint}>
             {"// команды пишутся в localStorage и подхватываются консолью (опрос 1с / 30с)"}
           </div>
@@ -1186,8 +1225,12 @@ const styles: Record<string, React.CSSProperties> = {
   miniRed: { background: "linear-gradient(180deg,rgba(255,36,36,.1),rgba(255,36,36,.02))", borderColor: "#a01212", color: "#ff2424" },
   eventsWrap: { borderBottom: "1px solid #1a201a", background: "rgba(10,13,10,.4)" },
   eventsToggle: { width: "100%", background: "none", border: "none", color: "#e8a13a", fontFamily: "'Share Tech Mono', monospace", fontSize: "13px", letterSpacing: "2px", padding: "10px 16px", cursor: "pointer", textAlign: "left", textShadow: "0 0 8px rgba(232,161,58,.4)" },
-  eventsBody: { padding: "12px 16px 16px", display: "flex", flexDirection: "column", gap: "4px" },
-  eventsSectionTitle: { fontFamily: "'MedievalSharp', serif", fontSize: "14px", color: "#e8a13a", letterSpacing: "2px", marginTop: "12px", marginBottom: "6px", paddingBottom: "4px", borderBottom: "1px solid #1a201a" },
+  eventsBody: { padding: "14px 16px 20px", display: "flex", flexDirection: "column", gap: "8px" },
+  eventsSectionTitle: { fontFamily: "'MedievalSharp', serif", fontSize: "14px", color: "#e8a13a", letterSpacing: "2px", marginTop: "16px", marginBottom: "8px", paddingBottom: "4px", borderBottom: "1px solid #1a201a" },
+  eventsDesc: { fontSize: "11px", color: "#5d685c", letterSpacing: "0.5px", lineHeight: 1.55, background: "rgba(10,13,10,.6)", border: "1px solid #141a14", borderLeft: "2px solid #2c8a17", padding: "8px 10px", marginBottom: "4px", whiteSpace: "pre-wrap" },
+  eventsDivider: { borderTop: "1px dashed #2a2017", marginTop: "12px", marginBottom: "4px" },
+  eventsHintLine: { fontSize: "11px", color: "#5d685c", letterSpacing: "0.5px", fontStyle: "italic", marginTop: "4px", lineHeight: 1.5 },
+  quickRow: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "6px", marginTop: "4px" },
   checkRow: { display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#b6c2b2", letterSpacing: "1px", cursor: "pointer", padding: "4px 0" },
   checkbox: { width: "16px", height: "16px", accentColor: "#4af626", cursor: "pointer" },
   fieldRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" },

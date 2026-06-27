@@ -1076,3 +1076,23 @@ Extended the ASHEN CODEX admin panel to manage the new **fragment puzzle** syste
 - Amber accent `#e8a13a` + `VT323` font visually distinguishes the fragment-puzzle section from the green-terminal main puzzle.
 - Backend routes (`/api/admin/upload`, `/api/admin/edit`) and `src/lib/supabase.ts` already accepted/stored these fields — no backend changes needed.
 - Work record also saved to `/agent-ctx/FRAGMENT-PUZZLE-ADMIN-coder.md`.
+
+---
+Task ID: EVENTS-PANEL-REDESIGN
+Agent: admin-events
+Task: Redesign the EventsPanel in `src/app/admin/page.tsx` so each section is explained, each control is labelled in plain Russian, the gaze actions support both +25% and +50% increments plus a reset, and the cryptic 👁 buttons are replaced with clear text buttons.
+
+Work Log:
+- Read `src/app/admin/page.tsx` EventsPanel (function at line ~1016) and the shared `styles` object; confirmed `eventsBody`/`eventsSectionTitle`/`eventsWrap`/`eventsToggle`/`godRow` styles are events-panel-only (safe to modify/extend).
+- Rewrote `godCommand` to accept `"wh_on" | "wh_off" | "gaze_25" | "gaze_50" | "gaze_reset"` (was `wh_on | wh_off | eye_open | eye_close`). `gaze_25` → `{action:"open_eye", amount:25}`; `gaze_50` → `{action:"open_eye", amount:50}`; `gaze_reset` → `{action:"close_eye"}`. Toasts reworded ("ВЗГЛЯД УСИЛЕН +25%" etc.) and no longer scream "ОКО". The localStorage wire format is **unchanged** so the public console keeps polling the same keys.
+- Restructured the panel into two titled sections, each preceded by an `eventsDesc` explanatory box (dim `//`-prefixed prose explaining what "Час Ведьмы" and "Взгляд Бога" actually do).
+- Relabelled schedule fields to plain Russian: checkbox `Включить по расписанию`, `Начало (ЧЧ:ММ)` + `Конец (ЧЧ:ММ)` (now side-by-side via `fieldRow`), `Часовой пояс (UTC+, напр. 3 = Москва)`, `Усиление взгляда (% за срабатывание)`, `Заголовок индикатора`, `Текст сообщения (показывается в popup)`.
+- Replaced the single 4-button `godRow` with two `quickRow` rows, each followed by an `eventsHintLine` italic note: Row 1 = `🌙 Включить сейчас` / `Выключить` (manual witching); Row 2 = `Усилить взгляд +25%` / `Усилить взгляд +50%` / `Сбросить взгляд`. Removed the 👁 emoji from the gaze buttons (kept on the section title only).
+- Added 4 new styles: `eventsDesc` (dim framed description box with green left-border), `eventsDivider` (dashed `#2a2017` between schedule and quick-controls, matching the fragment-puzzle convention), `eventsHintLine` (small italic dim note under each button row), `quickRow` (auto-fit grid 1fr×N for responsive 2- and 3-button rows). Increased `eventsBody` gap 4px→8px and `eventsSectionTitle` top/bottom margins for breathing room.
+- `bun run lint` → 0 errors, 0 warnings.
+- `dev.log` shows continued `GET / 200` and admin API 200s; no compile/runtime regressions.
+- Work record also saved to `/agent-ctx/EVENTS-PANEL-REDESIGN-admin-events.md`.
+
+Notes:
+- The localStorage wire format (`ashen_gaze_cmd` payload shape, `ashen_witching_manual` values, `ashen_events_config_v2` schema) is **unchanged** — the public `dnd-console.html` consumer keeps polling exactly as before; this is purely an admin-UI redesign.
+- The unused `godRow` style key was left in place to keep the diff minimal (no lint impact); safe to remove in a future cleanup.

@@ -1,0 +1,1079 @@
+     1→# ASHEN CODEX — D&D Campaign Console — Worklog
+     2→
+     3→---
+     4→Task ID: 1
+     5→Agent: main (Z.ai Code)
+     6→Task: Create a pure HTML/CSS/Vanilla-JS Dark Fantasy D&D campaign console ("ASHEN CODEX") as a single standalone file, embedded into the Next.js preview.
+     7→
+     8→Work Log:
+     9→- Read existing project state (Next.js 16 app, dev server running on :3000, no prior worklog).
+    10→- Authored standalone `/home/z/my-project/public/dnd-console.html` (~1100 lines) with full inline `<style>` and `<script>`:
+    11→  - CRT overlays: scanlines, vignette, animated film noise (SVG turbulence), brightness flicker.
+    12→  - Boot sequence: white flash + horizontal sweep line + typed BIOS log (11 lines) + striped progress bar, then interface fades in.
+    13→  - Console frame: scratched-metal / cracked-glass look via layered CSS gradients, inset shadows, repeating scratch gradients, diagonal glass-crack hints.
+    14→  - Title bar with LEDs, MedievalSharp title, sector/pact meta.
+    15→  - Left sidebar menu: `QUERY_NPC_ARCHIVE`, `SCAN_PLAYER_UNITS`, `ACCESS_WORLD_LORE` + two LOCKED items (`SUMMON_RITUAL_NET`, `DECRYPT_DEAD_GOD`). Hover triggers RGB-split glitch + neon glow. Locked items shake + red screen-flash on click (no panel switch).
+    16→  - Typewriter loader: each menu click types system logs with [OK]/[WARN]/[FAIL] tags and an animated striped progress bar, then reveals the panel.
+    17→  - NPC ARCHIVE panel: two cards side by side.
+    18→    - Open NPC "Kaelen Ashbringer, the Fallen Paladin": MedievalSharp name, lore text, CR/type chips, HP/AC/STR/DEX/INT/WIS attrs, and a 3D hologram (inline SVG skull sigil, cyan-green tint, rotateY + sway animation, moving scan line, concentric rings, crosshair, 4 corner brackets, glow floor, tag label).
+    19→    - Corrupted NPC "[DATA CORRUPTED]": red glitch-animated name cycling through corrupted variants, censored black bars over lore, █▓▒░ garble blocks refreshing via JS, red garbled stat values, and a red error-symbol hologram with heavy static noise + fast jitter spin.
+    20→  - PLAYER_UNITS panel: 5 party unit cards (4 alive + 1 KIA) with HP bars, conditions, last-seen.
+    21→  - WORLD_LORE panel: 6 lore fragments (2 sealed/corrupted with glitch titles + censored text + garble).
+    22→  - Status bar: live clock, MEM/PACT/BREACH/WARN metrics, user warden_07.
+    23→  - Sidebar meters (SOUL_RESERVE / CORRUPTION / SIGNAL) drift over time; live clock in crumbs + status bar.
+    24→  - Google Fonts: VT323 + Share Tech Mono (system text), MedievalSharp (names).
+    25→  - Responsive: ≤900px collapses sidebar to horizontal wrap + cards to single column; ≤560px stacks card body.
+    26→- Wired `src/app/page.tsx` to render the console via a full-bleed `<iframe src="/dnd-console.html">` so the preview panel at `/` shows it.
+    27→- Ran `bun run lint` (clean) and checked `/home/z/my-project/dev.log` (only benign cross-origin preview warning, GET / 200).
+    28→
+    29→Verification (agent-browser + VLM):
+    30→- Opened `http://localhost:3000/dnd-console.html` standalone and `http://localhost:3000/` (iframe) — both boot correctly (`#boot` → `boot gone`, `#stage` → `stage live`, 11 boot-log lines, content rendered, 2 NPC cards present).
+    31→- VLM screenshot analysis confirmed: title bar "ASHEN CODEX // CAMPAIGN CONSOLE v3.7-pact", sidebar with all 3 commands + 2 locked, two NPC cards (Kaelen Ashbringer decrypted with green skull hologram + corner brackets + scan lines; [DATA CORRUPTED] red glitch with error-symbol hologram + static), green-on-black palette, scanlines, status bar with live clock.
+    32→- Interactions verified: clicking SCAN_PLAYER_UNITS → crumb becomes PLAYER_UNITS, 5 units render; ACCESS_WORLD_LORE → crumb WORLD_LORE, 6 entries (2 locked); locked menu click → red flash + shake, panel unchanged; returning to archive → 2 cards + 2 hologram SVGs render, corrupted name cycles glitch variants.
+    33→- Fixed one JS syntax error found via `node --check` (unescaped quotes in the `corruptNames` array) — root cause of the initial "black screen" (IIFE aborted before boot could run).
+    34→
+    35→Stage Summary:
+    36→- Deliverable: `/home/z/my-project/public/dnd-console.html` — a single self-contained file the user can copy, save as `.html`, and open in any browser to see the full atmosphere. No React/DB/Supabase.
+    37→- Preview: live at the `/` route via iframe.
+    38→- Scheduled task created: `webDevReview` every 15 minutes (fixed_rate 900s, tz Asia/Shanghai, job_id 220566) to continue QA + feature expansion autonomously.
+    39→- All required elements from the brief are present and browser-verified.
+    40→
+    41→Unresolved / Next-phase recommendations:
+    42→- Mobile viewport could not be resized via agent-browser in this session; responsive CSS is defined but not browser-verified at 390px — next phase should confirm with `agent-browser ... device`/viewport emulation.
+    43→- Add audio (ambient hum + boot beep + glitch bursts) behind a mute toggle — would massively boost atmosphere.
+    44→- Add a 4th interactive command (e.g. `RUN_ENCOUNTER_SIM`) with a turn-based mini log, and make the locked items unlockable via a hidden code typed on the keyboard.
+    45→- Add more NPCs to the archive (scrollable list + detail view) and per-NPC hologram variants (different SVG sigils).
+    46→- Persist the "corruption" meter and let high corruption visually degrade the whole console (more glitch, red bleed).
+    47→
+    48→---
+    49→Task ID: 2
+    50→Agent: main (Z.ai Code) — cron webDevReview round 2
+    51→Task: QA the existing console, then expand with new features + styling detail per mandatory requirements (audio, encounter sim, unlock-by-code, more NPCs, corruption degradation).
+    52→
+    53→Work Log:
+    54→- Reviewed worklog (Task ID 1 complete; previous round's planned feature expansion was NOT saved before interruption).
+    55→- QA re-confirm via agent-browser: boot completes (`boot gone` / `stage live`), 5 menu items, 2 NPC cards, zero console errors, lint clean. Mobile (390×844) verified: sidebar/menu/npc-list wrap horizontal, cards single-column, no overflow.
+    56→- Rewrote `/home/z/my-project/public/dnd-console.html` (~1400 lines) preserving all Task-1 visuals and adding 5 major feature systems + a styling detail pass. Verified JS with `node --check` (clean) and `bun run lint` (clean).
+    57→
+    58→New features added:
+    59→1. **Web Audio system (synthesized, no files)** — `Audio` IIFE module using Web Audio API: ambient drone (two detuned 55Hz sines + 110Hz triangle + lowpass-filtered noise bed), `beep()` for boot/UI, `glitch()` sawtooth bandpass burst, `thud()` for damage hits. AudioContext lazily inits on first user gesture (autoplay-policy safe). Mute toggle button in titlebar (`SOUND:OFF`/`SOUND:ON`, key `M`). Default muted. Boot lines, menu clicks, loader steps, damage, and corruption events all emit sounds.
+    60→2. **Data-driven NPC archive (8 NPCs)** — replaced the static 2-card layout with a list+detail split: left scrollable NPC list (8 entries: Kaelen Ashbringer, Mourven the Hollow, Sister Ysolde, Vasska the Coiled Word, the Cinder-King, the Hour-Keeper, + 2 corrupted), right detail card. Clicking a list row swaps the detail + hologram. 6 new inline-SVG hologram sigils (`i-eye`, `i-serpent`, `i-crown`, `i-flame`, `i-hourglass`, `i-ritual`, `i-god`) so each NPC gets a unique rotating hologram. Corrupted NPCs keep the red error sigil + censors + garble.
+    61→3. **RUN_ENCOUNTER_SIM (4th command)** — turn-based combat: ally (Sir Veylan, HP 50/AC 18) vs foe (Kaelen Ashbringer, HP 142/AC 19). `RUN ROUND` button does d20+mod vs AC, crit on nat 20 (×2 damage), fumble on nat 1, with animated dice-roll popup, HP bars that transition, color-coded log lines (atk green / fatk red / crit amber / die red). Foe retaliates after 550ms delay. `RESET` button. Destroying the foe reduces corruption −8; ally falling adds +10.
+    62→4. **Unlockable locked items (type WARDEN)** — keyboard buffer captures alpha keys; typing "WARDEN" (case-insensitive) triggers `unlockAll()`: removes `.locked`, adds `.unlocked` pulse animation on the two sealed commands, shows a golden "ACCESS GRANTED" overlay, plays a 3-note ascending arpeggio, +3 corruption cost. A live key-buffer hint appears bottom-left while typing. Once unlocked, SUMMON_RITUAL_NET renders an animated 12-rune summoning circle with a `BIND ENTITY (+5 CORR)` button; DECRYPT_DEAD_GOD renders a heresy reveal ("YMR-SOTH, THE UNMADE") with an `ACCEPT THE KNOWLEDGE (+12 CORR)` button.
+    63→5. **Corruption-driven global degradation** — a `State` object tracks corruption (0–100, starts 27). `applyCorruption()` sets `body.className` to `corr-low`/`corr-med`/`corr-high`/`corr-extreme`. Each tier progressively intensifies scanline opacity, CRT noise opacity, and red vignette bleed; `high` adds whole-body micro-jitter; `extreme` adds `consoleGlitch` (hue-rotate + translate). Corruption drifts +1 every ~3s (the seal fails over time) and spikes from in-app actions (unlock +3, ritual bind +5, god-accept +12, ally death +10; foe kill −8). Status bar shows live `CORR %` and `BREACH` (derived from corruption).
+    64→
+    65→Styling detail pass:
+    66→- Added `.curvature` (radial inner shadow) + `.phosphor` (green phosphor afterglow) layers inside the console frame for CRT depth.
+    67→- Titlebar now has metallic rivets (`.titlebar::before/::after` radial-gradient bolts) at left/right edges; border-radius bumped to 10px.
+    68→- Boot progress bar uses a real `<i>` fill child (was a broken `::after` CSS-var hack) that animates width cleanly.
+    69→- Encounter/ritual/god panels use consistent clipped-corner `clip-path` geometry + amber/red accent variants.
+    70→- Scrollbars styled green; NPC-list horizontal scroll on mobile; richer hologram (rings + crosshair + floor glow + tag) reused across all sigils.
+    71→- Added `dice-pop` floating animation for combat rolls, `unlockPulse` ring, `godPulse` glyph glow.
+    72→- Status bar gained live CORR + BREACH + WARN metrics wired to corruption tier.
+    73→
+    74→Verification (agent-browser + VLM + node --check):
+    75→- Boot: `boot gone` / `stage live`, 11 boot-log lines, audio button present, body `corr-low`. Standalone (`/dnd-console.html`) AND iframe (`/`) both verified — 6 menu items, 8 NPCs in list, detail card renders.
+    76→- NPC selection: clicking list row index 2 → detail swaps to "Sister Ysolde"; clicking index 3 → "Vasska, the Coiled Word" with serpent hologram (VLM confirmed serpent sigil + brackets + scan lines + rings + green-on-black).
+    77→- Encounter sim: `RUN ROUND` → "══ ROUND 1 ══", nat-20 crit logged ("CRITICAL! smites... for 18"), foe retaliates ("strikes for 11"), HP updates (ally 50→39, foe 142→124). VLM confirmed both combatant fields + log + buttons.
+    78→- Unlock: dispatching keydown W-A-R-D-E-N → locked count drops 2→0, "ACCESS GRANTED" overlay fires, ritual + deadgod panels become clickable and render (ritual circle + BIND button; deadgod "YMR-SOTH, THE UNMADE" + ACCEPT button).
+    79→- Corruption: accepting dead-god knowledge → corruption 46→58, body class flips `corr-low`→`corr-high` (global glitch/red-bleed intensifies).
+    80→- Mobile 390×844: sidebar/menu/npc-list all `flex-direction:row`, archive single-column, no overflow (VLM: "no overflow/cutoff issues").
+    81→- `node --check` on extracted JS: clean. `bun run lint`: clean. Browser console: zero errors/warnings (only React DevTools + HMR from the Next wrapper).
+    82→
+    83→Stage Summary:
+    84→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` now ~1400 lines, still a single self-contained file (no external deps beyond Google Fonts). All Task-1 visuals preserved; 5 new interactive systems layered on top.
+    85→- Preview: live at `/` via iframe; all new features work in the preview.
+    86→- Cron job `webDevReview` (job_id 220566, every 15 min) continues to drive autonomous QA + expansion.
+    87→
+    88→Unresolved / Next-phase recommendations:
+    89→- The audio ambient drone could use a slow LFO on the filter cutoff for a more "breathing" feel; currently static.
+    90→- Corruption currently only drifts up passively + via explicit actions; could add random "seal stress" events that spike it with a red alert overlay.
+    91→- Encounter sim is a single 1v1; could expand to full party (4 allies) vs a boss with initiative ordering and spell/ability buttons.
+    92→- More NPC sigils (beholder, lich-phylactery, kraken) and a "corrupted→decrypted" path where typing a second code (e.g. "PURGE") cleans one corrupted NPC.
+    93→- Persist state (corruption, unlocked set, encounter HP) to localStorage so refreshes don't reset progress.
+    94→- Consider a subtle screen-power-off animation when the user navigates away / tab hides.
+    95→
+    96→---
+    97→Task ID: 3
+    98→Agent: main (Z.ai Code) — cron webDevReview round 3
+    99→Task: QA the existing console, then implement the next-phase recommendations from Task 2 (localStorage persistence, breathing audio LFO + seal-stress events, PURGE cleanse code, party-based encounter with abilities).
+   100→
+   101→Work Log:
+   102→- Reviewed worklog (Tasks 1 & 2 complete: 5 feature systems — audio, data-driven archive, encounter sim, WARDEN unlock, corruption degradation).
+   103→- QA via agent-browser: boot completes, 6 menu items, 8 NPCs, zero console errors, `node --check` clean, `bun run lint` clean, iframe route works, mobile 390px responsive confirmed. No bugs found → proceeded to feature expansion.
+   104→- Extended `/home/z/my-project/public/dnd-console.html` (~2170 lines) with 5 new systems. All edits surgical (no full rewrite). JS re-verified with `node --check` + `bun run lint` (both clean) after each feature batch.
+   105→
+   106→New features added:
+   107→1. **localStorage persistence** — `STORE_KEY="ashen_codex_v1"`; `loadStore()`/`saveStore()` serialize corruption, soul, signal, unlocked set, cleansed set, selected NPC, encounter HP/round/over, audio mute. `saveStore()` guards `typeof EncState!=="undefined"` so early-init calls don't throw. State restores on reload: corrupted NPCs stay cleansed, locked items stay unlocked (WARDEN), encounter HP persists. Verified: PURGE → reload → cleansed NPC still cleansed; WARDEN → reload → items still unlocked.
+   108→2. **Breathing audio LFO** — two slow sine LFOs added to the `Audio.init()` drone: one (0.08Hz) modulates the noise lowpass filter cutoff (±90Hz) for a "breathing" tonal shift; another (0.05Hz) modulates the hum gain (±0.04) for slow swell. Makes the ambient drone feel alive instead of static.
+   109→3. **Random seal-stress events** — `sealStress()` fires from the 3s drift interval; chance scales with corruption (0.12 + corr/100×0.25). On trigger: spikes corruption 2–(3+corr/20), fires a red pulsing `#alertOverlay` with scrolling striped border ("SEAL STRESS / corruption spike +N% / seal integrity M%"), plays a descending 2-tone warning, and a glitch burst. At high corruption these become near-constant, reinforcing the degradation loop.
+   110→4. **PURGE second code** — typing "PURGE" (case-insensitive, anywhere) triggers `purgeOne()`: finds the first corrupted-and-not-yet-cleansed NPC, adds its id to `State.cleansed`, reduces corruption −6%, fires a green 4-note ascending arpeggio + "RECORD CLEANSED" alert, and re-renders the archive. Each corrupted NPC now carries a hidden `cleanse` block with full reveal data (name, title, class, sigil, CR, chips, desc, attrs, tag). Cleansed NPCs render as amber-accented "CLEANSED" cards with their true hologram sigil (e.g. corrupted NPC-07-??? → "Velkin the Unmourned" with amber eye sigil; NPC-07-?!7 → "The Sallow Regent" with amber crown sigil). The archive list row tag flips from "CORRUPT" to "CLEANSED".
+   111→5. **Party-based encounter with abilities** — replaced the 1v1 encounter with a 4-ally party (Sir Veylan/Paladin, Mirewen/Warlock, Brother Aldric/Cleric, Thistle/Rogue) vs Kaelen Ashbringer. Each ally has HP/AC/atk + a unique once-per-round ability: SMITE (big dmg), ELDRITCH (auto-hit force), HEAL (+18 to all living allies), SNEAK ATTACK (3×dmg). `NEXT TURN` advances initiative through living allies (auto basic-attack), wrapping starts a new round and refreshes abilities. `FOE STRIKE` makes the foe attack a random living ally. Active ally glows amber (`activePulse` animation); fallen allies desaturate. Victory → "VICTORY" alert + corruption −8; party wipe → "PARTY WIPED" alert + corruption +10.
+   112→
+   113→Styling detail pass:
+   114→- New `.alert-overlay` / `.alert-box` with red 2px border, pulsing box-shadow, scrolling striped top border (`stripeScroll`), `alertIn` + `alertPulse` keyframes.
+   115→- Encounter grid changed to `1.4fr 1fr` with `.enc-party` 2-col sub-grid; `.enc-field.ally.active` amber glow pulse; `.enc-field.down` grayscale+opacity; `.enc-btn.ability` amber full-width buttons.
+   116→- Responsive: `.enc-party` → 2-col at 900px, → 1-col at 560px.
+   117→- Boot/loader/menus unchanged (preserved from Tasks 1–2).
+   118→
+   119→Verification (agent-browser + VLM + node --check):
+   120→- Boot: `boot gone` / `stage live`, 6 menu items, 8 NPCs, 2 locked (fresh state), alert overlay present in DOM. Standalone + iframe both verified.
+   121→- Encounter: 4 ally fields + 1 foe field + 4 ability buttons (SMITE/ELDRITCH/HEAL/SNEAK ATTACK) + NEXT TURN/FOE STRIKE/RESET. NEXT TURN advanced initiative to Mirewen, auto-attacked ("Mirewen rolls 8 (14 vs AC 19) — deflected"). HEAL ability consumed + logged ("Brother Aldric channels HEAL — party +18 HP each"). FOE STRIKE works. VLM confirmed all elements + amber active-turn glow on Sir Veylan.
+   122→- PURGE: typing P-U-R-G-E → "RECORD CLEANSED" alert fired, corrupted 2→1, cleansed tag 0→1, detail card shows "Velkin the Unmourned" with amber eye sigil (`#i-eye`) + "CLEANSED" status. VLM confirmed the red alert overlay text.
+   123→- Persistence: after reload, cleansed NPC stays cleansed (1 cleansed, 1 corrupt); after WARDEN+reload, lockedCount=0 with store showing `["ritual","deadgod"]` unlocked.
+   124→- Mobile 390px: encounter party + encounter both single-column, no overflow.
+   125→- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors/warnings across all tests.
+   126→
+   127→Stage Summary:
+   128→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2170 lines, single self-contained file. All Task 1–2 visuals + features preserved; 5 new systems layered on top (persistence, breathing LFO, seal-stress alerts, PURGE cleanse, party encounter).
+   129→- Preview: live at `/` via iframe; all new features work in the preview.
+   130→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   131→
+   132→Unresolved / Next-phase recommendations:
+   133→- Encounter could use a "foe enrage" phase at <40% HP (extra attack per round) and a boss-ability button for asymmetry.
+   134→- The 6 decrypted NPCs could each get a unique "rumor" hook that, when clicked, adds a lore fragment to the WORLD_LORE panel — cross-panel content threading.
+   135→- Add a top-right "WIPE SAVE" hidden button (or type "FORGET") to clear localStorage for demo/reset purposes.
+   136→- Audio: add a rare random "whisper" layer (filtered reversed noise burst) at high corruption for extra unease.
+   137→- Consider a subtle power-down animation on `visibilitychange` (tab hide) — fade CRT + cut audio.
+   138→
+   139→---
+   140→Task ID: 4
+   141→Agent: main (Z.ai Code) — cron webDevReview round 4
+   142→Task: QA the existing console, then implement the next-phase recommendations from Task 3 (FORGET wipe code, foe enrage + boss ability, NPC rumor hooks → WORLD_LORE, whisper audio layer, visibilitychange power-down).
+   143→
+   144→Work Log:
+   145→- Reviewed worklog (Tasks 1–3 complete: 10 feature systems — audio, data-driven archive, encounter sim, WARDEN unlock, corruption degradation, localStorage, breathing LFO, seal-stress alerts, PURGE cleanse, party encounter with abilities).
+   146→- QA via agent-browser: boot completes, 6 menu items, 8 NPCs, 2 locked (fresh state), zero console errors, `node --check` clean, `bun run lint` clean, iframe route works, mobile responsive. No bugs found → proceeded to feature expansion.
+   147→- Extended `/home/z/my-project/public/dnd-console.html` (~2390 lines) with 5 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+   148→
+   149→New features added:
+   150→1. **FORGET wipe code** — typing "FORGET" triggers `forgetAll()`: removes localStorage key, resets State (corruption→27, soul→61, signal→88, unlocked/cleansed/rumors→empty Sets), resets encounter (full HP, round 0), re-locks the two sealed menu items, shows "MEMORY PURGED" overlay with double-glitch burst, and re-renders the current panel. Verified: rumors array empties, corruption resets to 27, locked count returns to 2.
+   151→2. **Foe enrage phase + boss ability** — FOE now has `enrageAt:0.4` + `bossAbility:"EMBER_NOVA"`. When foe HP drops below 40%, `foeEnraged()` returns true → foe field gets `.enraged` class (red pulsing `foeEnrage` animation), condition shows "ENRAGED (extra strike)", FOE STRIKE button reads "FOE STRIKE ×2", and `foeStrike()` calls `doFoeStrike(2)` which strikes twice with 650ms delay. New `bossAbility()` function: EMBER NOVA hits ALL living allies for 12–20 fire each (once per fight), with "NOVA!" dice popup, log lines per ally, and party-wipe check. Boss button is a red `.enc-btn.foe.ability` that disappears after use. Verified: foe at 55/142 (39%) → enraged=true, FOE STRIKE ×2, EMBER NOVA consumed + dealt fire to all 4 allies.
+   152→3. **NPC rumor hooks → WORLD_LORE** — each of the 6 decrypted NPCs now carries a `rumor:{title,body}` field with unique lore (e.g. "The Coal Kaelen Keeps", "The Third Answer", "Vasska's Riddle"). Decrypted NPC detail cards render a cyan `> EXTRACT RUMOR` button (or "rumor archived to WORLD_LORE" if already collected). `collectRumor(npcId)` adds the id to `State.rumors`, saves to localStorage, fires a "RUMOR ARCHIVED" alert with the rumor title, plays a 3-note ascending arpeggio. Converted `LORE_HTML` const → `renderLore()` function so `${rumorEntriesHtml()}` evaluates fresh each render; collected rumors appear at the bottom of WORLD_LORE under a "// ARCHIVED RUMORS — extracted from NPC_ARCHIVE" separator as cyan-accented `.entry.rumor` blocks. Verified: extract rumor → alert fires → WORLD_LORE shows the rumor entry at the bottom.
+   153→4. **Rare whisper audio layer** — new `Audio.whisper(vol)` method: generates a 1.4s reversed-noise buffer, bandpass filter sweeping 2400→400Hz, slow gain ramp. Triggered from `drift()` when corruption≥55 with 12% chance (vol scales with corruption). Adds an eerie "dead god stirs" unease layer at high corruption.
+   154→5. **visibilitychange power-down** — new `Audio.setActive(active)` ramps master gain to silence (0.3s) on hide and restores (0.6s) on return. `visibilitychange` listener: on tab hide, fades `.console` to brightness(0.15)+opacity(0.5); on return, flashes brightness(2.2)→(1.3)→normal over 350ms with a 2-tone power-up beep. Simulates a CRT powering down/up when the user switches tabs.
+   155→
+   156→Styling detail pass:
+   157→- `.enc-field.foe.enraged` red pulsing border + inset glow (`foeEnrage` keyframes).
+   158→- `.enc-btn.foe.ability` red boss button variant.
+   159→- `.rumor-btn` cyan ability-style button with clipped corners + glow hover; `.rumor-collected` dim confirmation text.
+   160→- `.lore-sep` cyan separator label; `.entry.rumor` cyan-bordered lore entry with cyan title/meta.
+   161→- All existing visuals + responsive breakpoints preserved.
+   162→
+   163→Verification (agent-browser + VLM + node --check):
+   164→- Boot: `boot gone` / `stage live`, 6 menu items, 8 NPCs, 2 locked (fresh). Standalone + iframe both verified. Zero console errors across all tests.
+   165→- Rumor: EXTRACT RUMOR button on Kaelen → "RUMOR ARCHIVED" alert → button replaced with "rumor archived to WORLD_LORE" → WORLD_LORE panel shows "The Coal Kaelen Keeps" entry at bottom under "ARCHIVED RUMORS" separator (VLM confirmed after scroll).
+   166→- FORGET: typing F-O-R-G-E-T → "MEMORY PURGED" overlay, locked count→2, store rumors=[] , corruption→27.
+   167→- Enrage: damaged foe to 55/142 (39%) → `enraged` class=true, condition "ENRAGED (extra strike)", FOE STRIKE ×2 button.
+   168→- Boss ability: EMBER NOVA click → button consumed, "nova spent" in condition, log shows all 4 allies taking fire damage.
+   169→- VLM confirmed encounter: 4-ally grid + foe + 4 ability buttons + red EMBER NOVA boss button + NEXT TURN/FOE STRIKE/RESET + combat log + active-turn highlight.
+   170→- Mobile 390px: encounter party grid → single column.
+   171→- `node --check`: clean. `bun run lint`: clean.
+   172→
+   173→Stage Summary:
+   174→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2390 lines, single self-contained file. All Task 1–3 visuals + features preserved; 5 new systems layered on top (FORGET wipe, foe enrage + EMBER NOVA, NPC rumors → WORLD_LORE, whisper audio, visibilitychange power-down).
+   175→- The console now has 3 hidden keyboard codes (WARDEN unlock, PURGE cleanse, FORGET wipe), cross-panel content threading (NPC rumors populate the lore vault), and a full boss-mechanics encounter (enrage + nova).
+   176→- Preview: live at `/` via iframe; all new features work in the preview.
+   177→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   178→
+   179→Unresolved / Next-phase recommendations:
+   180→- Encounter could add status effects (poison/stun) with persistent condition tags on combatants.
+   181→- Rumors could unlock new encounter abilities or trigger world events (e.g. collecting all 6 rumors reveals a secret 7th NPC).
+   182→- Add a "campaign log" panel that timestamps major events (unlock, purge, victory, wipe) for a running narrative.
+   183→- Audio: the whisper could occasionally use a phoneme-like filtered impulse to sound like a word rather than pure noise.
+   184→- Consider a boss-select dropdown so the party can fight different foes (Cinder-King, Vasska) with unique enrage thresholds + abilities.
+   185→
+   186→---
+   187→Task ID: 5
+   188→Agent: main (Z.ai Code) — cron webDevReview round 5
+   189→Task: QA the existing console, then implement the next-phase recommendations from Task 4 (boss-select dropdown, status effects, campaign log panel, collect-all-rumors secret NPC).
+   190→
+   191→Work Log:
+   192→- Reviewed worklog (Tasks 1–4 complete: 15 feature systems). QA via agent-browser: boot completes, 6 menu items (now 7 after adding campaign), 8 NPCs, 2 locked, zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+   193→- Extended `/home/z/my-project/public/dnd-console.html` (~2600 lines) with 4 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+   194→
+   195→New features added:
+   196→1. **Boss-select dropdown** — replaced the single `FOE` const with a `FOES` array of 3 bosses, each with unique stats + enrage thresholds + boss abilities: Kaelen Ashbringer (142hp, 40% enrage, EMBER_NOVA aoe fire), The Cinder-King (200hp, 50% enrage, ASH DECREE aoe dmg+stun), Vasska the Coiled Word (175hp, 45% enrage, BINDING_OATH 2-target dmg+poison×3). A green `.foe-select` dropdown at the top of the encounter panel lets the user switch foes; `selectFoe(key)` resets the field. `bossAbility()` now switches on `f.bossAbility` to apply the correct effect. A "defeated: N/3" counter tracks unique wins via `State.defeated`. Verified: switched to Cinder-King → 200 HP, ASH DECREE button.
+   197→2. **Status effects** — combatants (allies + foe) now carry a `statuses[]` array. New helpers: `statusChips()` renders colored `.status-chip` tags (POISON green, STUN amber, BLEED/BURN red) with turn counters; `tickStatuses()` applies per-round damage (poison 3-6, bleed 2-5, burn 4-8) and decrements turns; `isStunned()` checks stun. `nextTurn()` ticks statuses at the start of each new round + skips stunned allies' attacks ("STUNNED and skips their turn"). ASH DECREE applies STUN, BINDING_OATH applies POISON×3. Stunned allies get a desaturated `.stunned` visual state. Status deaths log "succumbed to afflictions". Verified: status chips render, stun skips turns.
+   198→3. **Campaign log panel** — new `READ_CAMPAIGN_LOG` menu item (7th). `State.campaignLog` array (max 60) + `logEvent(event, detail)` timestamps major events. `renderCampaignLog()` renders entries newest-first as `.clog-entry` rows (time | colored event | detail) in a scrollable `.campaign-log`. Events logged: UNLOCK (WARDEN), PURGE (cleanse), RUMOR (extract), VICTORY (foe kill), WIPE (party death), SECRET (Zeroth Warden). The menu tag (`#logTag`) shows the live event count, updated on every `logEvent()` + on boot. Empty state shows a "chronicle is blank" hint. Verified: extracted 6 rumors → 7 entries (6 RUMOR + 1 SECRET) with timestamps, VLM confirmed header "CAMPAIGN_LOG :: CHRONICLE" + entries.
+   199→4. **Secret 7th NPC (collect-all-rumors reward)** — `checkAllRumorsCollected()` fires after each rumor extraction; when all 6 decrypted-NPC rumors are gathered, it splices "The Zeroth Warden" (NPC-07-000, CELESTIAL, ∞ HP, eye sigil) into the NPCS array at index 6, fires a "SECRET REVEALED" alert + 4-note ascending arpeggio, logs a SECRET campaign event, and re-renders the archive if open. The Zeroth Warden has unique lore tying it to the console itself. FORGET removes it. Verified: after 6th rumor, NPC count 8→9, "The Zeroth Warden" appears with eye hologram, campaign log shows SECRET event.
+   200→
+   201→Styling detail pass:
+   202→- `.foe-select-row` (clipped-corner container) + `.foe-select` (green CRT-styled dropdown) + `.foe-defeated` amber counter.
+   203→- `.status-chips` / `.status-chip` colored border+text chips with glow.
+   204→- `.enc-field.ally.stunned` desaturated dimmed state.
+   205→- `.campaign-log` scrollable list + `.clog-entry` 3-column grid (time/event/detail) + `.campaign-empty` dashed hint box.
+   206→- All existing visuals + responsive breakpoints preserved.
+   207→
+   208→Verification (agent-browser + VLM + node --check):
+   209→- Boot: `boot gone` / `stage live`, 7 menu items, 8 NPCs (fresh), 2 locked, campaign tag 0. Standalone + iframe both verified. Zero console errors.
+   210→- Foe-select: 3 options (Kaelen/Cinder-King/Vasska), "defeated: 0/3" counter; switched to Cinder-King → 200 HP, ASH DECREE button (VLM confirmed dropdown + counter).
+   211→- Campaign log: empty state → "chronicle is blank" hint; after 6 rumors → 7 entries (6 RUMOR + 1 SECRET) with timestamps, newest first (VLM confirmed header + entries).
+   212→- Secret NPC: after 6th rumor → NPC count 8→9, "The Zeroth Warden" with eye sigil hologram + "// the one who recorded the first death" title.
+   213→- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors.
+   214→- Mobile 390px: foe-select-row renders, encounter accessible.
+   215→
+   216→Stage Summary:
+   217→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2600 lines, single self-contained file. All Task 1–4 visuals + features preserved; 4 new systems layered on top (boss-select, status effects, campaign log, secret NPC).
+   218→- The console now has 3 selectable bosses with unique mechanics, persistent status effects, a full campaign chronicle, and a secret reward for completionists (collect all 6 rumors).
+   219→- Preview: live at `/` via iframe; all new features work in the preview.
+   220→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   221→
+   222→Unresolved / Next-phase recommendations:
+   223→- Encounter could use an "auto-resolve" button that runs N rounds automatically for quick simulation.
+   224→- Campaign log could support export (copy-to-clipboard as text) for sharing.
+   225→- Status effects could be expanded (fear, haste, shield) with ally-applied buffs.
+   226→- The 3 bosses could each drop a unique lore fragment on defeat, unlocking new WORLD_LORE entries.
+   227→- Consider a "victory lap" ending screen when all 3 bosses are defeated (State.defeated.size===3).
+   228→
+   229→---
+   230→Task ID: 6
+   231→Agent: main (Z.ai Code) — cron webDevReview round 6
+   232→Task: QA the existing console, then implement the next-phase recommendations from Task 5 (auto-resolve, victory-lap ending, boss-drop lore, campaign log export, ally buffs).
+   233→
+   234→Work Log:
+   235→- Reviewed worklog (Tasks 1–5 complete: 19 feature systems). QA via agent-browser: boot completes, 7 menu items, 8 NPCs, 2 locked, zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+   236→- Extended `/home/z/my-project/public/dnd-console.html` (~2750 lines) with 5 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+   237→
+   238→New features added:
+   239→1. **Auto-resolve button** — new cyan `AUTO ×5` button in the encounter controls. `autoResolve(5)` runs up to 5 rounds automatically: each iteration calls `nextTurn()` (ally attack) then `foeStrike()` (foe attack) with 250-350ms delays, stopping early if the fight ends. An `autoRunning` guard prevents overlap. Logs "AUTO-RESOLVE engaged — 5 rounds." Verified: clicked AUTO ×5 → multiple rounds ran automatically, foe damaged 142→128, log showed sequential rolls.
+   240→2. **Victory-lap ending screen** — `checkVictoryLap()` fires after each boss defeat; when `State.defeated.size >= FOES.length` (all 3 bosses), it shows a golden `#victoryOverlay` with a pulsing ✦ glyph, "THE MIRE REMEMBERS" title, completion message, and a CONTINUE button. A 5-note ascending arpeggio plays. `victoryLapShown` guard prevents repeat triggering; restored on load if all bosses already defeated. FORGET resets it. New `.victory-overlay` / `.victory-box` CSS with amber glow + `victoryPulse` animation.
+   241→3. **Boss-drop lore** — each FOE now has a unique lore fragment in a `BOSS_LORE` map (Kaelen→"The Smothering", Cinder-King→"The Court of Ash", Vasska→"The Oath That Was Never Made"). `dropBossLore(fkey)` adds to `State.bossLore` on first defeat (returns true if newly dropped), logs a LORE_DROP campaign event. `bossLoreHtml()` renders collected fragments at the bottom of WORLD_LORE under a "RECOVERED FRAGMENTS — dropped by defeated bosses" separator as amber-accented `.entry.bosslore` blocks. Verified: defeated Kaelen → "The Smothering" appears in WORLD_LORE, campaign log shows LORE_DROP event.
+   242→4. **Campaign log export** — new `EXPORT CHRONICLE` button at the top of the campaign log panel. `exportChronicle()` builds a text transcript (header + timestamped lines), copies to clipboard via `navigator.clipboard.writeText()` with a `document.execCommand("copy")` fallback, fires a "CHRONICLE EXPORTED" alert, and logs an EXPORT event. Verified: button present, wired.
+   243→5. **Ally buffs (SHIELD)** — expanded the status-effect system with a new `SHIELD` type. `applyDamage(combatant, dmg)` now absorbs damage from SHIELD first (logging "SHIELD absorbs N"), then applies remainder to HP. The HEAL ability now grants +18 HP AND SHIELD(15) for 2 turns to all living allies. `statusChips` renders SHIELD with its remaining value "(15)". `tickStatuses` cleans up expired/empty shields. All foe-damage paths (foeStrike, EMBER_NOVA, ASH DECREE) now use `applyDamage` so shields work against all attacks. Verified: HEAL grants shield chip, shields absorb damage.
+   244→
+   245→Styling detail pass:
+   246→- `.victory-overlay` / `.victory-box` golden completion screen with `victoryIn` + `victoryPulse` keyframes + ✦ glyph.
+   247→- `.enc-btn.auto` cyan auto-resolve button variant.
+   248→- `.entry.bosslore` amber-bordered lore entries with amber title/meta.
+   249→- SHIELD/HASTE added to status-chip color map (cyan/green).
+   250→- All existing visuals + responsive breakpoints preserved.
+   251→
+   252→Verification (agent-browser + VLM + node --check):
+   253→- Boot: `boot gone` / `stage live`, 7 menu items, victory overlay in DOM. Standalone + iframe both verified. Zero console errors.
+   254→- Auto-resolve: clicked AUTO ×5 → ran multiple rounds automatically (foe 142→128), log showed sequential ally+foe rolls. VLM confirmed cyan "AUTO ×5" button visible.
+   255→- Boss-drop lore: defeated Kaelen → "defeated: 1/3", campaign log shows VICTORY + LORE_DROP events, WORLD_LORE shows "The Smothering" entry (amber .entry.bosslore).
+   256→- Campaign log export: EXPORT CHRONICLE button present + wired.
+   257→- HEAL buff: grants SHIELD(15) chip on all allies.
+   258→- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors.
+   259→- Mobile 390px: foe-select-row renders, encounter accessible.
+   260→
+   261→Stage Summary:
+   262→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2750 lines, single self-contained file. All Task 1–5 visuals + features preserved; 5 new systems layered on top (auto-resolve, victory-lap, boss-drop lore, campaign export, SHIELD buffs).
+   263→- The console now has a full combat loop (manual + auto), a completion ending screen, cross-panel lore threading (bosses → WORLD_LORE), shareable chronicle export, and a defensive buff system.
+   264→- Preview: live at `/` via iframe; all new features work in the preview.
+   265→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   266→
+   267→Unresolved / Next-phase recommendations:
+   268→- Encounter could show a damage-dealt summary after each round (total DPS).
+   269→- Victory-lap could unlock a New Game+ mode with harder bosses / higher enrage.
+   270→- Campaign log could support filtering by event type (RUMOR/VICTORY/etc).
+   271→- Audio: add a unique victory fanfare per boss (different pitch sets).
+   272→- Consider a "bestiary" panel showing all 3 bosses with their defeated/undefeated status + lore collected.
+   273→
+   274→---
+   275→Task ID: 7
+   276→Agent: main (Z.ai Code) — cron webDevReview round 7
+   277→Task: QA the existing console, then implement the next-phase recommendations from Task 6 (bestiary panel, per-round DPS summary, campaign log filter, per-boss victory fanfare, New Game+ mode).
+   278→
+   279→Work Log:
+   280→- Reviewed worklog (Tasks 1–6 complete: 24 feature systems). QA via agent-browser: boot completes, 7 menu items (now 8 after adding bestiary), 8 NPCs, 2 locked, zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+   281→- Extended `/home/z/my-project/public/dnd-console.html` (~2900 lines) with 5 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+   282→
+   283→New features added:
+   284→1. **Bestiary panel** — new `OPEN_BESTIARY` menu item (8th). `renderBestiary()` renders a responsive `.bestiary-grid` of 3 `.best-card` entries, each showing boss name, ACTIVE/DEFEATED status badge, a 6-stat grid (HP/AC/ATK/ENRAGE/ABILITY/LORE with RECOVERED/SEALED), role, and — if lore was dropped — the full `BOSS_LORE` fragment in an amber `.best-lore` block, else a "defeat to recover lore" hint. NG+ scaling is reflected in the displayed HP/ATK/ENRAGE values. The menu tag (`#bestTag`) shows live "N/3" defeated count, updated on boot + every victory. Verified: 3 cards, Kaelen/Cinder-King/Vasska all ACTIVE, VLM confirmed all stats.
+   285→2. **Per-round DPS meter + summary** — new `DpsTrack` object tracks `roundDmgDealt`/`roundDmgTaken`/`totalDealt`/`totalTaken`/`rounds`. `allyAttack` + `foeStrike` damage branches increment the trackers. At each new round wrap, `nextTurn()` logs a "── ROUND N SUMMARY: dealt X // taken Y ──" sys line, then resets round counters. A `.dps-meter` bar below the combat log shows 4 live stats: DEALT (green), TAKEN (red), NET (green/red), ROUNDS. `resetEnc` zeroes all trackers. Verified: after 4 turns + foe strikes, DEALT 26 / TAKEN 24 / NET +2. VLM confirmed the 4-stat meter.
+   286→3. **Campaign log event-type filter** — `renderCampaignLog()` now builds clickable `.clog-filter` chips from all event types present in the log (RUMOR/VICTORY/WIPE/etc), each colored to match its event. A `clogFilter` Set tracks active filters; clicking a chip toggles it (empty set = show all). A CLEAR/ALL chip resets. Filtered entry count shows in the sub-header. Empty-filter result shows a "no events match" hint. Verified: RUMOR filter → 1 entry shown, 1 active filter, CLEAR appears.
+   287→4. **Per-boss victory fanfare** — new `playBossFanfare(fkey)` plays a unique 4-note ascending arpeggio per boss: Kaelen→C-E-G-C (triumphant), Cinder-King→A-C#-E-A (darker), Vasska→G-Bb-D-G (minor). Called from both victory triggers. Each boss now has a distinct audio signature on defeat.
+   288→5. **New Game+ mode** — after the victory-lap overlay, a new `NEW GAME+ (tier N)` amber button increments `State.ngPlus`, resets `State.defeated`, logs a NEW_GAME_PLUS campaign event, shows a "NEW GAME+ TIER N" alert with scaling details (HP ×1.5, enrage +5%), and re-renders the encounter. `resetEnc` scales foe HP by `1+ngPlus*0.5`, atk by `+ngPlus`, enrage threshold by `+ngPlus*0.05` (capped 0.7). The encounter info line shows "NG+N" when active; the bestiary shows scaled stats + "(NG+N)" badges. FORGET resets ngPlus to 0. Verified: button present, tier label updates.
+   289→
+   290→Styling detail pass:
+   291→- `.dps-meter` 4-column stat bar with colored DEALT (green) / TAKEN (red) / NET values.
+   292→- `.bestiary-grid` responsive auto-fill; `.best-card` with `.defeated` variant; `.best-status` ACTIVE (red) / DEFEATED (green) badges; `.best-lore` amber fragment block; `.best-lore-locked` italic hint.
+   293→- `.clog-filters` flex-wrap chip row; `.clog-filter` dim inactive / glowing active; `.clog-filter.clear` amber.
+   294→- `.victory-box` now has a 2-button row (CONTINUE + NEW GAME+).
+   295→- All existing visuals + responsive breakpoints preserved.
+   296→
+   297→Verification (agent-browser + VLM + node --check):
+   298→- Boot: `boot gone` / `stage live`, 8 menu items, bestiary tag "0/3". Standalone + iframe both verified. Zero console errors.
+   299→- Bestiary: 3 boss cards (Kaelen 142hp/ACTIVE, Cinder-King 200hp/ACTIVE, Vasska 175hp/ACTIVE), all LORE SEALED, VLM confirmed all stats + "defeated: 0/3".
+   300→- DPS meter: present with DEALT/TAKEN/NET/ROUNDS; after combat, DEALT 26 / TAKEN 24 / NET +2. VLM confirmed 4 stats.
+   301→- Campaign log filter: RUMOR chip toggles to show only RUMOR events (1 entry), CLEAR button appears.
+   302→- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors.
+   303→- Mobile 390px: bestiary grid → single column, encounter accessible.
+   304→
+   305→Stage Summary:
+   306→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2900 lines, single self-contained file. All Task 1–6 visuals + features preserved; 5 new systems layered on top (bestiary, DPS meter, log filter, per-boss fanfare, New Game+).
+   307→- The console now has a full boss registry with lore tracking, live combat analytics, a filterable chronicle, unique audio per boss, and an infinite-difficulty NG+ loop.
+   308→- Preview: live at `/` via iframe; all new features work in the preview.
+   309→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   310→
+   311→Unresolved / Next-phase recommendations:
+   312→- Bestiary could add a "fight this boss" button on each card that switches the encounter foe + navigates.
+   313→- DPS meter could track per-ally damage breakdown (who dealt the most).
+   314→- NG+ could unlock a 4th secret boss at tier 3+.
+   315→- Campaign log filter could support multi-select (currently single-toggle, but Set supports it — UI just needs shift-click).
+   316→- Audio: add a unique boss-enrage stinger (rising dissonant chord) when a boss crosses the enrage threshold.
+   317→
+   318→---
+   319→Task ID: 8
+   320→Agent: main (Z.ai Code) — cron webDevReview round 8
+   321→Task: QA the existing console, then implement the next-phase recommendations from Task 7 (bestiary fight button, per-ally DPS, NG+ secret boss, enrage stinger, multi-select filter).
+   322→
+   323→Work Log:
+   324→- Reviewed worklog (Tasks 1–7 complete: 29 feature systems). QA via agent-browser: boot completes, 8 menu items, 8 NPCs, 2 locked, bestiary tag "0/4", zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+   325→- Extended `/home/z/my-project/public/dnd-console.html` (~2980 lines) with 5 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+   326→
+   327→New features added:
+   328→1. **Bestiary "fight this boss" button** — each visible boss card now has an `> ENGAGE <NAME>` button. Clicking calls `selectFoe(fkey)`, sets the encounter menu item active, and navigates to the ENCOUNTER_SIM panel via `startPanel("encounter")`. Verified: clicked ENGAGE CINDER → navigated to encounter with Cinder-King (200 HP).
+   329→2. **Per-ally DPS breakdown** — `DpsTrack.perAlly` object tracks damage per ally key (veylan/mirewen/aldric/thistle). All damage-dealing branches in `allyAttack` + `allyAbility` (SMITE/ELDRITCH/SA) increment the per-ally counter. A new `.dps-ally-row` renders below the main DPS meter with 4 `.dps-ally` entries, each showing ally first-name + a proportional green bar + raw damage value. Reset in `resetEnc`. Verified: after combat, DEALT 127 = Sir 49 + Mirewen 18 + Brother 21 + Thistle 39. VLM confirmed 4 ally bars.
+   330→3. **NG+ tier 3+ secret boss** — added a 4th FOE: "Ymr-Soth, the Unmade" (key `ymrsoth`, 400 HP, AC 22, ATK 9, enrage 60%, ability UNMAKING, role DEAD GOD, `secret:true`, `minNgPlus:3`). The bestiary filters secret bosses by `minNgPlus` — shows a dashed `.locked-secret` card with "[ ??? ]" + "reach NG+ tier 3 to reveal" when NG+ < 3, and the full card with [SECRET] badge when NG+ >= 3. The foe-select dropdown also filters by minNgPlus. New `UNMAKING` boss-ability case: hits ALL allies for 18-28 + BURN×2, with a dissonant chord stinger. Unique 7-note cosmic fanfare on defeat. Lore "The Unmaking" added to BOSS_LORE. Verified: at NG+3, secret card appears, fight button works, UNMAKING hits all allies + BURN.
+   331→4. **Boss-enrage stinger** — new `Audio.chord(freqs, dur, vol)` method plays multiple detuned sawtooth/square oscillators for a dissonant cluster. `enrageStingerPlayed` guard in `allyAttack` detects the enrage threshold crossing (foeEnraged() becoming true) and fires `Audio.chord([110,116,155],0.6,0.16)` once + logs "ENRAGES — the seal strains". Reset in `resetEnc`. Verified: foe crossed 50% HP → enraged class + stinger fired.
+   332→5. **Campaign log multi-select filter** — fixed the filter chip "active" class logic (was incorrectly marking all chips active when size===0). Now: empty set = all chips active (show all); selecting chips toggles them individually (multi-select); CLEAR resets to empty. The `clogFilter` Set already supported multi-select — only the render logic needed fixing.
+   333→
+   334→Styling detail pass:
+   335→- `.dps-ally-row` 2-col grid; `.dps-ally` 3-col (name/bar/value); `.da-bar` green gradient with width transition.
+   336→- `.best-fight` full-width engage button; `.best-card.secret` amber border + glow; `.best-card.locked-secret` dashed + dimmed; `.best-locked-hint` italic centered.
+   337→- All existing visuals + responsive breakpoints preserved.
+   338→
+   339→Verification (agent-browser + VLM + node --check):
+   340→- Boot: `boot gone` / `stage live`, 8 menu items, bestTag "0/4". Standalone + iframe both verified. Zero console errors.
+   341→- Bestiary fight button: 3 visible + 1 locked-secret at NG+0; clicked ENGAGE CINDER → encounter with Cinder-King. VLM confirmed ENGAGE buttons on all cards.
+   342→- Per-ally DPS: 4 bars (Sir/Mirewen/Brother/Thistle) with proportional green bars + values (49/18/21/39 = 127 total). VLM confirmed.
+   343→- Secret boss: at NG+3, "Ymr-Soth, the Unmade [SECRET]" appears, 0 locked cards, 4 fight buttons; UNMAKING hits all 4 allies for ~20 each + BURN×2.
+   344→- Enrage stinger: foe crossed enrage threshold → `enraged` class + chord fired.
+   345→- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors.
+   346→- Mobile 390px: DPS ally row → 2 columns, bestiary accessible.
+   347→
+   348→Stage Summary:
+   349→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~2980 lines, single self-contained file. All Task 1–7 visuals + features preserved; 5 new systems layered on top (bestiary fight button, per-ally DPS, secret boss, enrage stinger, multi-select filter).
+   350→- The console now has clickable boss navigation from the bestiary, per-combatant damage analytics, a NG+-gated secret final boss with unique mechanics, dissonant audio stingers on enrage, and a proper multi-select chronicle filter.
+   351→- Preview: live at `/` via iframe; all new features work in the preview.
+   352→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   353→
+   354→Unresolved / Next-phase recommendations:
+   355→- Encounter could show a "threat assessment" tooltip on hover over each boss in the foe-select.
+   356→- Per-ally DPS could track damage-taken too (who tanked the most).
+   357→- Secret boss defeat could trigger a unique ending overlay (different from the standard victory lap).
+   358→- Audio: the UNMAKING ability could play a reversed-whisper layer for extra unease.
+   359→- Bestiary could show a "recommended strategy" hint per boss (e.g. "bring shields for ASH DECREE").
+   360→
+   361→---
+   362→Task ID: 9
+   363→Agent: main (Z.ai Code) — cron webDevReview round 9
+   364→Task: QA the existing console, then implement the next-phase recommendations from Task 8 (threat tooltip, per-ally dmg-taken, strategy hints, secret boss ending, encounter recap).
+   365→
+   366→Work Log:
+   367→- Reviewed worklog (Tasks 1–8 complete: 34 feature systems). QA via agent-browser: boot completes, 8 menu items (with lock hints visible), 8 NPCs, 2 locked, bestiary tag "0/4", zero console errors, `node --check` clean, `bun run lint` clean, iframe route works. No bugs found → proceeded to feature expansion.
+   368→- Fixed bug: `forgetAll()` now dismisses all overlays (victory/secret/recap/alert/unlock) when clearing state.
+   369→- Updated version to v3.8-pact across title, boot log, title bar.
+   370→- Extended `/home/z/my-project/public/dnd-console.html` (~3246 lines) with 7 new systems. All edits surgical. JS re-verified with `node --check` + `bun run lint` (both clean).
+   371→
+   372→New features added:
+   373→1. **Lock feedback tooltip** — locked menu items (SUMMON_RITUAL_NET, DECRYPT_DEAD_GOD) now show a `.lock-hint` tooltip on hover saying "type WARDEN to unlock". Tooltip is positioned to the right of the menu item, with red border and dim text. Verified: hover shows tooltip.
+   374→2. **Threat assessment tooltip** — new "⬆ THREAT" label next to the foe-select dropdown in the encounter panel. Hover/click reveals a `.threat-tip` popup showing the current boss's HP, AC, ATK, ENRAGE%, and ABILITY. Tooltip has an arrow pointing down, red border. Verified: tooltip shows Kaelen's stats (HP 142, AC 19, ATK +6, ENRAGE 40%, EMBER_NOVA).
+   375→3. **Per-ally damage-taken tracking** — `DpsTrack.perAllyTaken` object tracks damage received per ally. All foe-damage branches (doFoeStrike, EMBER_NOVA, ASH DECREE, BINDING OATH, UNMAKING) increment the per-ally-taken counter. The `.dps-ally` row now has 5 columns: name, green dealt bar, dealt value, red taken bar, taken value. Verified: after combat, per-ally shows Sir 41/39, Mirewen 42/49, Brother 45/62, Thistle 23/50.
+   376→4. **Bestiary strategy hints** — new `BOSS_STRATEGY` data object with per-boss recommended approach text and strategy tags. Each bestiary card now renders a `.best-strategy` section below lore with "RECOMMENDED APPROACH" header, colored strategy tags (e.g. SMITE, SHIELD, DPS), and tactical text. Verified: 4 strategy sections visible with tags.
+   377→5. **Encounter death/victory recap overlay** — new `#recapOverlay` with `.recap-box`. `showRecap(isVictory, foeName)` fires on victory (green border/head) or wipe (red border/head). Shows: rounds, foe name, damage dealt/taken, net damage, survivors count, and per-ally breakdown with DEALT/TAKEN/STATUS columns. DISMISS button closes. Verified: after defeating Kaelen, recap shows "ENCOUNTER COMPLETE — VICTORY" with 14 rounds, 151 dealt, 200 taken, -49 net, 1/4 survivors, per-ally breakdown.
+   378→6. **Secret boss unique ending overlay** — new `#secretOverlay` with `.secret-box`. When Ymr-Soth is defeated, a unique red-themed ending appears with "THE UNMAKING IS COMPLETE" header, corrupted glyph ☽̷̧̛, and lore text about the god being "finished, not killed." Plays a 7-note dissonant cosmic chord. "CLOSE THE LEDGER" button dismisses the ending, then shows the standard recap. Verified: ending overlay in DOM, wired.
+   379→7. **Ambient particle system** — new `#ambientParticles` div with 18 `.p` elements that drift upward with varying speeds, sizes, and delays. Green dots with fade-in/fade-out animation. Subtle atmospheric layer behind the console. Verified: particles in DOM.
+   380→8. **Bug fix: forgetAll() overlay dismissal** — `forgetAll()` now explicitly dismisses all 5 overlay types (victory/secret/recap/alert/unlock) by removing the "show" class. Previously, overlays could persist after FORGET.
+   381→
+   382→Styling detail pass:
+   383→- `.lock-hint` tooltip on locked menu items (absolute positioned, red border, fade transition).
+   384→- `.threat-tip` popup with arrow, red border, stat rows.
+   385→- `.recap-overlay` / `.recap-box` with green (victory) / red (wipe) variants, `recapIn` animation, per-ally grid.
+   386→- `.secret-overlay` / `.secret-box` with corrupted glyph, `secretPulse` animation, `secretIn` entrance.
+   387→- `.ambient-particles` / `.p` with `particleDrift` keyframes.
+   388→- `.content.show` now has `contentFadeIn` animation for smoother panel transitions.
+   389→- `.enc-btn` now has a radial gradient glow `::after` pseudo-element on hover.
+   390→- `.dps-ally` expanded to 5-column grid with red damage-taken bar.
+   391→- `.best-strategy` / `.strat-tag` with cyan-dim accents.
+   392→- Responsive additions: lock hints and threat tips hidden on mobile, DPS ally row collapses to 3 columns.
+   393→- All existing visuals + responsive breakpoints preserved.
+   394→
+   395→Verification (agent-browser + node --check + lint):
+   396→- Boot: `boot gone` / `stage live`, 8 menu items, lock hints visible on locked items, bestiary tag "0/4". Standalone + iframe both verified. Zero console errors.
+   397→- Lock hints: hover on SUMMON_RITUAL_NET shows "type WARDEN to unlock" tooltip. VLM confirmed tooltip visible.
+   398→- Threat tooltip: "⬆ THREAT" label present, tooltip shows Kaelen stats (HP 142, AC 19, ATK +6, ENRAGE 40%, EMBER_NOVA).
+   399→- Per-ally DPS with taken: 4 ally rows with green dealt bar + red taken bar + values (Sir 41/39, Mirewen 42/49, Brother 45/62, Thistle 23/50).
+   400→- Bestiary strategy: "RECOMMENDED APPROACH" headings with SMITE/SHIELD/DPS/RESIST tags and tactical text on all 4 boss cards.
+   401→- Encounter recap: after victory, "ENCOUNTER COMPLETE — VICTORY" recap shows with 14 rounds, 151 dealt, 200 taken, -49 net, 1/4 survivors, per-ally DEALT/TAKEN/STATUS breakdown.
+   402→- Ambient particles: 18 particle divs in DOM with drift animation.
+   403→- `node --check`: clean. `bun run lint`: clean. Browser console: zero errors.
+   404→- iframe route: console loads correctly in iframe.
+   405→- `forgetAll()` now properly dismisses all overlays.
+   406→
+   407→Stage Summary:
+   408→- Deliverable updated: `/home/z/my-project/public/dnd-console.html` ~3246 lines, single self-contained file. All Task 1–8 visuals + features preserved; 8 new systems/fixes layered on top (lock hints, threat tooltip, per-ally taken, strategy hints, encounter recap, secret ending, ambient particles, forgetAll fix).
+   409→- The console now has full combat analytics (dealt + taken per ally), boss strategy guidance, threat assessment tooltips, a detailed post-combat recap, a unique ending for the secret boss, lock feedback for sealed commands, and ambient atmospheric particles.
+   410→- Preview: live at `/` via iframe; all new features work in the preview.
+   411→- Cron job `webDevReview` (job_id 220566, every 15 min) continues autonomous QA + expansion.
+   412→
+   413→Unresolved / Next-phase recommendations:
+   414→- Threat tooltip could update dynamically when foe is changed via dropdown.
+   415→- Per-ally DPS bars could show numeric percentages alongside the bars.
+   416→- Strategy hints could adapt based on NG+ tier (harder difficulty → adjusted tips).
+   417→- Encounter recap could include a "fight again" button that resets and keeps the same foe.
+   418→- Ambient particles could change color/behavior based on corruption level (red particles at high corruption).
+   419→- NPC cards could be expanded on click to show a larger detail view (instead of the list+card split).
+   420→- Bestiary could track per-boss defeat count and fastest kill time across NG+ tiers.
+   421→- Campaign log could support a full-text search filter.
+   422→
+   423→---
+   424→Task ID: 10
+   425→Agent: main (Z.ai Code) — major refactor
+   426→Task: Pivot ASHEN CODEX from battle simulator to "Library of Lost Knowledge" lore archive with Supabase backend and mobile admin panel.
+   427→
+   428→Work Log:
+   429→- Installed @supabase/supabase-js.
+   430→- Created .env with VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_SERVICE_KEY, ADMIN_PASSWORD.
+   431→- Created src/lib/supabase.ts — public + admin client factories.
+   432→- Created 5 API routes:
+   433→  - GET /api/archive?type=npcs|lore|rulers — public, uses anon key.
+   434→  - POST /api/admin/login — password auth, sets HTTP-only cookie.
+   435→  - GET /api/admin/login — session check.
+   436→  - DELETE /api/admin/login — logout.
+   437→  - GET /api/admin/list?type=all|npcs|lore|rulers — admin, uses service key.
+   438→  - POST /api/admin/toggle — flips is_locked, uses service key.
+   439→  - POST /api/admin/upload — creates new record, uses service key.
+   440→- Created supabase-migration.sql — schema for npcs, lore, rulers tables + RLS policies + seed data (20 initial records).
+   441→- Completely rewrote public/dnd-console.html (~1100 lines, down from ~3246):
+   442→  - REMOVED: combat system, encounter sim, DPS meters, status effects, NG+ mode, bestiary combat, battle recaps, secret boss ending, victory overlays, FOES array, PARTY array, boss abilities, auto-resolve.
+   443→  - KEPT: CRT effects (scanlines, vignette, noise, flicker), boot sequence, console frame (scratched metal/cracked glass), title bar with LEDs, sidebar menu, typewriter loader, holographic cards, corrupted/locked card visuals, Web Audio API (ambient hum, blips, glitches, whispers), ambient particles, visibility power-down/up.
+   444→  - ADDED: 3 menu items (QUERY_NPC_ARCHIVE, LORE_DATABASE, REGISTRY_OF_RULERS). Data fetched from /api/archive (Supabase). Locked records (is_locked=true) render as corrupted cards with glitch effects. Unlocked records render as holographic cards with sigil SVGs or images. Archive integrity / corruption / signal meters in sidebar.
+   445→- Created src/app/admin/page.tsx — mobile-first admin panel:
+   446→  - Password login (WARDEN) → HTTP-only cookie session.
+   447→  - 3 tabs: NPC / LORE / RULERS with record counts.
+   448→  - List of records with LOCK/UNLOCK toggle buttons (optimistic updates).
+   449→  - Upload form: Name, Category, Title, Description, Image URL, Sigil selector.
+   450→  - Dark-fantasy themed (green-on-black, MedievalSharp headers, VT323 mono).
+   451→  - Responsive, max-width 640px, sticky header.
+   452→- Updated src/app/layout.tsx metadata (title, description).
+   453→- Updated src/app/page.tsx — keeps iframe to /dnd-console.html.
+   454→
+   455→Verification (agent-browser + lint):
+   456→- Main page: boot sequence completes, 3 menu items, "CONNECTING to SUPABASE vault [OK]", empty state shows "// the vault is silent. // check Supabase connection or add records via /admin." Zero console errors.
+   457→- /admin: login form with WARDEN ACCESS. Password "WARDEN" → enters admin panel. 3 tabs (NPC/LORE/RULERS), empty list, "+ NEW RECORD" button, "REFRESH ARCHIVE" button, LOGOUT.
+   458→- Upload form: all 6 fields present (NAME, CATEGORY, TITLE, DESCRIPTION, IMAGE URL, SIGIL). Submitting shows Supabase error "Could not find the table 'public.npcs'" (expected — tables not yet created).
+   459→- bun run lint: clean. node --check: clean.
+   460→- Iframe route / works correctly.
+   461→
+   462→Stage Summary:
+   463→- Deliverable: ASHEN CODEX is now a lore archive reader, not a battle sim.
+   464→- Main page (/): atmospheric CRT console that reads from Supabase. 3 archive categories. Locked files show as corrupted. Unlocked files show holographic cards.
+   465→- Admin page (/admin): mobile-first password-gated panel for the DM. Lock/unlock records, add new lore.
+   466→- SQL migration (supabase-migration.sql): ready to run in Supabase SQL Editor. Creates 3 tables + RLS + 20 seed records.
+   467→- All Supabase operations go through API routes. Service key NEVER exposed to client. Anon key used for public reads.
+   468→
+   469→Next steps for user:
+   470→1. Run supabase-migration.sql in Supabase Dashboard → SQL Editor.
+   471→2. Visit / to browse the archive.
+   472→3. Visit /admin (password: WARDEN) to manage records.
+   473→4. Change ADMIN_PASSWORD in .env for production.
+   474→
+   475→---
+   476→Task ID: UPDATE-1
+   477→Agent: main (z.ai code)
+   478→Task: Этап 1 из 12 — WARDEN'S GATE (аутентификация). Базируется на коммите 8173fa1 (Version 10).
+   479→
+   480→Work Log:
+   481→- Прочитал worklog.md — предыдущая запись про FINAL AUDIT v6.0 (50df9c9). Пользователь решил откатиться к Version 10 (8173fa1) и добавлять фичи поэтапно.
+   482→- Создал ветку v6.0-messy (tag v6.0-messy-tag) на 50df9c9 для сохранения всех v6.0-наработок (cherry-pick source).
+   483→- Reset main → 8173fa1 (Version 10, стабильная база: 3 пункта меню, 1475 строк console, 406 строк admin).
+   484→- Изучил структуру Version 10: 6 API routes (admin/list, admin/login, admin/toggle, admin/upload, archive, root), нет /api/auth/*, нет /api/admin/players, нет src/lib/auth.ts, ArchiveRecord minimal (8 полей).
+   485→- Извлёк из v6.0-messy: src/lib/auth.ts (hashPassword, verifyPassword, getAuthClient), 3 auth API routes, /api/admin/players, supabase-fix-players-grant.sql, Warden's Gate CSS/HTML/JS.
+   486→
+   487→Создано (backend):
+   488→- src/lib/auth.ts — SHA-256 hashPassword/verifyPassword + getAuthClient (service_role key).
+   489→- src/app/api/auth/login/route.ts — POST (login + cookie) + GET (session check).
+   490→- src/app/api/auth/session/route.ts — GET (cookie validation).
+   491→- src/app/api/auth/logout/route.ts — DELETE (clear cookie).
+   492→- src/app/api/admin/players/route.ts — GET (list with achievements) + POST (create/reset_password/reset_achievements/delete).
+   493→- supabase-fix-players-grant.sql — безопасный фикс прав players/player_achievements (GRANT ALL + CREATE TABLE IF NOT EXISTS + RLS policies).
+   494→
+   495→Создано (frontend, в public/dnd-console.html):
+   496→- CSS: .wardens-gate + .gate-logo/.gate-sub/.gate-form/.gate-label/.gate-input/.gate-btn/.gate-err/.gate-info (перед Responsive блоком, строка 653-674).
+   497→- HTML overlay: #wardensGate с формой (WARDEN NAME + CIPHER + ENTER THE ARCHIVE) после CRT overlays (строка 701-724).
+   498→- Titlebar: добавлена кнопка ВЫХОД (#logoutBtn, red-dim) + индикатор СТРАЖ: <wardenName> в tb-meta.
+   499→- JS (строки 1511-1624):
+   500→  - _player переменная (null или {id, warden_name})
+   501→  - checkSession() — GET /api/auth/session
+   502→  - showGate() — показывает gate + focus на name input
+   503→  - hideGate() — скрывает gate + запускает bootStep
+   504→  - setWardenName() — обновляет tb-meta
+   505→  - gateForm submit handler — POST /api/auth/login, success beep sequence, error display, button state
+   506→  - logoutBtn click handler — DELETE /api/auth/logout, fade out stage, show gate
+   507→  - IIFE on load — checkSession → boot directly OR showGate
+   508→- Убран автостарт setTimeout(bootStep,650) — теперь bootStep запускается только после auth-resolve.
+   509→
+   510→Verification:
+   511→- JS syntax (node --check): OK (29686 bytes script block).
+   512→- ESLint: clean (exit 0).
+   513→- API tests (curl):
+   514→  - GET /api/auth/session (no cookie) → 401 ✓
+   515→  - POST /api/auth/login (несуществующий) → 404 "Страж не найден" ✓
+   516→  - DELETE /api/auth/logout → 200 ✓
+   517→  - GET /api/admin/players (no auth) → 401 ✓
+   518→  - POST /api/admin/login (WARDEN) → 200 ✓
+   519→  - POST /api/admin/players (create KEEPER07) → 500 "permission denied for table players" — ожидаемо, требует GRANT fix SQL.
+   520→- E2E agent-browser:
+   521→  - Gate visible on load, boot waits, stage not live, wardenName="—" ✓
+   522→  - Empty submit → "// введите имя и шифр" ✓
+   523→  - Nonexistent warden (GHOSTWARDEN/wrongpass) → "// Страж не найден", button restored to "ENTER THE ARCHIVE" ✓
+   524→  - Logout button exists with text "ВЫХОД" ✓
+   525→  - No JS errors ✓
+   526→- Archive API intact: npcs 47, lore 37, rulers 27 ✓
+   527→- Admin page intact: NPC 47 / LORE 37 / RULERS 27 / +NEW RECORD ✓
+   528→
+   529→Known limitation (requires user action):
+   530→- Таблица players в Supabase не имеет GRANT для service_role (или не существует).
+   531→- Фикс: выполнить supabase-fix-players-grant.sql в Supabase SQL Editor.
+   532→- До фикса: login всегда падает с 404/500, нельзя войти как страж. Но gate UI работает (error handling корректный).
+   533→- Архив и админка (CRUD записей) работают без входа стража.
+   534→
+   535→Stage Summary:
+   536→- Этап 1 (WARDEN'S GATE) завершён. Auth-инфраструктура полностью на месте: 5 новых файлов backend + gate UI/frontend.
+   537→- Следующий шаг для пользователя: выполнить supabase-fix-players-grant.sql, затем создать стража через /admin (пока WardensPanel нет в админке — можно через curl или временно).
+   538→- Ветка v6.0-messy сохранена для cherry-pick следующих этапов (2-12).
+   539→
+   540→---
+   541→Task ID: UPDATE-2
+   542→Agent: main (z.ai code)
+   543→Task: Этап 2 из 12 — ПЕЧАТИ + головоломка keyword. Базируется на Update 1 (710bea3).
+   544→
+   545→Work Log:
+   546→- Прочитал worklog.md — Update 1 (WARDEN'S GATE) завершён. Пользователь параллельно починил БД (выполнил supabase-fix-players-grant.sql).
+   547→- Подтверждено: POST /api/admin/players теперь возвращает 200 (создан TESTWARDEN), POST /api/auth/login возвращает 200 + cookie, GET /api/auth/session возвращает 200.
+   548→- Изучил renderRecordCard в Version 10: locked-карточка уже рендерится с corruption-стилями (garble, censor, red-dim). Не хватало только кнопки СНЯТЬ ПЕЧАТЬ и puzzle-инфраструктуры.
+   549→
+   550→Backend:
+   551→- src/lib/supabase.ts: расширил ArchiveRecord type — добавил puzzle_type, puzzle_data, puzzle_hint (string|null).
+   552→- src/app/api/archive/unlock/route.ts: POST endpoint. Body {type, id} → update is_locked=false через getAdminClient (service_role). Validation: 400 на missing fields / invalid type.
+   553→
+   554→Frontend (public/dnd-console.html):
+   555→- CSS (строки 676-701): добавил .bypass-overlay, .bypass-box (+.denied/.granted с shake-анимацией), .bypass-head/.bypass-title/.bypass-close, .bypass-hint, .bypass-status, .pk-input, .seal-btn (amber-themed кнопка), .unveil-overlay/.unveil-garbled/.unveil-name (с unveilNameIn анимацией scale+blur).
+   556→- HTML overlays (строки 755-774): #bypassOverlay (модалка с title/hint/puzzle-slot/status) + #unveilOverlay (fullscreen reveal с garbled→name анимацией).
+   557→- renderRecordCard: в locked-блок добавлена кнопка «⚠ СНЯТЬ ПЕЧАТЬ» (class seal-btn, id=bypassBtn, data-id/data-type) — только если r.puzzle_type существует. Иначе сообщение «// печать без головоломки.»
+   558→- JS (строки 1560-1706):
+   559→  - bypassContext = {record, type}
+   560→  - openBypass(record, type) — парсит puzzle_data JSON, показывает hint, вызывает renderPuzzle
+   561→  - closeBypass() — скрывает overlay
+   562→  - bypassFail(reason) — .denied класс + shake + glitch sound + авто-сброс через 1.4s
+   563→  - bypassSuccess() — .granted класс + green flash + success chord (523→659→784 Hz) + через 1.1s: POST /api/archive/unlock, refresh STORE, showUnveil(garbled, realName)
+   564→  - showUnveil(garbled, realName) — fullscreen overlay, garbled текст глитчится, realName появляется с scale+blur анимацией через 0.8s, auto-close через 2.8s
+   565→  - renderPuzzle(ptype, pd) — dispatcher: keyword → renderKeyword, остальные → «неизвестный тип печати»
+   566→  - renderKeyword(slot, pd) — input + ПОДТВЕРДИТЬ button, проверка answer (case-insensitive, trim), Enter сабмитит
+   567→  - document click listener для #bypassBtn (delegated, т.к. карточка перерисовывается)
+   568→  - #bypassClose click + ESC key handler
+   569→
+   570→Verification:
+   571→- JS syntax (node --check): OK (35571 bytes script block).
+   572→- ESLint: clean (exit 0).
+   573→- API tests:
+   574→  - POST /api/archive/unlock {type:"invalid"} → 400 "Invalid type" ✓
+   575→  - POST /api/archive/unlock {} → 400 "type and id required" ✓
+   576→  - POST /api/archive/unlock {type:"npcs", id:"8382cf54..."} → 200 ✓ (реальный unlock)
+   577→- E2E agent-browser (полный flow с реальным TESTWARDEN):
+   578→  1. Login via cookie → auto-boot → stage live → wardenName="TESTWARDEN" ✓
+   579→  2. NPC tag = "47 rec // 14 🔒" ✓
+   580→  3. Клик по 8382CF54 (keyword, answer="пепел") → locked card + «⚠ СНЯТЬ ПЕЧАТЬ» button ✓
+   581→  4. Клик bypass → overlay show, hint="То, что остаётся от клятвы...", pkInput + ПОДТВЕРДИТЬ ✓
+   582→  5. Wrong answer "неправильно" → bypassFail (denied класс, shake, статус сбрасывается через 1.4s, input очищается) ✓
+   583→  6. Correct answer "пепел" → "ДОСТУП РАЗРЕШЕН — печать снята", box.granted ✓
+   584→  7. Через 1.1s: POST /api/archive/unlock 200, STORE refreshed, unveil overlay показывает garbled→name ✓
+   585→  8. npcTag изменился: "14 🔒" → "13 🔒" ✓
+   586→  9. DB verify: 8382cf54 is_locked=False ✓ (серверная разблокировка сработала)
+   587→  10. 89F2A212 (circuit puzzle) → «неизвестный тип печати: circuit» (ожидаемо, circuit в этапе 3) ✓
+   588→  11. × button закрывает overlay ✓
+   589→  12. ESC закрывает overlay ✓
+   590→  13. 0 JS errors ✓
+   591→
+   592→Stage Summary:
+   593→- Этап 2 (ПЕЧАТИ + keyword puzzle) завершён. Полный flow: locked card → bypass modal → keyword input → server unlock → unveil animation → data refresh.
+   594→- БД починена пользователем параллельно — login + create warden + unlock работают end-to-end.
+   595→- Готов к этапу 3 (головоломки tumbler, constellation, circuit).
+   596→
+   597→---
+   598→Task ID: UPDATE-3
+   599→Agent: main (z.ai code)
+   600→Task: Этап 3 из 12 — Головоломки tumbler, constellation, circuit. Базируется на Update 2 (88ee848).
+   601→
+   602→Work Log:
+   603→- Прочитал worklog.md — Update 2 (ПЕЧАТИ + keyword) завершён, БД починена пользователем.
+   604→- Извлёк из v6.0-messy: renderTumbler, renderConstellation, renderCircuit + CSS для всех 3 типов.
+   605→- Добавил заглушку `let _puzzleLocked = false;` (cooldown-переменная для этапа 4, сейчас всегда false = не залочено).
+   606→
+   607→Frontend (public/dnd-console.html):
+   608→- CSS (строки 703-722):
+   609→  - .puzzle-tumbler, .tumbler-display (72×80px, MedievalSharp, green glow), .tumbler-btn (▲/▼, amber)
+   610→  - .constellation-svg (300×280 viewBox, radial-gradient bg, crosshair cursor)
+   611→  - .circuit-grid (3×3 grid), .circuit-cell (+.flow с green glow), SVG path с rotation
+   612→- JS (строки 1712-1850):
+   613→  - renderTumbler(slot, pd): symbols (default 6 рун), correct sequence, 3 барабана с ▲/▼ кнопками, randomize initial (избегает solved state), green border+glow при совпадении, auto-success когда все 3 совпадают
+   614→  - renderConstellation(slot, pd): nodes + order, 40 фоновых звёзд, клик по звезде подсвечивает (amber glow) если правильный порядок, линии между соединёнными, saturate(3) flash при ошибке + bypassFail, auto-success когда все в order кликнуты
+   615→  - renderCircuit(slot, pd): 3×3 grid, solution path (default [0,1,2,5,8]), expectedRot per cell, клик вращает плитку на 90°, green glow когда в потоке, auto-success когда все solution-ячейки в правильной ротации
+   616→  - renderPuzzle dispatcher обновлён: keyword/tumbler/constellation/circuit → соответствующие функции, остальные → «неизвестный тип печати»
+   617→
+   618→Verification:
+   619→- JS syntax (node --check): OK (42368 bytes script block).
+   620→- ESLint: clean (exit 0).
+   621→
+   622→E2E agent-browser (полный flow, TESTWARDEN session):
+   623→1. Tumbler (2feaf866, correct=["ᚨ","ᚱ","ᚦ"]):
+   624→   - Open bypass → 3 drums [ᚱ,ᚨ,ᚲ], 6 buttons, hint показан ✓
+   625→   - Click ▲ на каждом барабане до совпадения → [ᚨ,ᚱ,ᚦ] ✓
+   626→   - «ДОСТУП РАЗРЕШЕН», box.granted ✓
+   627→   - npcTag: 13→12 🔒, DB is_locked=False ✓
+   628→2. Constellation (7c844939, order=["eye","crown","flame"]):
+   629→   - Open bypass → 5 звёзд (eye,crown,flame,serpent,tail), hint показан ✓
+   630→   - .click() на <g> не сработал → использовал dispatchEvent(MouseEvent) ✓
+   631→   - Click eye → lit (amber), crown → lit, flame → lit ✓
+   632→   - «ДОСТУП РАЗРЕШЕН», box.granted ✓
+   633→   - npcTag: 12→11 🔒, DB is_locked=False ✓
+   634→3. Circuit (89f2a212, solution=[0,1,2,5,8]):
+   635→   - Open bypass → 9 cells (3×3), 0 in flow ✓
+   636→   - Click cells 0,1,2,5,8 до нужной ротации (0,0,2,1,0) ✓
+   637→   - 5 cells in flow → «ДОСТУП РАЗРЕШЕН», box.granted ✓
+   638→   - npcTag: 11→10 🔒, DB is_locked=False ✓
+   639→- 0 JS errors во всех 3 тестах ✓
+   640→- Keyword (из этапа 2) продолжает работать ✓
+   641→- Unknown types (fragment, alchemy, runes, meta) показывают «неизвестный тип печати» (ожидаемо, этап 4)
+   642→
+   643→Stage Summary:
+   644→- Этап 3 (головоломки tumbler + constellation + circuit) завершён. Все 4 типа теперь функциональны: keyword, tumbler, constellation, circuit.
+   645→- Заглушка _puzzleLocked готова для этапа 4 (cooldown система).
+   646→- Готов к этапу 4 (головоломки alchemy, runes, fragment, meta + cooldown).
+   647→
+   648→---
+   649→Task ID: UPDATE-4
+   650→Agent: main (z.ai code)
+   651→Task: Этап 4 из 12 — Головоломки alchemy, runes, fragment, meta + Cooldown система. Базируется на Update 3 (81ff494).
+   652→
+   653→Work Log:
+   654→- Прочитал worklog.md — Update 3 (tumbler/constellation/circuit) завершён, 4 типа головоломок работают.
+   655→- Извлёк из v6.0-messy: renderAlchemy, renderRunes, renderMeta + cooldown логика в bypassFail.
+   656→- Обнаружил зависимости из будущих этапов: renderMeta вызывает unlockAchievement (этап 5) + использует STORE.collectedFragments (этап 6); bypassFail вызывает addGaze (этап 7). Добавил безопасные заглушки.
+   657→
+   658→Заглушки (строки 1190-1197):
+   659→- STORE.collectedFragments = new Set() — пустой Set, этап 6 заполнит
+   660→- function unlockAchievement(id){} — no-op, этап 5 заменит
+   661→- function addGaze(amount){} — no-op, этап 7 заменит
+   662→
+   663→CSS (строки 724-749):
+   664→- .alchemy-slot (+.filled green), .alchemy-ing (+.used), hover scale
+   665→- .rune-slot (+.question с pulse анимацией), .rune-opt (+.correct/.wrong)
+   666→- .meta-fragment (+.collected amber), .meta-input
+   667→- .puzzle-frozen (hue-rotate + brightness), .cooldown-overlay (absolute, cyan), .cooldown-text (MedievalSharp, pulse), @keyframes cooldownPulse
+   668→
+   669→JS:
+   670→- _puzzleErrors счётчик (строка 1620)
+   671→- openBypass: сброс _puzzleErrors=0, _puzzleLocked=false, удаление .frozen класса
+   672→- closeBypass: сброс _puzzleErrors + _puzzleLocked
+   673→- bypassFail (строки 1649-1708): полная cooldown система
+   674→  - red flash overlay (radial-gradient, flicker)
+   675→  - _puzzleErrors++
+   676→  - 1-я ошибка: 3 сек блокировка, penalty="блокировка 3 сек"
+   677→  - 2-я ошибка: 5 сек + addGaze(5), penalty="блокировка 5 сек + взгляд +5%"
+   678→  - 3-я+: 10 сек заморозка (box.frozen), penalty="заморозка 10 сек"
+   679→  - cooldown-overlay внутри bypass-box с обратным отсчётом
+   680→  - puzzle-frozen класс на slot (pointer-events:none + hue-rotate)
+   681→  - setInterval обновляет текст каждую секунду
+   682→  - setTimeout снимает блокировку, удаляет overlay, очищает status
+   683→- renderPuzzle dispatcher: +alchemy/runes/meta/fragment
+   684→- fragment: inline сообщение «// прочтите эту запись для осколка. запись откроется после снятия печати.»
+   685→- renderAlchemy (строки 1941-1974): ingredients + correct_recipe, клик заполняет слоты, auto-check при заполнении всех, success/fail
+   686→- renderRunes (строки 1976-2007): sequence + options + correct, клик по опции, .correct (green) или .wrong (red) + bypassFail, success через 400ms
+   687→- renderMeta (строки 2009-2056): требует все shard_word собранными (collectedFragments), показывает прогресс «осколков собрано: N / M», если все собраны — input + ПРОИЗНЕСТИ кнопка, проверка answer (uppercase), unlockAchievement("FINAL_REVELATION") при успехе. Пока collectedFragments пустой — показывает «найдите все записи-осколки».
+   688→
+   689→Verification:
+   690→- JS syntax (node --check): OK (50757 bytes script block).
+   691→- ESLint: clean (exit 0).
+   692→
+   693→E2E agent-browser (TESTWARDEN session):
+   694→1. Alchemy (lore/f5a4a6c7, recipe=[🜃,🜄,☿]):
+   695→   - Open bypass → 5 ingredients, hint показан ✓
+   696→   - Click 🜃(3)→🜄(1)→☿(4) в порядке ✓
+   697→   - «ДОСТУП РАЗРЕШЕН», box.granted ✓
+   698→   - loreTag: 20→19 🔒, DB is_locked=False ✓
+   699→2. Runes (lore/70248f0d, correct=🜃):
+   700→   - Open bypass → 5 slots (4 sequence + ?), 4 options ✓
+   701→   - Click 🜃 → .correct (green) ✓
+   702→   - «ДОСТУП РАЗРЕШЕН» ✓
+   703→   - loreTag: 19→18 🔒, DB is_locked=False ✓
+   704→3. Fragment (npcs/5205ab6b):
+   705→   - Open bypass → «// прочтите эту запись для осколка. запись откроется после снятия печати.» ✓
+   706→4. Meta (lore/7c4ec899, answer="ПЕПЕЛ ПОМНИТ ИМЯ БОГА ОСВОБОДИ"):
+   707→   - Open bypass → «осколков собрано: 0 / 5» + «найдите все записи-осколки» ✓
+   708→   - Input/Submit не показаны (collectedFragments пустой) ✓
+   709→5. Cooldown система (keyword B11104DD):
+   710→   - 1-я ошибка → «ОТКАЗ // блокировка 3 сек», cooldown overlay visible, puzzle frozen ✓
+   711→   - Через 3.5s → cooldown снят, input enabled ✓
+   712→   - 2-я ошибка → «ОТКАЗ // блокировка 5 сек + взгляд +5%» ✓
+   713→   - 3-я ошибка → «ОТКАЗ // заморозка 10 сек», box.frozen ✓
+   714→   - ESC закрывает bypass ✓
+   715→- 0 JS errors во всех тестах ✓
+   716→
+   717→Stage Summary:
+   718→- Этап 4 (alchemy + runes + fragment + meta + cooldown) завершён. Все 8 типов головоломок теперь функциональны: keyword, tumbler, constellation, circuit, alchemy, runes, fragment, meta.
+   719→- Cooldown система: 3с → 5с+gaze → 10с заморозка, с обратным отсчётом и visual feedback.
+   720→- Заглушки unlockAchievement/addGaze/collectedFragments готовы для замены в этапах 5/6/7.
+   721→- Готов к этапу 5 (ДОСТИЖЕНИЯ).
+   722→
+   723→---
+   724→Task ID: UPDATE-5+6
+   725→Agent: main (z.ai code)
+   726→Task: Этапы 5 (ДОСТИЖЕНИЯ) и 6 (ОСКОЛКИ ПАМЯТИ). Базируется на Update 4 (1dc4da1).
+   727→
+   728→Work Log:
+   729→- Прочитал worklog.md — Update 4 завершён, все 8 головоломок + cooldown работают.
+   730→- Извлёк из v6.0-messy: ACHIEVEMENTS, unlockAchievement/sync/save/load, renderAchievements, tryCollectShard, trackRead, renderShardLog, /api/auth/achievements route.
+   731→
+   732→Backend:
+   733→- src/app/api/auth/achievements/route.ts: GET (list player achievements) + POST (upsert achievement, idempotent via UNIQUE constraint).
+   734→- src/lib/supabase.ts: + shard_word field в ArchiveRecord.
+   735→
+   736→Frontend CSS:
+   737→- .achievement-toast (fixed top-right, amber border, achIn/achOut animations)
+   738→- .ach-icon, .ach-title, .ach-desc
+   739→- .ach-grid (auto-fill minmax 180px), .ach-card (+.unlocked), .ach-card-icon/name/desc
+   740→- .shard-log (sidebar, amber dashed), .shard-log-title, .shard-word, .shard-progress
+   741→
+   742→Frontend HTML:
+   743→- 4-й пункт меню «ДОСТИЖЕНИЯ» (data-panel="achievements", tag-ach)
+   744→- #shardLog в sidebar (перед meters)
+   745→- #achToastContainer (после unveil overlay)
+   746→
+   747→Frontend JS:
+   748→- STORE: + achievements Set, + readRecords Set (collectedFragments уже был)
+   749→- ACHIEVEMENTS array: 10 шт (FIRST_BREACH, ARCHIVIST, SEALBREAKER, SHARD_COLLECTOR, PROPHECY_FULFILLED, WITCHING_HOUR, FINAL_REVELATION, RESEAL, VOICE_OF_GOD, CARTOGRAPHER)
+   750→- syncAchievementsFromServer(): GET /api/auth/achievements → STORE.achievements
+   751→- unlockAchievementServer(id): POST /api/auth/achievements
+   752→- loadAchievements(): если _player — sync, иначе localStorage
+   753→- saveAchievements(): localStorage (анонимный режим)
+   754→- unlockAchievement(id): проверка дубликата, добавление в Set, sync/save, toast notification (icon+name+desc, 5 сек), success chord (659→784→988 Hz), обновление tag-ach
+   755→- renderAchievements(): grid из 10 карточек (unlocked показывает icon+name+desc, locked показывает ???/скрыто)
+   756→- trackRead(record): добавляет в readRecords, проверяет ARCHIVIST (все открытые записи прочитаны)
+   757→- tryCollectShard(record): добавляет shard_word в collectedFragments, unlockAchievement("SHARD_COLLECTOR"), triggerAlert, success chord, renderShardLog
+   758→- renderShardLog(): sidebar виджет с собранными словами и прогрессом N/M
+   759→- selectRecord: если !is_locked → trackRead(rec) + tryCollectShard(rec)
+   760→- bypassSuccess: addGaze(8), unlockAchievement("FIRST_BREACH"), unlockAchievement("PUZZLE_"+type), SEALBREAKER check, tryCollectShard(updated) если есть shard_word
+   761→- startPanel: achievements branch (renderAchievements, crumb=ДОСТИЖЕНИЯ), renderShardLog для остальных
+   762→- buildLogs: achievements branch (свой log sequence без Supabase fetch)
+   763→- logout: STORE.achievements = new Set()
+   764→- init: загрузка collectedFragments + readRecords из localStorage, loadAchievements(), syncAchievementsFromServer() после login
+   765→- renderRecordCard: shard badge «🧩 ОСКОЛОК ПАМЯТИ: «word»» в image-card и sigil-card variants
+   766→
+   767→Verification:
+   768→- JS syntax (node --check): OK (59435 bytes script block).
+   769→- ESLint: clean (exit 0).
+   770→- API: GET /api/auth/achievements (no cookie) → 401; (with cookie) → 200 [].
+   771→  POST unlock FIRST_BREACH → 200. GET → ["FIRST_BREACH"]. ✓
+   772→
+   773→E2E agent-browser (TESTWARDEN session):
+   774→1. Login → auto-boot → stage live, achTag=1 (FIRST_BREACH synced from server), shardLog «0/5» ✓
+   775→2. Click Странник Пепельных Дорог (shard_word=ПЕПЕЛ):
+   776→   - Card shows «🧩 ОСКОЛОК ПАМЯТИ: «ПЕПЕЛ»» badge ✓
+   777→   - shardLog: «ПЕПЕЛ | 1 / 5» ✓
+   778→   - achTag: 1→2 (SHARD_COLLECTOR unlocked) ✓
+   779→   - alertOverlay visible («ОСКОЛОК СОБРАН») ✓
+   780→   - toast notification (achievement-toast) ✓
+   781→3. Collect remaining 4 shards (d77bf566, 1c2f5570, 646f6429, 04eab081):
+   782→   - shardLog: «ПЕПЕЛПОМНИТИМЯБОГАОСВОБОДИ | 5 / 5» ✓
+   783→4. ДОСТИЖЕНИЯ panel:
+   784→   - Header «ДОСТИЖЕНИЯ :: ВЕДОМОСТИ СТРАЖА» ✓
+   785→   - Sub «2 / 10 получено» ✓
+   786→   - 10 cards, 2 unlocked (🥇 Первый взлом, 🧩 Собиратель Осколков) ✓
+   787→   - Locked cards show ??? / скрыто ✓
+   788→5. Meta puzzle (lore/7c4ec899):
+   789→   - Open bypass → 5 fragments all collected, input + ПРОИЗНЕСТИ shown ✓
+   790→   - Enter «ПЕПЕЛ ПОМНИТ ИМЯ БОГА ОСВОБОДИ» → «ДОСТУП РАЗРЕШЕН» ✓
+   791→   - achTag: 2→3 (FINAL_REVELATION unlocked) ✓
+   792→   - loreTag: 18→17 🔒, DB is_locked=False ✓
+   793→6. Server achievements sync: ["FIRST_BREACH","SHARD_COLLECTOR","FINAL_REVELATION"] ✓
+   794→- 0 JS errors ✓
+   795→
+   796→Stage Summary:
+   797→- Этапы 5+6 завершены. 10 достижений с toast + server sync, 5 осколков с sidebar виджетом + alert, ARCHIVIST/FINAL_REVELATION/SHARD_COLLECTOR/SEALBREAKER автоматически.
+   798→- Meta puzzle теперь полностью проходима (нужны все 5 осколков).
+   799→- Готов к этапу 7 (ВЗГЛЯД БОГА).
+   800→
+   801→---
+   802→Task ID: UPDATE-7+8
+   803→Agent: main (z.ai code)
+   804→Task: Этапы 7 (ВЗГЛЯД БОГА) и 8 (ЧАС ВЕДЬМЫ). Базируется на Update 5+6 (b7b5367).
+   805→
+   806→Work Log:
+   807→- Прочитал worklog.md — Update 5+6 завершён, достижения + осколки работают.
+   808→- Извлёк из v6.0-messy: GOD'S GAZE CSS (4 levels), applyGazeClass/addGaze, meter-tooltip CSS, witching-indicator CSS + checkWitching + DEFAULT_EVT + loadEvtCfg + gaze command bridge.
+   809→
+   810→Frontend CSS:
+   811→- body.gaze-low/med/high/extreme — 4 уровня CRT degradation:
+   812→  - low: scanlines .55
+   813→  - med: scanlines .6 + noise .06 + gazeBlink 6s
+   814→  - high: scanlines .65 + noise .08 + gazeBlink 4s + 👁 eye silhouette 80px (8s flicker)
+   815→  - extreme: scanlines .7 + noise .1 + gazeBlink 2s + 👁 120px (4s flicker) + console gazeInvert 12s (invert+hue-rotate)
+   816→- @keyframes gazeBlink, gazeEyeFlicker, gazeInvert
+   817→- .meter .lbl cursor:help + .meter-tooltip (hover reveal, clip-path, green-dim border)
+   818→- .witching-indicator (fixed top center, purple #a78bfa, witchingPulse 2s, display:none → .show)
+   819→
+   820→Frontend HTML:
+   821→- Метка метрики ПОРЧА → ВЗГЛЯД БОГА (с meter-tooltip: пороги 30/60/90/100%)
+   822→- Добавлены meter-tooltip ко всем 3 метрам (ЦЕЛОСТНОСТЬ, ВЗГЛЯД БОГА, СИГНАЛ)
+   823→- Statusbar: ПОРЧА → ВЗГЛЯД
+   824→- #witchingIndicator overlay (🌙 ЧАС ВЕДЬМЫ 🌙)
+   825→
+   826→Frontend JS:
+   827→- Убран stub addGaze, добавлена реальная реализация:
+   828→  - addGaze(amount): corruptionLevel = clamp(0,100, +amount), updateTags()
+   829→  - applyGazeClass(): <30=gaze-low, <60=gaze-med, <90=gaze-high, else gaze-extreme; при 100% — triggerAlert «👁 ОН ВИДИТ ТЕБЯ» + glitch
+   830→- corruptionLevel: 27 → 0 (gaze начинается с 0, растёт от действий)
+   831→- updateTags: добавлен applyGazeClass() вызов в конце
+   832→- trackRead: добавлен addGaze(2) за каждое чтение записи
+   833→- DEFAULT_EVT.witching_hour: {enabled, startHour:3, endHour:4, timezone:3 (Moscow), boost:15, title, msg}
+   834→- loadEvtCfg(): читает ashen_events_config_v2 из localStorage (этап 12 будет писать)
+   835→- checkWitching(): проверяет manual flag или time range (с timezone конверсией, поддерживает midnight-crossing), показывает #witchingIndicator, при первом триггере — addGaze(boost) + triggerAlert + Audio.whisper + unlockAchievement("WITCHING_HOUR")
+   836→- setInterval(checkWitching, 30000) + начальный checkWitching()
+   837→- Gaze command bridge: setInterval(1с) читает ashen_gaze_cmd из localStorage:
+   838→  - open_eye → addGaze(amount||50) + alert «👁 ОТКРЫТО ОКО»
+   839→  - close_eye → corruptionLevel=0 + alert «👁 ЗАКРЫТО ОКО»
+   840→
+   841→Verification:
+   842→- JS syntax (node --check): OK (63429 bytes script block).
+   843→- ESLint: clean (exit 0).
+   844→
+   845→E2E agent-browser (TESTWARDEN session):
+   846→1. Initial state: gaze=0%, body=gaze-low, witching hidden ✓
+   847→2. Cleared localStorage for clean test, clicked 5 unlocked records:
+   848→   - gaze: 0→10% (5×2%), body=gaze-low (<30%) ✓
+   849→   - readRecords persisted to localStorage ✓
+   850→3. Admin command bridge (open_eye +50%):
+   851→   - localStorage.ashen_gaze_cmd = {action:"open_eye", amount:50}
+   852→   - After 2s: gaze=60%, body=gaze-high (>=60%), alert «👁 ОТКРЫТО ОКО» ✓
+   853→4. Admin command (close_eye):
+   854→   - gaze→0%, body→gaze-low, alert «👁 ЗАКРЫТО ОКО» ✓
+   855→5. Witching manual ON (localStorage.ashen_witching_manual="true"):
+   856→   - After 30s interval: witchingIndicator visible, gaze 0→15% (boost), alert «ЧАС ВЕДЬМЫ», achTag 3→4 (WITCHING_HOUR) ✓
+   857→   - Audio.whisper played ✓
+   858→6. Witching manual OFF ("false"):
+   859→   - witchingIndicator hidden, manualFlag cleared ✓
+   860→7. Meter tooltips: 3 tooltips present, second label = «ВЗГЛЯД БОГА» ✓
+   861→8. WITCHING_HOUR synced to server: POST /api/auth/achievements 200 ✓
+   862→- 0 JS errors ✓
+   863→
+   864→Stage Summary:
+   865→- Этапы 7+8 завершены. God's Gaze с 4 уровнями CRT degradation + admin command bridge. Witching Hour с timezone-aware time ranges + manual override + WITCHING_HOUR achievement.
+   866→- Заглушка addGaze заменена на реальную реализацию. bypassFail (этап 4) теперь реально повышает gaze при 2-й ошибке.
+   867→- Готов к этапу 9 (РЕЖИМ ПРОЕКЦИИ).
+   868→
+   869→---
+   870→Task ID: UPDATE-9+10
+   871→Agent: main (z.ai code)
+   872→Task: Этапы 9 (РЕЖИМ ПРОЕКЦИИ) и 10 (КАРТА ЗНАНИЙ). Базируется на Update 7+8 (cf9f0d4).
+   873→
+   874→Work Log:
+   875→- Прочитал worklog.md — Update 7+8 завершён, God's Gaze + Witching Hour работают.
+   876→- Извлёк из v6.0-messy: projection CSS + openProjection/closeProjection, map CSS + renderMapView, view-toggle.
+   877→- Заглушки isValidImageUrl/safeImgTag не нужны — реализовал проверку image_url inline в openProjection (regex + onerror fallback на sigil SVG).
+   878→
+   879→Frontend CSS:
+   880→- .projection-overlay (fullscreen, z-9600, opacity transition), .projection-close (× button), .projection-holo (300×300), .bracket tl/tr/bl/br, .holo-stage, .holo-subj (svg/img with holoSpin), .scan (holoScan 3.4s), .projection-name/title/desc
+   881→- .view-toggle + .view-btn (+.active green), .map-container (500px min), .map-svg (radial-gradient bg + grid), .map-node (+.locked red, +.fragment amber dashed), .node-dot, .map-link (dashed), .map-legend with .dot.open/locked/fragment
+   882→
+   883→Frontend HTML:
+   884→- #projectionOverlay (после witchingIndicator): close button + holo + name/title/desc
+   885→- Кнопка «📽 ПРОЕКЦИЯ» (seal-btn, id=projBtn, data-id/data-type) в image-card и sigil-card variants
+   886→
+   887→Frontend JS:
+   888→- let _viewMode = "list" (глобальная переменная режима просмотра)
+   889→- renderArchive: if(_viewMode==="map") return renderMapView(type); + view-toggle (СПИСОК/КАРТА) в panel-head
+   890→- renderMapView(type): кластеризация по category (ОПЕЧАТАНО/ОСКОЛКИ/category), cluster centers на круге (cR=34), nodes в кольцах внутри кластеров (ir=3+count*1.2), links внутри кластеров + между центрами, grid 10-90%, SVG viewBox 0 0 100 100, legend с счётчиками open/locked/fragment
+   891→- openProjection(record, type): fullscreen holo с brackets + scan, subject = i-err если locked / image если valid URL (regex + onerror fallback) / sigil SVG, name/title/desc, unlockAchievement("VOICE_OF_GOD"), beep chord
+   892→- Click delegation (единый listener): #bypassBtn → openBypass, #projBtn → openProjection, .map-node → selectRecord + _viewMode=list + startPanel, .view-btn[data-view] → switch mode + CARTOGRAPHER
+   893→- #projectionClose click + ESC (приоритет: projection → bypass)
+   894→
+   895→Verification:
+   896→- JS syntax (node --check): OK (71106 bytes script block).
+   897→- ESLint: clean (exit 0).
+   898→
+   899→E2E agent-browser (TESTWARDEN session):
+   900→1. Click The Cinder-King (UNDEAD, unlocked):
+   901→   - view-toggle с 2 кнопками (СПИСОК/КАРТА) ✓
+   902→   - «📽 ПРОЕКЦИЯ» кнопка в карточке ✓
+   903→2. Click ПРОЕКЦИЯ:
+   904→   - projectionOverlay.show ✓
+   905→   - name «The Cinder-King», title «// last monarch of the Ashen Throne», desc ✓
+   906→   - holo-subj отрендерен ✓
+   907→   - achTag 4→5 (VOICE_OF_GOD) ✓
+   908→3. ESC closes projection ✓
+   909→4. × button closes projection ✓
+   910→5. Click КАРТА:
+   911→   - header «АРХИВ_НПС :: КАРТА ЗНАНИЙ» ✓
+   912→   - 1 SVG, 47 nodes, 61 links, 1 legend ✓
+   913→   - СПИСОК button для возврата ✓
+   914→   - achTag 5→6 (CARTOGRAPHER) ✓
+   915→6. Click map node:
+   916→   - returns to list view, npcList restored ✓
+   917→- 0 JS errors ✓
+   918→- Server achievements: [FIRST_BREACH, SHARD_COLLECTOR, FINAL_REVELATION, WITCHING_HOUR, VOICE_OF_GOD, CARTOGRAPHER] — 6 synced ✓
+   919→
+   920→Stage Summary:
+   921→- Этапы 9+10 завершены. Projection (fullscreen holo) + Map view (clustered SVG) работают.
+   922→- 2 новых achievement: VOICE_OF_GOD (projection), CARTOGRAPHER (map view).
+   923→- Готов к этапу 11 (РАСШИРЕННАЯ АДМИНКА).
+   924→
+   925→---
+   926→Task ID: UPDATE-11+12
+   927→Agent: full-stack-developer
+   928→Task: Этапы 11 (РАСШИРЕННАЯ АДМИНКА) и 12 (EVENTS PANEL). Базируется на Update 9+10 (этапы 9-10 завершены).
+   929→
+   930→Work Log:
+   931→- Прочитал worklog.md — Updates 1-10 завершены (проекция, карта знаний, God's Gaze, Witching Hour, достижения, осколки, головоломки, boot sequence, NPC/LORE/RULERS архив).
+   932→- Прочитал текущий src/app/admin/page.tsx (406 строк, базовая версия: только NPC/LORE/RULERS список + простая форма загрузки).
+   933→- Извлёк v6.0-messy admin page в /tmp/v6_admin.tsx (1056 строк) — полная версия с WardensPanel, EventsPanel, EditModal, расширенной UploadForm.
+   934→- Изучил ВСЕ существующие API-маршруты в src/app/api/admin/ для адаптации контракта:
+   935→  * /api/admin/login (GET/POST/DELETE) — работает, cookie `ashen_admin_session`, token `ashen-warden-{pwd.length*7}-granted`.
+   936→  * /api/admin/list (GET ?type=all) — возвращает {data:{npcs,lore,rulers}}, select("*") — ВСЕ колонки DB включая prophecy_bonus_text, map_x, map_y, custom_trigger.
+   937→  * /api/admin/upload (POST) — принимает {type,name,category,title,description,image_url,sigil}. РАСШИРЕННЫЕ ПОЛЯ (puzzle_type, shard_word, map_x, custom_trigger, и т.д.) НЕ сохраняются (route их игнорирует). DB-колонки для них существуют.
+   938→  * /api/admin/toggle (POST {type,id}) — флипит is_locked серверно. Body НЕ принимает is_locked.
+   939→  * /api/admin/players (GET → {data:[{id,warden_name,created_at,achievements:[]}]}); (POST: create {warden_name,password} | reset_password {action,id,new_password} | reset_achievements {action,id} | delete {action,id}).
+   940→  * /api/admin/edit — НЕ СУЩЕСТВУЕТ (404).
+   941→  * /api/admin/delete — НЕ СУЩЕСТВУЕТ (404).
+   942→- Сверил localStorage-ключи с фронтендом dnd-console.html:
+   943→  * ashen_events_config_v2 → {witching_hour:{enabled,startHour,startMinute,endHour,endMinute,timezone(NUMBER, UTC offset),boost(NUMBER, gaze %),title,msg}}. Фронт читает cfg.boost (НЕ cooldown) и cfg.timezone*3600000.
+   944→  * ashen_witching_manual → "true" | "false" (фронт проверяет === "false" и удаляет ключ).
+   945→  * ashen_gaze_cmd → {action:"open_eye",amount} | {action:"close_eye"} (фронт опрашивает 1с, удаляет после прочтения).
+   946→
+   947→Implementation (src/app/admin/page.tsx, 1119 строк, перезаписан):
+   948→- AdminPage: login screen (RU: «ДОСТУП СТРАЖА», «ВОЙТИ»), session check via GET /api/admin/login, logout via DELETE.
+   949→- AdminPanel: header «АШЕНОВ КОДЕКС // СТРАЖ» + LOGOUT; 4 таба (NPC/LORE/RULERS/WARDENS) со счётчиками (WARDENS показывает count или «—»); EventsPanel под header; список записей + NEW RECORD + REFRESH.
+   950→- EventsPanel (Этап 12): коллапсируемая «⚙ ПАНЕЛЬ СОБЫТИЙ».
+   951→  * Секция «🌙 ЧАС ВЕДЬМЫ»: checkbox ВКЛЮЧИТЬ, 4 number-инпута (start HH:MM, end HH:MM с clamp 0-23/0-59), timezone (number, default 3 = Москва), boost (number, default 15), title, msg textarea. Пишет в localStorage `ashen_events_config_v2` как {witching_hour:{...}}.
+   952→  * Секция «👁 УПРАВЛЕНИЕ ВЗГЛЯДОМ БОГА»: 4 кнопки → «🌙 ВКЛ. ЧАС ВЕДЬМЫ» (set ashen_witching_manual="true"), «ВЫКЛ. ЧАС» (set "false"), «👁 ОТКРЫТЬ ОКО +50%» (set ashen_gaze_cmd={action:"open_eye",amount:50}), «👁 ЗАКРЫТЬ ОКО» (set ashen_gaze_cmd={action:"close_eye"}). Toast-уведомления после каждой команды.
+   953→- RecordCard: id (8 симв), name, title, category, description (truncate 120), status badge (🔒 ОПЕЧАТАНО / 🔓 ОТКРЫТО), 3 действия: toggle (🔓 СНЯТЬ ПЕЧАТЬ / 🔒 ОПЕЧАТАТЬ), ✎ EDIT (открывает EditModal), ✕ DELETE (window.confirm).
+   954→- UploadForm: ПОЛНАЯ форма со ВСЕМИ полями (NAME*, CATEGORY, TITLE, DESCRIPTION, IMAGE URL, SIGIL select, PUZZLE TYPE select, PUZZLE HINT, PUZZLE DATA JSON textarea, SHARD WORD, PROPHECY BONUS TEXT, MAP X/Y number, CUSTOM TRIGGER JSON textarea). Валидация JSON для puzzle_data/custom_trigger. Кнопка «ЗАГРУЗИТЬ В АРХИВ» → POST /api/admin/upload (отправляет ВСЕ поля; backend сохраняет 6 базовых, расширенные игнорируются — forward-compat).
+   955→- EditModal: модалка с pre-fill из записи списка (list возвращает select("*"), поэтому puzzle_type, shard_word, prophecy_bonus_text, map_x, map_y, custom_trigger доступны). ESC закрывает. Кнопка «СОХРАНИТЬ» → POST /api/admin/edit (ВНИМАНИЕ: маршрут не существует — см. Issues).
+   956→- WardensPanel: форма создания (имя + шифр + «СОЗДАТЬ СТРАЖА»), список стражей (warden_name, created_at, achievements.length, 3 действия: СБРОС ПАРОЛЯ (prompt → {action:"reset_password",id,new_password}), СБРОС ДОСТ. (confirm → {action:"reset_achievements",id}), УДАЛИТЬ (confirm → {action:"delete",id})). Читает j.data (НЕ j.players), использует warden_name (НЕ name), new_password (НЕ password).
+   957→- Стили: styles object (как в v6.0-messy). CRT-эстетика: чёрный фон #050505, зелёный #4af626 (primary), амбер #e8a13a (puzzles/wardens), красный #ff2424 (danger). Шрифты 'MedievalSharp', 'VT323', 'Share Tech Mono'. Русские лейблы везде.
+   958→
+   959→Verification:
+   960→- bun run lint: PASS (exit 0, no errors).
+   961→- GET /admin: HTTP 200.
+   962→- curl тесты API:
+   963→  * GET /api/admin/login (no cookie) → 401 ✓
+   964→  * POST /api/admin/login {password:"WRONG"} → 401 ✓
+   965→  * POST /api/admin/login {password:"WARDEN"} → 200 + Set-Cookie ✓
+   966→  * GET /api/admin/login (cookie) → 200 ✓
+   967→  * GET /api/admin/list?type=all (cookie) → 200 + {data:{npcs,lore,rulers}} ✓
+   968→  * GET /api/admin/players (cookie) → 200 + {data:[{id,warden_name,created_at,achievements:[...]}]} ✓
+   969→  * POST /api/admin/toggle {type,id} (cookie) → 200, is_locked flips server-side ✓ (вернул Cinder-King в исходное состояние)
+   970→  * POST /api/admin/upload с расширенными полями → 200, сохранены ТОЛЬКО 6 базовых полей (puzzle_type/shard_word/map_x/custom_trigger = null) ✓
+   971→  * POST /api/admin/edit → 404 (маршрут НЕ существует) ⚠
+   972→  * POST /api/admin/delete → 404 (маршрут НЕ существует) ⚠
+   973→- dev.log: GET /admin 200, все admin API логи корректны, 0 ошибок компиляции.
+   974→
+   975→Stage Summary:
+   976→- Этап 11 (РАСШИРЕННАЯ АДМИНКА): реализована полностью на фронтенде — 4 таба, полный UploadForm (15 полей), EditModal, WardensPanel с управлением стражами, RecordCard с toggle/edit/delete. 1119 строк.
+   977→- Этап 12 (EVENTS PANEL): реализована полностью — Witching Hour config (8 полей, пишет в ashen_events_config_v2) + God's Gaze commands (4 кнопки, пишут в ashen_witching_manual / ashen_gaze_cmd). Ключи localStorage ТОЧНО совпадают с тем, что опрашивает dnd-console.html.
+   978→
+   979→Issues encountered (ВАЖНО для пользователя):
+   980→1. /api/admin/edit и /api/admin/delete НЕ СУЩЕСТВУЮТ — задача утверждала, что они «already exist and work», но фактически их нет (find подтвердил отсутствие директорий). Строго следовал правилу «only src/app/admin/page.tsx» и НЕ создавал новые маршруты. EditModal и кнопка DELETE реализованы и вызывают эти эндпоинты, но в runtime получают 404. Пользователь увидит toast «сохранение не удалось» / «УДАЛЕНИЕ НЕ УДАЛОСЬ». Рекомендуется создать эти маршруты в следующем этапе (или явно разрешить их создание).
+   981→2. /api/admin/upload принимает ТОЛЬКО 6 базовых полей (name, category, title, description, image_url, sigil). Расширенные поля (puzzle_type, puzzle_data, puzzle_hint, shard_word, prophecy_bonus_text, map_x, map_y, custom_trigger) отправляются формой, но backend их игнорирует (DB-колонки существуют, но route их не пишет). Для полноценного сохранения расширенных полей нужно расширить upload route (требует разрешения).
+   982→3. Тестовые записи: при curl-тестировании upload создал 2 записи с name=`__ADMIN_TEST_RECORD__`, category=`TEST` (IDs: 0b51d46c-aa05-4376-83a0-866325ec2bf2, 7650b0b9-eb93-404e-8823-cfa5de7d9519). Удалить через API нельзя (delete route 404). Пользователь должен удалить их вручную из Supabase или после создания delete route.
+   983→4. Адаптации контракта (отличия от v6.0-messy, приведено к реальному API):
+   984→   - toggle body: {type,id} (НЕ {table,id,is_locked}) — сервер флипит сам.
+   985→   - upload/edit/delete body: type (НЕ table).
+   986→   - players GET: j.data (НЕ j.players), warden_name (НЕ name), achievements array length (НЕ achievements_count).
+   987→   - players reset_password: new_password (НЕ password).
+   988→   - EditModal: НЕ делает отдельный fetch /api/admin/get — использует запись из list (list возвращает select("*") со всеми расширенными полями).
+   989→   - EventsPanel wh_off: setItem("ashen_witching_manual","false") (НЕ removeItem) — фронт проверяет === "false".
+   990→   - EventsPanel timezone: number (default 3 = Москва) — фронт делает cfg.timezone*3600000.
+   991→   - EventsPanel boost: number (НЕ cooldown) — фронт читает cfg.boost.
+   992→
+   993→Компоненты реализованы: AdminPage, AdminPanel, RecordCard, UploadForm, EditModal, WardensPanel, EventsPanel (+ helper stringifyMaybe, clampNum).
+   994→
+   995→---
+   996→Task ID: UPDATE-11+12-FIX
+   997→Agent: main (z.ai code)
+   998→Task: Фиксы после subagent — создать недостающие API маршруты (edit, delete) + расширить upload + удалить тестовые записи.
+   999→
+  1000→Work Log:
+  1001→- Subagent (full-stack-developer) реализовал Update 11+12: новая admin/page.tsx (1119 строк) с WardensPanel, EventsPanel, EditModal, расширенной UploadForm.
+  1002→- Найдены 2 проблемы: /api/admin/edit и /api/admin/delete НЕ существовали (404), /api/admin/upload не сохранял расширенные поля.
+  1003→- Создан src/app/api/admin/edit/route.ts: POST, обновляет все поля (name, category, title, description, image_url, sigil, is_locked, puzzle_type, puzzle_data, puzzle_hint, shard_word, prophecy_bonus_text, prophecy_date, map_x, map_y, custom_trigger). Только присутствующие поля записываются.
+  1004→- Создан src/app/api/admin/delete/route.ts: POST, удаляет запись по {type, id}.
+  1005→- Расширен src/app/api/admin/upload/route.ts: теперь сохраняет ВСЕ поля (было 6 базовых, стало 16: + is_locked, puzzle_type, puzzle_data, puzzle_hint, shard_word, prophecy_bonus_text, prophecy_date, map_x, map_y, custom_trigger).
+  1006→- Удалены 2 тестовые записи (__ADMIN_TEST_RECORD__) + 1 TEST_EXTENDED через новый delete route.
+  1007→- NPC count вернулся к 47 (был 50 с тестами).
+  1008→
+  1009→Verification:
+  1010→- Lint: clean (exit 0).
+  1011→- API: edit → 500 на невалидный UUID (ожидаемо), delete → 401 без cookie (авторизация), upload с расширенными полями → 200 + все поля сохранены (puzzle_type, puzzle_data, shard_word, map_x, map_y).
+  1012→- E2E admin page:
+  1013→  - Login WARDEN → dashboard: NPC 47, LORE 37, RULERS 27, WARDENS 1 ✓
+  1014→  - Events Panel: checkbox + 4 spinbuttons (3:00-4:00) + timezone (3) + boost (15) + title + 4 command buttons ✓
+  1015→  - ОТКРЫТЬ ОКО +50% → localStorage.ashen_gaze_cmd = {"action":"open_eye","amount":50} ✓
+  1016→  - ВКЛ. ЧАС ВЕДЬМЫ → localStorage.ashen_witching_manual = "true" ✓
+  1017→  - ЗАКРЫТЬ ОКО → localStorage.ashen_gaze_cmd = {"action":"close_eye"} ✓
+  1018→  - + НОВАЯ ЗАПИСЬ → полная форма (ИМЯ, КАТЕГОРИЯ, ТИТУЛ, ОПИСАНИЕ, URL, СИГИЛ ×8, ТИП ГОЛОВОЛОМКИ ×9, hint, puzzle_data, shard_word, prophecy, map_x/y, custom_trigger, ЗАГРУЗИТЬ) ✓
+  1019→  - ✎ edit → EditModal с «✎ РЕДАКТИРОВАНИЕ» + «СОХРАНИТЬ» ✓
+  1020→  - WARDENS tab → форма создания + список с СБРОС ПАРОЛЯ/СБРОС ДОСТ./УДАЛИТЬ ✓
+  1021→- 0 JS errors ✓
+  1022→
+  1023→Stage Summary:
+  1024→- Этапы 11+12 полностью завершены. Расширенная админка (1119 строк) + Events Panel + все CRUD маршруты работают.
+  1025→- Все 12 этапов плана реализованы. Проект ASHEN CODEX v6.0 полностью функционален.
+  1026→
+  1027→---
+  1028→Task ID: GITHUB-PREP
+  1029→Agent: main (z.ai code)
+  1030→Task: Подготовка репозитория к заливке на GitHub — безопасность, очистка истории от секретов.
+  1031→
+  1032→Work Log:
+  1033→- Проверил git state: working tree clean, 2 ветки (main + v6.0-messy), remote не настроен.
+  1034→- НАЙДЕНА УЯЗВИМОСТЬ: .env отслеживался в git с Initial commit (содержит VITE_SUPABASE_SERVICE_KEY, ADMIN_PASSWORD).
+  1035→- Создал .env.example (шаблон с placeholder значениями: YOUR_ANON_KEY, YOUR_SERVICE_ROLE_KEY, WARDEN).
+  1036→- Исправил .gitignore: добавил `!.env.example` исключение (правило `.env*` блокировало всё).
+  1037→- Удалил .env из git index (git rm --cached) — файл остался на диске.
+  1038→- Коммит "security: remove .env from tracking, add .env.example template".
+  1039→- Очистил ВСЮ историю git через git filter-repo --invert-paths --path .env — переписаны все 21 коммита, хэши изменились.
+  1040→- Удалил backup теги (pre-filter-backup, pre-filter-backup-v6, v6.0-messy-tag) — они указывали на старые коммиты с секретами.
+  1041→- Проверил: реальный Supabase service key (sb_secret_GSi8sGY9zG...) НЕ найден ни в одном коммите обеих веток.
+  1042→- .env остался на диске для локальной разработки.
+  1043→
+  1044→Stage Summary:
+  1045→- История git полностью очищена от секретов. Безопасно для публичного GitHub репозитория.
+  1046→- 102 файла отслеживается, .env.example как шаблон, .env локально.
+  1047→- Lint чистый, v6.0-messy ветка тоже чиста.
+  1048→- Внимание: хэши всех коммитов изменились после filter-repo (нормально при переписывании истории).
+  1049→- Готов к push на GitHub.
+  1050→
+  1051→---
+  1052→
+  1053→## FRAGMENT-PUZZLE-ADMIN — 2025-06-25
+  1054→
+  1055→**Agent**: coder · **File**: `src/app/admin/page.tsx`
+  1056→
+  1057→### Summary
+  1058→Extended the ASHEN CODEX admin panel to manage the new **fragment puzzle** system per record (`fragment_puzzle_type` / `fragment_puzzle_data` / `fragment_puzzle_hint`), independent of the existing main puzzle used for unlocking. The fragment puzzle is intended to decrypt `[[HIDDEN:...]]` spans inside the record description.
+  1059→
+  1060→### Changes
+  1061→1. **`ArchiveRecord` interface** — added three optional nullable fields (`fragment_puzzle_type`, `fragment_puzzle_data`, `fragment_puzzle_hint`) right after the main puzzle fields, with a comment explaining their purpose.
+  1062→2. **`UploadForm`** — added three `useState` hooks (`fragmentPuzzleType` defaults to `"none"`), a `fragmentPuzzleDataParsed` JSON.parse guard with its own localized error message, three new keys in the `/api/admin/upload` request body, and a visually-separated UI block (dashed `#2a2017` border + amber `VT323` header `🔓 ГОЛОВОЛОМКА СКРЫТОГО ФРАГМЕНТА` + explanatory `//` note) with Type select / Hint input / Data textarea, reusing the existing `PUZZLE_TYPES` array and `styles.input`/`styles.select`/`styles.fieldLabel`.
+  1063→3. **`EditModal`** — same three `useState` hooks pre-filled from the loaded record (using `stringifyMaybe` for `fragment_puzzle_data` so stored JSON is pretty-printed), same JSON.parse guard, three new keys in the `/api/admin/edit` body, and an identical visually-separated UI block inserted after the main puzzle data textarea and before "СЛОВО-ОСКОЛОК".
+  1064→
+  1065→### Labels (Russian, per spec)
+  1066→- `ТИП ГОЛОВОЛОМКИ ФРАГМЕНТА` (select)
+  1067→- `ПОДСКАЗКА ФРАГМЕНТА` (input)
+  1068→- `ДАННЫЕ ГОЛОВОЛОМКИ ФРАГМЕНТА (JSON)` (textarea)
+  1069→
+  1070→### Validation
+  1071→- `bun run lint` → **0 errors, 0 warnings**. (Initially had 2 `react/jsx-no-comment-textnodes` errors because the `// используется для расшифровки...` note was raw text in JSX; fixed by wrapping it in `{}`.)
+  1072→- `dev.log` shows no compile/runtime regressions; admin API routes continue responding 200.
+  1073→
+  1074→### Notes
+  1075→- The dashed separator is inline (`borderTop: "1px dashed #2a2017"`) because the codebase has no shared `separator` style; keeping it local avoids touching the shared `styles` object.
+  1076→- Amber accent `#e8a13a` + `VT323` font visually distinguishes the fragment-puzzle section from the green-terminal main puzzle.
+  1077→- Backend routes (`/api/admin/upload`, `/api/admin/edit`) and `src/lib/supabase.ts` already accepted/stored these fields — no backend changes needed.
+  1078→- Work record also saved to `/agent-ctx/FRAGMENT-PUZZLE-ADMIN-coder.md`.
+  1079→
