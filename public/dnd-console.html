@@ -3128,7 +3128,9 @@
   function loadEvtCfg(){
     try{
       const s = JSON.parse(localStorage.getItem("ashen_events_config_v2") || "{}");
-      return { witching_hour: Object.assign({}, DEFAULT_EVT.witching_hour, s.witching_hour || {}) };
+      // Admin writes {witching: {...}}, not {witching_hour: {...}}
+      const w = s.witching || s.witching_hour || {};
+      return { witching_hour: Object.assign({}, DEFAULT_EVT.witching_hour, w) };
     }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_EVT)); }
   }
   let _witchManual = false, _witchTriggered = false;
@@ -3159,7 +3161,9 @@
           ? (curMin >= startMin && curMin < endMin)
           : (curMin >= startMin || curMin < endMin));
     if(inRange){
-      $("#witchingIndicator")?.classList.add("show");
+      const wi = $("#witchingIndicator");
+      if(wi) wi.textContent = "🌙 " + (cfg.title || "ЧАС ВЕДЬМЫ") + " 🌙";
+      wi?.classList.add("show");
       if(!_witchTriggered){
         _witchTriggered = true;
         addGaze(cfg.boost || 5);
