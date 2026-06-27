@@ -802,6 +802,25 @@
   .mem-info b{color:var(--green)}
   .mem-start{display:block;margin:12px auto 0;padding:8px 24px}
 
+  /* ============ PUZZLES: maze (darkness) ============ */
+  .maze-grid{display:grid;gap:1px;max-width:320px;margin:0 auto;background:#000;border:1px solid var(--green-deep);padding:2px}
+  .maze-cell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:12px;transition:opacity .3s,background .15s}
+  .maze-cell.wall{background:#1a1a1a}
+  .maze-cell.path{background:#0a0d0a}
+  .maze-cell.visible{opacity:1}
+  .maze-cell.dim{opacity:.35}
+  .maze-cell.dark{opacity:0}
+  .maze-cell.player{background:var(--green);box-shadow:0 0 10px var(--green);z-index:2;animation:mazePulse 1.5s ease-in-out infinite}
+  @keyframes mazePulse{0%,100%{box-shadow:0 0 8px var(--green)}50%{box-shadow:0 0 16px var(--green)}}
+  .maze-cell.exit{background:var(--amber)}
+  .maze-cell.exit.visible{box-shadow:0 0 12px var(--amber)}
+  .maze-cell.start{background:var(--cyan);opacity:.5}
+  .maze-info{text-align:center;margin-top:8px;font-size:13px;color:var(--text-dim);font-family:'VT323',monospace}
+  .maze-info b{color:var(--green)}
+  .maze-controls{display:flex;gap:4px;justify-content:center;margin-top:8px}
+  .maze-controls button{background:none;border:1px solid var(--green-dim);color:var(--green-dim);font-family:'VT323',monospace;font-size:16px;padding:4px 12px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 4px) 0,100% 4px,100% 100%,4px 100%,0 calc(100% - 4px))}
+  .maze-controls button:hover{border-color:var(--green);color:var(--green)}
+
   /* ============ PUZZLES: alchemy ============ */
   .alchemy-slot{width:60px;height:60px;border:2px dashed var(--amber);background:rgba(232,161,58,.04);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--amber);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
   .alchemy-slot.filled{border-style:solid;border-color:var(--green);color:var(--green);box-shadow:0 0 10px rgba(74,246,38,.3)}
@@ -2537,6 +2556,7 @@
     else if(ptype === "sliding") renderSliding(slot, pd);
     else if(ptype === "g2048") render2048(slot, pd);
     else if(ptype === "memory") renderMemory(slot, pd);
+    else if(ptype === "maze") renderMaze(slot, pd);
     else if(ptype === "meta") renderMeta(slot, pd);
     else if(ptype === "fragment") slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// эта запись содержит осколок памяти.<br>закройте это окно и прочтите запись — осколок соберётся автоматически.</div>`;
     else slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// печать без головоломки — запись нельзя открыть.</div>`;
@@ -3243,6 +3263,153 @@
         });
       }
     }
+    render();
+  }
+
+  /** Maze puzzle (Darkness) — navigate a dark maze with limited vision.
+   *  Hitting a wall = bypassFail (cooldown), then maze regenerates.
+   *  puzzle_data: {"size": 8, "visionRadius": 2} */
+  function renderMaze(slot, pd){
+    const SIZE = pd.size || 8;
+    const VR = pd.visionRadius || 2;
+    // Grid: 0=path, 1=wall
+    let grid = [];
+    let playerR = 0, playerC = 0;
+    let exitR = SIZE - 1, exitC = SIZE - 1;
+    let moveCount = 0;
+    let visited = new Set();
+
+    // Generate maze using DFS
+    function generateMaze(){
+      grid = Array.from({length: SIZE}, () => Array(SIZE).fill(1));
+      function carve(r, c){
+        grid[r][c] = 0;
+        const dirs = [[-2,0],[0,2],[2,0],[0,-2]].sort(() => Math.random() - 0.5);
+        for(const [dr, dc] of dirs){
+          const nr = r + dr, nc = c + dc;
+          if(nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && grid[nr][nc] === 1){
+            grid[r + dr/2][c + dc/2] = 0;
+            carve(nr, nc);
+          }
+        }
+      }
+      carve(0, 0);
+      // Ensure exit is a path
+      grid[SIZE-1][SIZE-1] = 0;
+      // Ensure player start is a path
+      grid[0][0] = 0;
+      playerR = 0; playerC = 0;
+      exitR = SIZE - 1; exitC = SIZE - 1;
+      moveCount = 0;
+      visited = new Set(["0,0"]);
+    }
+    generateMaze();
+
+    function isVisible(r, c){
+      const dr = Math.abs(r - playerR), dc = Math.abs(c - playerC);
+      return dr + dc <= VR;
+    }
+    function isDim(r, c){
+      const dr = Math.abs(r - playerR), dc = Math.abs(c - playerC);
+      return dr + dc <= VR + 1 && dr + dc > VR;
+    }
+
+    function move(dr, dc){
+      if(_puzzleLocked) return;
+      const nr = playerR + dr, nc = playerC + dc;
+      if(nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) return;
+      if(grid[nr][nc] === 1){
+        // Wall = fail!
+        Audio.glitch(0.2);
+        bypassFail("вы врезались в стену");
+        // Regenerate maze after cooldown
+        return;
+      }
+      playerR = nr; playerC = nc;
+      moveCount++;
+      visited.add(nr + "," + nc);
+      Audio.blip(440 + (nr + nc) * 15, 0.03, 0.06);
+      if(playerR === exitR && playerC === exitC){
+        render();
+        bypassSuccess();
+        return;
+      }
+      render();
+    }
+
+    function render(){
+      let cellsHtml = "";
+      for(let r = 0; r < SIZE; r++){
+        for(let c = 0; c < SIZE; c++){
+          const isWall = grid[r][c] === 1;
+          const isPlayer = r === playerR && c === playerC;
+          const isExit = r === exitR && c === exitC;
+          const isStart = r === 0 && c === 0;
+          let cls = "maze-cell ";
+          if(isWall) cls += "wall ";
+          else cls += "path ";
+          // Visibility
+          if(isPlayer) cls += "player visible";
+          else if(isExit && isVisible(r, c)) cls += "exit visible";
+          else if(isStart) cls += "start visible";
+          else if(isVisible(r, c)) cls += "visible";
+          else if(isDim(r, c)) cls += "dim";
+          else cls += "dark";
+          cellsHtml += `<div class="${cls}"></div>`;
+        }
+      }
+      slot.innerHTML = `<div>
+        <div class="maze-info">ходов: <b>${moveCount}</b> | виден радиус <b>${VR}</b> | цель — <span style="color:var(--amber)">●</span></div>
+        <div class="maze-grid" style="grid-template-columns:repeat(${SIZE},1fr)">${cellsHtml}</div>
+        <div class="maze-controls">
+          <button data-dir="up">▲</button>
+        </div>
+        <div class="maze-controls" style="margin-top:2px">
+          <button data-dir="left">◄</button>
+          <button data-dir="down">▼</button>
+          <button data-dir="right">►</button>
+        </div>
+        <div style="text-align:center;margin-top:6px;font-size:11px;color:var(--text-dim)">или стрелки ← ↑ → ↓ | стена = провал</div>
+      </div>`;
+      $$("[data-dir]", slot).forEach(btn => {
+        btn.addEventListener("click", () => {
+          const d = btn.dataset.dir;
+          if(d === "up") move(-1, 0);
+          else if(d === "down") move(1, 0);
+          else if(d === "left") move(0, -1);
+          else if(d === "right") move(0, 1);
+        });
+      });
+    }
+
+    // Keyboard
+    const keyHandler = (e) => {
+      if(_puzzleLocked) return;
+      if(!document.body.contains(slot)){ document.removeEventListener("keydown", keyHandler); return; }
+      const map = {ArrowLeft:[0,-1], ArrowRight:[0,1], ArrowUp:[-1,0], ArrowDown:[1,0]};
+      if(map[e.key]){
+        e.preventDefault();
+        move(map[e.key][0], map[e.key][1]);
+      }
+    };
+    document.addEventListener("keydown", keyHandler);
+
+    // Touch / swipe
+    let touchStart = null;
+    slot.addEventListener("touchstart", (e) => {
+      touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    }, {passive: true});
+    slot.addEventListener("touchend", (e) => {
+      if(!touchStart) return;
+      const dx = e.changedTouches[0].clientX - touchStart.x;
+      const dy = e.changedTouches[0].clientY - touchStart.y;
+      if(Math.abs(dx) > 30 || Math.abs(dy) > 30){
+        if(Math.abs(dx) > Math.abs(dy)) move(0, dx > 0 ? 1 : -1);
+        else move(dy > 0 ? 1 : -1, 0);
+      }
+      touchStart = null;
+    }, {passive: true});
+
     render();
   }
 
