@@ -58,7 +58,7 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 const SIGILS = ["i-skull", "i-eye", "i-serpent", "i-crown", "i-flame", "i-hourglass", "i-ritual", "i-god"];
-const PUZZLE_TYPES = ["none", "keyword", "tumbler", "constellation", "alchemy", "circuit", "runes", "fragment", "meta"];
+const PUZZLE_TYPES = ["none", "keyword", "tumbler", "constellation", "alchemy", "circuit", "runes", "sliding", "g2048", "fragment", "meta"];
 
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);

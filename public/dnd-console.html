@@ -760,6 +760,31 @@
   .circuit-cell svg path{stroke:var(--text-dim);stroke-width:8;fill:none;transition:stroke .2s}
   .circuit-cell.flow svg path{stroke:var(--green);filter:drop-shadow(0 0 4px var(--green))}
 
+  /* ============ PUZZLES: sliding (пятнашки) ============ */
+  .slide-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-width:280px;margin:0 auto}
+  .slide-tile{aspect-ratio:1/1;background:linear-gradient(180deg,rgba(74,246,38,.12),rgba(74,246,38,.03));border:1px solid var(--green-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));font-family:'MedievalSharp',serif;font-size:22px;color:var(--green);text-shadow:0 0 8px rgba(74,246,38,.5)}
+  .slide-tile:hover{background:linear-gradient(180deg,rgba(74,246,38,.25),rgba(74,246,38,.08));box-shadow:0 0 10px rgba(74,246,38,.3)}
+  .slide-tile.empty{background:transparent;border-color:transparent;cursor:default;box-shadow:none}
+  .slide-tile.empty:hover{background:transparent;box-shadow:none}
+
+  /* ============ PUZZLES: 2048 ============ */
+  .g2048-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:280px;margin:0 auto;background:#0a0d0a;padding:6px;border:1px solid var(--green-deep);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+  .g2048-cell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-family:'VT323',monospace;font-size:24px;font-weight:bold;border-radius:2px;transition:all .1s}
+  .g2048-cell[data-val="0"]{background:#0d100d;border:1px solid #111}
+  .g2048-cell[data-val="2"]{background:rgba(74,246,38,.08);color:var(--green-dim);border:1px solid rgba(74,246,38,.15)}
+  .g2048-cell[data-val="4"]{background:rgba(74,246,38,.12);color:var(--green);border:1px solid rgba(74,246,38,.2)}
+  .g2048-cell[data-val="8"]{background:rgba(74,246,38,.18);color:var(--green);border:1px solid rgba(74,246,38,.3);text-shadow:0 0 6px rgba(74,246,38,.4)}
+  .g2048-cell[data-val="16"]{background:rgba(63,214,200,.15);color:var(--cyan);border:1px solid rgba(63,214,200,.25);text-shadow:0 0 6px rgba(63,214,200,.4)}
+  .g2048-cell[data-val="32"]{background:rgba(63,214,200,.22);color:var(--cyan);border:1px solid rgba(63,214,200,.35);text-shadow:0 0 8px rgba(63,214,200,.5)}
+  .g2048-cell[data-val="64"]{background:rgba(232,161,58,.15);color:var(--amber);border:1px solid rgba(232,161,58,.25);text-shadow:0 0 6px rgba(232,161,58,.4)}
+  .g2048-cell[data-val="128"]{background:rgba(232,161,58,.22);color:var(--amber);border:1px solid rgba(232,161,58,.35);text-shadow:0 0 10px rgba(232,161,58,.5);font-size:20px}
+  .g2048-cell[data-val="256"]{background:rgba(232,161,58,.3);color:var(--amber);border:1px solid rgba(232,161,58,.45);text-shadow:0 0 12px rgba(232,161,58,.6);font-size:20px}
+  .g2048-cell[data-val="512"]{background:rgba(255,36,36,.15);color:var(--red);border:1px solid rgba(255,36,36,.25);text-shadow:0 0 10px rgba(255,36,36,.4);font-size:18px}
+  .g2048-cell[data-val="1024"]{background:rgba(255,36,36,.22);color:var(--red);border:1px solid rgba(255,36,36,.35);text-shadow:0 0 14px rgba(255,36,36,.5);font-size:16px}
+  .g2048-cell[data-val="2048"]{background:rgba(255,36,36,.3);color:#fff;border:1px solid var(--red);text-shadow:0 0 16px rgba(255,36,36,.7);font-size:16px}
+  .g2048-info{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--text-dim);font-family:'VT323',monospace}
+  .g2048-info b{color:var(--green)}
+
   /* ============ PUZZLES: alchemy ============ */
   .alchemy-slot{width:60px;height:60px;border:2px dashed var(--amber);background:rgba(232,161,58,.04);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--amber);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
   .alchemy-slot.filled{border-style:solid;border-color:var(--green);color:var(--green);box-shadow:0 0 10px rgba(74,246,38,.3)}
@@ -2492,6 +2517,8 @@
     else if(ptype === "circuit") renderCircuit(slot, pd);
     else if(ptype === "alchemy") renderAlchemy(slot, pd);
     else if(ptype === "runes") renderRunes(slot, pd);
+    else if(ptype === "sliding") renderSliding(slot, pd);
+    else if(ptype === "g2048") render2048(slot, pd);
     else if(ptype === "meta") renderMeta(slot, pd);
     else if(ptype === "fragment") slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// эта запись содержит осколок памяти.<br>закройте это окно и прочтите запись — осколок соберётся автоматически.</div>`;
     else slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// печать без головоломки — запись нельзя открыть.</div>`;
@@ -2859,6 +2886,242 @@
         });
       });
     }
+    render();
+  }
+
+  /** Sliding puzzle (пятнашки) — arrange tiles 1-15 in order. */
+  function renderSliding(slot, pd){
+    const SIZE = pd.size || 4;
+    const N = SIZE * SIZE;
+    // Tiles: 1..N-1, 0=empty
+    let tiles = [];
+    for(let i = 1; i < N; i++) tiles.push(i);
+    tiles.push(0);
+    // Shuffle with solvability check (inversion count must be even for 4×4)
+    function isSolvable(arr){
+      let inv = 0;
+      for(let i = 0; i < arr.length; i++){
+        for(let j = i + 1; j < arr.length; j++){
+          if(arr[i] && arr[j] && arr[i] > arr[j]) inv++;
+        }
+      }
+      return inv % 2 === 0;
+    }
+    do {
+      for(let i = tiles.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+      }
+    } while(!isSolvable(tiles) || tiles.every((v, i) => v === (i + 1) % N));
+    let moveCount = 0;
+
+    function emptyIdx(){ return tiles.indexOf(0); }
+    function isAdjacent(idx){
+      const e = emptyIdx();
+      const r1 = Math.floor(idx / SIZE), c1 = idx % SIZE;
+      const r2 = Math.floor(e / SIZE), c2 = e % SIZE;
+      return (r1 === r2 && Math.abs(c1 - c2) === 1) || (c1 === c2 && Math.abs(r1 - r2) === 1);
+    }
+    function isSolved(){
+      for(let i = 0; i < N - 1; i++){
+        if(tiles[i] !== i + 1) return false;
+      }
+      return true;
+    }
+
+    function render(){
+      const html = tiles.map((v, i) => {
+        if(v === 0) return `<div class="slide-tile empty" data-idx="${i}"></div>`;
+        const canSlide = isAdjacent(i);
+        return `<div class="slide-tile" data-idx="${i}" style="${canSlide?"":"opacity:.7"}">${v}</div>`;
+      }).join("");
+      slot.innerHTML = `<div>
+        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:8px">расставьте плитки по порядку (1—${N-1}) | ходов: <b style="color:var(--green)">${moveCount}</b></div>
+        <div class="slide-grid" style="grid-template-columns:repeat(${SIZE},1fr)">${html}</div>
+      </div>`;
+      $$(".slide-tile:not(.empty)", slot).forEach(t => {
+        t.addEventListener("click", () => {
+          if(_puzzleLocked) return;
+          const i = parseInt(t.dataset.idx, 10);
+          if(!isAdjacent(i)) return;
+          const e = emptyIdx();
+          [tiles[i], tiles[e]] = [tiles[e], tiles[i]];
+          moveCount++;
+          Audio.blip(440 + i * 20, 0.04, 0.08);
+          if(isSolved()){
+            render();
+            bypassSuccess();
+          } else {
+            render();
+          }
+        });
+      });
+    }
+    render();
+  }
+
+  /** 2048 puzzle — merge tiles to reach target number. */
+  function render2048(slot, pd){
+    const SIZE = pd.size || 4;
+    const TARGET = pd.target || 128;
+    let grid = Array.from({length: SIZE}, () => Array(SIZE).fill(0));
+    let score = 0;
+    let solved = false;
+
+    function addRandom(){
+      const empty = [];
+      for(let r = 0; r < SIZE; r++)
+        for(let c = 0; c < SIZE; c++)
+          if(grid[r][c] === 0) empty.push([r, c]);
+      if(empty.length === 0) return;
+      const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+      grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+    }
+    addRandom(); addRandom();
+
+    function checkSolved(){
+      for(let r = 0; r < SIZE; r++)
+        for(let c = 0; c < SIZE; c++)
+          if(grid[r][c] >= TARGET) return true;
+      return false;
+    }
+    function hasMoves(){
+      for(let r = 0; r < SIZE; r++)
+        for(let c = 0; c < SIZE; c++){
+          if(grid[r][c] === 0) return true;
+          if(c < SIZE-1 && grid[r][c] === grid[r][c+1]) return true;
+          if(r < SIZE-1 && grid[r][c] === grid[r+1][c]) return true;
+        }
+      return false;
+    }
+
+    function slideRow(row){
+      let arr = row.filter(v => v !== 0);
+      let gained = 0;
+      for(let i = 0; i < arr.length - 1; i++){
+        if(arr[i] === arr[i+1]){
+          arr[i] *= 2;
+          gained += arr[i];
+          arr.splice(i + 1, 1);
+        }
+      }
+      while(arr.length < SIZE) arr.push(0);
+      return {row: arr, gained};
+    }
+    function move(dir){
+      if(_puzzleLocked || solved) return;
+      let changed = false;
+      let totalGained = 0;
+      if(dir === "left"){
+        for(let r = 0; r < SIZE; r++){
+          const orig = [...grid[r]];
+          const res = slideRow(grid[r]);
+          grid[r] = res.row;
+          totalGained += res.gained;
+          if(JSON.stringify(orig) !== JSON.stringify(grid[r])) changed = true;
+        }
+      } else if(dir === "right"){
+        for(let r = 0; r < SIZE; r++){
+          const orig = [...grid[r]];
+          const res = slideRow([...grid[r]].reverse());
+          grid[r] = res.row.reverse();
+          totalGained += res.gained;
+          if(JSON.stringify(orig) !== JSON.stringify(grid[r])) changed = true;
+        }
+      } else if(dir === "up"){
+        for(let c = 0; c < SIZE; c++){
+          const col = [];
+          for(let r = 0; r < SIZE; r++) col.push(grid[r][c]);
+          const orig = [...col];
+          const res = slideRow(col);
+          for(let r = 0; r < SIZE; r++) grid[r][c] = res.row[r];
+          totalGained += res.gained;
+          if(JSON.stringify(orig) !== JSON.stringify(res.row)) changed = true;
+        }
+      } else if(dir === "down"){
+        for(let c = 0; c < SIZE; c++){
+          const col = [];
+          for(let r = 0; r < SIZE; r++) col.push(grid[r][c]);
+          const orig = [...col];
+          const res = slideRow(col.reverse());
+          const newRow = res.row.reverse();
+          for(let r = 0; r < SIZE; r++) grid[r][c] = newRow[r];
+          totalGained += res.gained;
+          if(JSON.stringify(orig) !== JSON.stringify(newRow)) changed = true;
+        }
+      }
+      if(changed){
+        score += totalGained;
+        addRandom();
+        Audio.blip(totalGained > 0 ? 660 : 440, 0.04, 0.08);
+        if(checkSolved()){
+          solved = true;
+          render();
+          bypassSuccess();
+          return;
+        }
+        if(!hasMoves()){
+          bypassFail("нет доступных ходов");
+        }
+      }
+      render();
+    }
+
+    function render(){
+      const cells = [];
+      for(let r = 0; r < SIZE; r++){
+        for(let c = 0; c < SIZE; c++){
+          const v = grid[r][c];
+          cells.push(`<div class="g2048-cell" data-val="${v}">${v || ""}</div>`);
+        }
+      }
+      slot.innerHTML = `<div>
+        <div class="g2048-info"><span>цель: <b>${TARGET}</b></span><span>очки: <b>${score}</b></span></div>
+        <div class="g2048-grid" style="grid-template-columns:repeat(${SIZE},1fr)" id="g2048Grid">${cells.join("")}</div>
+        <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--text-dim)">стрелки ← ↑ → ↓ или свайп</div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-top:8px">
+          <button class="seal-btn" data-dir="up" style="width:auto;padding:4px 14px;font-size:12px">▲</button>
+        </div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-top:4px">
+          <button class="seal-btn" data-dir="left" style="width:auto;padding:4px 14px;font-size:12px">◄</button>
+          <button class="seal-btn" data-dir="down" style="width:auto;padding:4px 14px;font-size:12px">▼</button>
+          <button class="seal-btn" data-dir="right" style="width:auto;padding:4px 14px;font-size:12px">►</button>
+        </div>
+      </div>`;
+      // Button controls
+      $$("[data-dir]", slot).forEach(btn => {
+        btn.addEventListener("click", () => move(btn.dataset.dir));
+      });
+    }
+
+    // Keyboard
+    const keyHandler = (e) => {
+      if(_puzzleLocked || solved) return;
+      if(!document.body.contains(slot)) { document.removeEventListener("keydown", keyHandler); return; }
+      const map = {ArrowLeft:"left", ArrowRight:"right", ArrowUp:"up", ArrowDown:"down"};
+      if(map[e.key]){
+        e.preventDefault();
+        move(map[e.key]);
+      }
+    };
+    document.addEventListener("keydown", keyHandler);
+
+    // Touch / swipe
+    let touchStart = null;
+    slot.addEventListener("touchstart", (e) => {
+      touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+    }, {passive: true});
+    slot.addEventListener("touchend", (e) => {
+      if(!touchStart) return;
+      const dx = e.changedTouches[0].clientX - touchStart.x;
+      const dy = e.changedTouches[0].clientY - touchStart.y;
+      if(Math.abs(dx) > 30 || Math.abs(dy) > 30){
+        if(Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? "right" : "left");
+        else move(dy > 0 ? "down" : "up");
+      }
+      touchStart = null;
+    }, {passive: true});
+
     render();
   }
 
