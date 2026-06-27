@@ -1013,7 +1013,7 @@
         <span class="led g"></span>
       </div>
       <div class="tb-title">А&nbsp;Ш&nbsp;Е&nbsp;Н&nbsp;О&nbsp;В&nbsp;&nbsp;К&nbsp;О&nbsp;Д&nbsp;Е&nbsp;К&nbsp;С &nbsp;//&nbsp; <b>БИБЛИОТЕКА УТРАЧЕННЫХ ЗНАНИЙ</b> &nbsp;v4.1-archive</div>
-      <button class="audio-btn off" id="audioBtn" title="Включить звук">ЗВУК:ВЫКЛ</button>
+      <button class="audio-btn" id="audioBtn" title="Выключить звук">ЗВУК:ВКЛ</button>
       <button class="audio-btn" id="logoutBtn" title="Выйти из архива" style="border-color:var(--red-dim);color:var(--red-dim)">ВЫХОД</button>
       <div class="tb-meta">СЕКТОР <span>07</span> // АРХИВ <span>В СЕТИ</span> // СТРАЖ: <b id="wardenName" style="color:var(--green)">—</b></div>
     </div>
@@ -1195,7 +1195,7 @@
      AUDIO SYSTEM (Web Audio API — synthesized, no files)
      ========================================================= */
   const Audio = (function(){
-    let ctx=null, master=null, humNode=null, humGain=null, started=false, muted=true;
+    let ctx=null, master=null, humNode=null, humGain=null, started=false, muted=false;
     function init(){
       if(started) return;
       try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }

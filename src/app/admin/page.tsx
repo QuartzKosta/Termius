@@ -908,7 +908,8 @@ function WardensPanel({ flash, onChanged }: { flash: (m: string) => void; onChan
         return;
       }
       flash("ФРАГМЕНТЫ ЗАПЕЧАТАНЫ");
-      await refresh();
+      load();
+      onChanged();
     } catch { flash("сетевая ошибка"); }
   }
 
