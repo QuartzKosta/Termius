@@ -70,6 +70,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    if (body.action === "reset_fragments") {
+      // Delete only FRAG_ prefixed achievements (re-seal hidden fragments)
+      const { error } = await supabase
+        .from("player_achievements")
+        .delete()
+        .eq("player_id", body.id)
+        .like("achievement_id", "FRAG_%");
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true });
+    }
+
     if (body.action === "delete") {
       const { error } = await supabase.from("players").delete().eq("id", body.id);
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });

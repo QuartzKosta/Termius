@@ -890,10 +890,26 @@ function WardensPanel({ flash, onChanged }: { flash: (m: string) => void; onChan
         return;
       }
       flash("ДОСТИЖЕНИЯ СБРОШЕНЫ");
-      load();
-    } catch {
-      flash("сетевая ошибка");
-    }
+      await refresh();
+    } catch { flash("сетевая ошибка"); }
+  }
+
+  async function resetFragments(p: WardenPlayer) {
+    if (!window.confirm(`Запечатать все фрагменты стража ${p.warden_name}? Решённые скрытые фрагменты снова станут цензурированными.`)) return;
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_fragments", id: p.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        flash(j.error || "ЗАПЕЧАТЫВАНИЕ НЕ УДАЛОСЬ");
+        return;
+      }
+      flash("ФРАГМЕНТЫ ЗАПЕЧАТАНЫ");
+      await refresh();
+    } catch { flash("сетевая ошибка"); }
   }
 
   async function remove(p: WardenPlayer) {
@@ -950,6 +966,7 @@ function WardensPanel({ flash, onChanged }: { flash: (m: string) => void; onChan
             <div style={styles.cardActions}>
               <button onClick={() => resetPassword(p)} style={{ ...styles.miniBtn, ...styles.miniAmber }}>СБРОС ПАРОЛЯ</button>
               <button onClick={() => resetAchievements(p)} style={{ ...styles.miniBtn, ...styles.miniGreen }}>СБРОС ДОСТ.</button>
+              <button onClick={() => resetFragments(p)} style={{ ...styles.miniBtn, ...styles.miniAmber }}>🔒 ЗАПЕЧАТАТЬ ФРАГМЕНТЫ</button>
               <button onClick={() => remove(p)} style={{ ...styles.miniBtn, ...styles.miniRed }}>УДАЛИТЬ</button>
             </div>
           </div>

@@ -1724,8 +1724,8 @@
     const revealed = STORE.revealedFragments && STORE.revealedFragments.has(record.id);
     const hasPuzzle = record.fragment_puzzle_type && record.fragment_puzzle_type !== "none";
     if(revealed){
-      // Fragment already solved — show full text + allow re-sealing
-      return escapeHtml(before) + `<span class="hidden-fragment revealed">${escapeHtml(hiddenText)} <span class="fragment-btn" id="resealBtn" data-id="${escapeAttr(record.id)}" data-type="${type}" style="border-color:var(--red-dim);color:var(--red-dim);font-size:10px;padding:2px 6px">🔒 ЗАКРЫТЬ</span></span>` + escapeHtml(after);
+      // Fragment already solved — show full text (re-sealing is admin-only)
+      return escapeHtml(before) + `<span class="hidden-fragment revealed">${escapeHtml(hiddenText)}</span>` + escapeHtml(after);
     }
     // Fragment not solved — censored + decrypt button
     const censored = hiddenText.split(/\s+/).map(w => {
@@ -2864,17 +2864,6 @@
       const recs = STORE[type] || [];
       const rec = recs.find(r => r.id === id);
       if(rec) openFragmentPuzzle(rec, type);
-      return;
-    }
-    const rb = e.target.closest("#resealBtn");
-    if(rb){
-      const id = rb.dataset.id, type = rb.dataset.type;
-      STORE.revealedFragments.delete(id);
-      try{ localStorage.setItem("ashen_revealed_fragments", JSON.stringify([...STORE.revealedFragments])); }catch(e){}
-      // Note: server achievement FRAG_<id> stays (can't delete via achievements API)
-      // but locally the fragment is re-sealed. Player can re-solve it.
-      Audio.glitch(0.1);
-      if(currentPanel) startPanel(currentPanel);
       return;
     }
     const pb = e.target.closest("#projBtn");
