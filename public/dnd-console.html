@@ -2975,8 +2975,7 @@
       $("#projectionDesc").innerHTML = renderDescription(record.description, record, type);
     }
     ov.classList.add("show");
-    // Note: VOICE_OF_GOD achievement requires TTS playback (not yet implemented).
-    // Do NOT grant it here just for opening projection.
+    // Projection does not grant any achievement (TTS not implemented).
     Audio.beep(220, 0.15, 0.14);
     setTimeout(()=>Audio.beep(330, 0.15, 0.14), 150);
   }
