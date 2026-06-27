@@ -1623,22 +1623,28 @@
       clusters[cat].push(r);
     });
     const cNames = Object.keys(clusters), nC = cNames.length;
-    const cx = 50, cy = 50, cR = 34;
+    // Adapt cluster radius to number of clusters — keep nodes within 5-95 bounds
+    const cx = 50, cy = 50;
+    const cR = nC <= 2 ? 0 : (nC <= 4 ? 22 : (nC <= 6 ? 28 : 34));
+    // Node ring radius within cluster — smaller for fewer records
+    const irBase = recs.length <= 5 ? 5 : (recs.length <= 10 ? 6 : 8);
     let nodes = [], links = [], ccs = [];
     cNames.forEach((cn, ci) => {
       // Position cluster center on a circle around the map
       const a = (ci / nC) * Math.PI * 2 - Math.PI / 2;
-      const ccx = cx + Math.cos(a) * cR, ccy = cy + Math.sin(a) * cR;
+      const ccx = nC <= 1 ? cx : (cx + Math.cos(a) * cR);
+      const ccy = nC <= 1 ? cy : (cy + Math.sin(a) * cR);
       ccs.push({ name: cn, x: ccx, y: ccy });
-      const cr = clusters[cn], ir = Math.min(8, 3 + cr.length * 1.2);
+      const cr = clusters[cn];
+      const ir = Math.min(irBase, 3 + cr.length * 1.2);
       cr.forEach((r, ri) => {
         const ra = (ri / cr.length) * Math.PI * 2;
         let cls = "";
         if(r.is_locked) cls = "locked";
         else if(r.shard_word) cls = "fragment";
         const label = r.is_locked ? "🔒" : ((r.name || "?").split(" ")[0].slice(0, 10));
-        const nx = r.map_x != null ? r.map_x : (ccx + Math.cos(ra) * ir);
-        const ny = r.map_y != null ? r.map_y : (ccy + Math.sin(ra) * ir);
+        const nx = (r.map_x != null && r.map_x > 0) ? r.map_x : Math.max(5, Math.min(95, ccx + Math.cos(ra) * ir));
+        const ny = (r.map_y != null && r.map_y > 0) ? r.map_y : Math.max(5, Math.min(95, ccy + Math.sin(ra) * ir));
         nodes.push({ x: nx, y: ny, cls, label, id: r.id, name: r.name || "", locked: !!r.is_locked });
       });
       // Link nodes within a cluster in a ring
@@ -1754,8 +1760,8 @@
             </div>
             <p class="desc desc-block">
               <span class="garble" id="gar1"></span><br>
-              Некто <span class="censor" style="width:64px"></span> шёл по <span class="censor" style="width:90px"></span> до того, как <span class="censor" style="width:48px"></span> пал. Он говорит <span class="censor" style="width:72px"></span> и торгует <span class="censor" style="width:54px"></span>. Не <span class="censor" style="width:40px"></span> его имя.<br>
-              <span class="garble" id="gar2"></span>
+              ${r.description ? escapeHtml(r.description).slice(0, 200) + (r.description.length > 200 ? "…" : "") : "Некто <span class=\"censor\" style=\"width:64px\"></span> шёл по <span class=\"censor\" style=\"width:90px\"></span> до того, как <span class=\"censor\" style=\"width:48px\"></span> пал. Он говорит <span class=\"censor\" style=\"width:72px\"></span> и торгует <span class=\"censor\" style=\"width:54px\"></span>. Не <span class=\"censor\" style=\"width:40px\"></span> его имя."}
+              <br><span class="garble" id="gar2"></span>
             </p>
             ${r.puzzle_type ? `<button class="seal-btn" id="bypassBtn" data-id="${escapeAttr(r.id)}" data-type="${type}">⚠ СНЯТЬ ПЕЧАТЬ</button>` : `<div style="margin-top:10px;font-size:12px;color:var(--text-dim);text-align:center;font-style:italic">// печать без головоломки.</div>`}
           </div>
