@@ -1724,8 +1724,8 @@
     const revealed = STORE.revealedFragments && STORE.revealedFragments.has(record.id);
     const hasPuzzle = record.fragment_puzzle_type && record.fragment_puzzle_type !== "none";
     if(revealed){
-      // Fragment already solved — show full text
-      return escapeHtml(before) + `<span class="hidden-fragment revealed">${escapeHtml(hiddenText)}</span>` + escapeHtml(after);
+      // Fragment already solved — show full text + allow re-sealing
+      return escapeHtml(before) + `<span class="hidden-fragment revealed">${escapeHtml(hiddenText)} <span class="fragment-btn" id="resealBtn" data-id="${escapeAttr(record.id)}" data-type="${type}" style="border-color:var(--red-dim);color:var(--red-dim);font-size:10px;padding:2px 6px">🔒 ЗАКРЫТЬ</span></span>` + escapeHtml(after);
     }
     // Fragment not solved — censored + decrypt button
     const censored = hiddenText.split(/\s+/).map(w => {
@@ -2193,9 +2193,17 @@
   function fragmentSuccess(){
     const ctx = fragmentContext;
     if(!ctx) return;
-    // Mark fragment as revealed
+    // Mark fragment as revealed (locally + localStorage + server sync)
     STORE.revealedFragments.add(ctx.record.id);
     try{ localStorage.setItem("ashen_revealed_fragments", JSON.stringify([...STORE.revealedFragments])); }catch(e){}
+    // Server sync: store as achievement with FRAG_ prefix (player-specific)
+    if(_player){
+      fetch("/api/auth/achievements", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ achievement_id: "FRAG_" + ctx.record.id })
+      }).catch(()=>{});
+    }
     addGaze(4);
     Audio.beep(523, 0.15, 0.16);
     setTimeout(()=>Audio.beep(659, 0.15, 0.16), 120);
@@ -2204,6 +2212,26 @@
     closeBypass();
     fragmentContext = null;
     if(currentPanel) startPanel(currentPanel);
+  }
+
+  /** Sync revealed fragments from server (called after login). */
+  async function syncFragmentsFromServer(){
+    if(!_player) return;
+    try{
+      const r = await fetch("/api/auth/achievements");
+      if(r.ok){
+        const j = await r.json();
+        if(j.ok && j.achievements){
+          // Extract fragment achievements (FRAG_ prefix)
+          j.achievements.forEach(a => {
+            if(a.startsWith("FRAG_")){
+              STORE.revealedFragments.add(a.slice(5));
+            }
+          });
+          try{ localStorage.setItem("ashen_revealed_fragments", JSON.stringify([...STORE.revealedFragments])); }catch(e){}
+        }
+      }
+    }catch(e){}
   }
 
   function bypassFail(reason){
@@ -2838,6 +2866,17 @@
       if(rec) openFragmentPuzzle(rec, type);
       return;
     }
+    const rb = e.target.closest("#resealBtn");
+    if(rb){
+      const id = rb.dataset.id, type = rb.dataset.type;
+      STORE.revealedFragments.delete(id);
+      try{ localStorage.setItem("ashen_revealed_fragments", JSON.stringify([...STORE.revealedFragments])); }catch(e){}
+      // Note: server achievement FRAG_<id> stays (can't delete via achievements API)
+      // but locally the fragment is re-sealed. Player can re-solve it.
+      Audio.glitch(0.1);
+      if(currentPanel) startPanel(currentPanel);
+      return;
+    }
     const pb = e.target.closest("#projBtn");
     if(pb){
       const id = pb.dataset.id, type = pb.dataset.type;
@@ -3039,8 +3078,9 @@
     const loggedIn = await checkSession();
     if(loggedIn){
       setWardenName();
-      // Sync achievements from server (overrides local cache)
+      // Sync achievements + revealed fragments from server (overrides local cache)
       await syncAchievementsFromServer();
+      await syncFragmentsFromServer();
       $("#wardensGate").classList.add("gone");
       setTimeout(bootStep, 650);
     } else {
