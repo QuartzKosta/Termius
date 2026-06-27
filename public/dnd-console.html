@@ -753,6 +753,7 @@
   /* ============ PUZZLES: circuit ============ */
   .circuit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:280px;margin:0 auto}
   .circuit-cell{aspect-ratio:1/1;background:#0a0805;border:1px solid var(--green-deep);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .15s}
+  .circuit-cell.empty{background:#020200;border-color:#0a0a0a;cursor:default;opacity:.3}
   .circuit-cell:hover{border-color:var(--green)}
   .circuit-cell.flow{border-color:var(--green);box-shadow:0 0 10px rgba(74,246,38,.4),inset 0 0 8px rgba(74,246,38,.2)}
   .circuit-cell svg{width:100%;height:100%}
@@ -2529,10 +2530,12 @@
     }, 200);
   }
 
-  /** Tumbler puzzle — rotate drum wheels to match the correct symbol sequence. */
+  /** Tumbler puzzle — set 4 drums, then press CHECK to verify.
+   *  No per-drum feedback. Wrong = bypassFail (cooldown). */
   function renderTumbler(slot, pd){
-    const symbols = pd.symbols || ["ᚠ","ᚢ","ᚦ","ᚨ","ᚱ","ᚲ"];
-    const correct = pd.correct || [symbols[0], symbols[1], symbols[2]];
+    const symbols = pd.symbols || ["ᚠ","ᚢ","ᚦ","ᚨ","ᚱ","ᚲ","ᚷ","ᚹ","ᛃ","ᛇ"];
+    const correct = pd.correct || [symbols[0], symbols[1], symbols[2], symbols[3]];
+    const NUM = correct.length;
     let drums;
     // Randomize initial drum positions (avoid starting in solved state)
     do {
@@ -2541,14 +2544,14 @@
 
     function render(){
       slot.innerHTML = `<div class="puzzle-tumbler">${drums.map((idx, i) => {
-        const isMatch = symbols[idx] === correct[i];
-        const matchStyle = isMatch ? "border-color:var(--green);box-shadow:inset 0 0 18px rgba(0,0,0,.8),0 0 18px rgba(74,246,38,.5)" : "";
         return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px">
           <button class="tumbler-btn" data-drum="${i}" data-dir="up" ${_puzzleLocked?"disabled":""}>▲</button>
-          <div class="tumbler-display" style="${matchStyle}">${symbols[idx]}</div>
+          <div class="tumbler-display">${symbols[idx]}</div>
           <button class="tumbler-btn" data-drum="${i}" data-dir="down" ${_puzzleLocked?"disabled":""}>▼</button>
         </div>`;
-      }).join("")}</div>`;
+      }).join("")}</div>
+      <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-dim)">выставьте все руны, затем проверьте</div>
+      <button class="seal-btn" id="tumblerCheck" style="width:auto;padding:8px 24px;display:block;margin:12px auto 0">ПРОВЕРИТЬ</button>`;
       $$(".tumbler-btn", slot).forEach(b => {
         b.addEventListener("click", () => {
           if(_puzzleLocked) return;
@@ -2556,14 +2559,20 @@
           if(dir === "up") drums[i] = (drums[i] + 1) % symbols.length;
           else drums[i] = (drums[i] - 1 + symbols.length) % symbols.length;
           Audio.blip(440 + i * 40, 0.04, 0.08);
-          if(drums.every((v, j) => symbols[v] === correct[j])){
-            render();
-            bypassSuccess();
-          } else {
-            render();
-          }
+          render();
         });
       });
+      const checkBtn = $("#tumblerCheck", slot);
+      if(checkBtn){
+        checkBtn.addEventListener("click", () => {
+          if(_puzzleLocked) return;
+          if(drums.every((v, j) => symbols[v] === correct[j])){
+            bypassSuccess();
+          } else {
+            bypassFail("неверная комбинация рун");
+          }
+        });
+      }
     }
     render();
   }
@@ -2633,58 +2642,62 @@
     render();
   }
 
-  /** Circuit puzzle — rotate pipe tiles to connect source to drain.
-   *  Tile types: 'L' (elbow, 2 ends), 'I' (straight, 2 ends opposite),
-   *  'T' (3 ends). Each tile randomized per cell. Source/drain positions
-   *  randomized on edges. Every game is a different layout. */
+  /** Circuit puzzle — 4×4 grid with pipe tiles, empty cells, move counter.
+   *  Connect source (●cyan) to drain (●amber). Some cells are empty (no pipe).
+   *  Track move count for skill assessment. */
   function renderCircuit(slot, pd){
-    // Directions: 0=up, 1=right, 2=down, 3=left
+    const GRID = 4; // 4×4 = 16 cells
     const OPP = [2, 3, 0, 1];
-    // Tile end-sets per type per rotation
-    // L-pipe (elbow): 2 adjacent ends, rotates through 4 orientations
-    const L_ENDS = [[3,2],[2,1],[1,0],[0,3]]; // left+down, down+right, right+up, up+left
-    // I-pipe (straight): 2 opposite ends, 2 unique orientations (horiz/vert)
-    const I_ENDS = [[1,3],[0,2],[1,3],[0,2]]; // left+right, up+down (rot 2 = rot 0)
-    // T-pipe: 3 ends, 4 orientations
-    const T_ENDS = [[0,1,2],[1,2,3],[2,3,0],[3,0,1]]; // missing one direction each
-    const END_POINTS = {0:"20 0", 1:"40 20", 2:"20 40", 3:"0 20"}; // dir → SVG coord
+    const L_ENDS = [[3,2],[2,1],[1,0],[0,3]];
+    const I_ENDS = [[1,3],[0,2],[1,3],[0,2]];
+    const T_ENDS = [[0,1,2],[1,2,3],[2,3,0],[3,0,1]];
+    const END_POINTS = {0:"20 0", 1:"40 20", 2:"20 40", 3:"0 20"};
 
-    // Randomize tile types per cell (mix of L, I, T for variety)
-    const tileTypes = Array.from({length: 9}, () => {
+    // Generate tiles: some empty, rest L/I/T
+    const tileTypes = Array.from({length: GRID*GRID}, () => {
       const r = Math.random();
-      if(r < 0.5) return "L";      // 50% elbows (most common)
-      if(r < 0.8) return "I";      // 30% straight
-      return "T";                  // 20% T-junctions
+      if(r < 0.15) return "E";      // 15% empty (no pipe)
+      if(r < 0.55) return "L";      // 40% elbows
+      if(r < 0.80) return "I";      // 25% straight
+      return "T";                    // 20% T-junctions
     });
-    // Source on top-edge or left-edge, drain on bottom-edge or right-edge
-    // Randomize to make each puzzle unique
-    const sourceOptions = [0, 1, 2, 3, 6]; // top row + left-bottom
-    const drainOptions = [2, 5, 8, 6, 7];  // right col + bottom row
-    const source = sourceOptions[Math.floor(Math.random() * sourceOptions.length)];
+
+    // Source on top/left edge, drain on bottom/right edge (different sides)
+    const edges = {
+      top: Array.from({length:GRID}, (_,i)=>i),
+      bottom: Array.from({length:GRID}, (_,i)=>(GRID-1)*GRID+i),
+      left: Array.from({length:GRID}, (_,i)=>i*GRID),
+      right: Array.from({length:GRID}, (_,i)=>i*GRID+GRID-1)
+    };
+    const sidePairs = [["top","right"],["top","bottom"],["left","right"],["left","bottom"]];
+    const [srcSide, dstSide] = sidePairs[Math.floor(Math.random()*sidePairs.length)];
+    const source = edges[srcSide][Math.floor(Math.random()*GRID)];
     let drain;
-    do {
-      drain = drainOptions[Math.floor(Math.random() * drainOptions.length)];
-    } while(drain === source);
+    do { drain = edges[dstSide][Math.floor(Math.random()*GRID)]; } while(drain === source);
+    // Ensure source and drain cells are NOT empty
+    tileTypes[source] = tileTypes[source] === "E" ? "L" : tileTypes[source];
+    tileTypes[drain] = tileTypes[drain] === "E" ? "L" : tileTypes[drain];
+
+    let moveCount = 0;
 
     function tileEnds(idx, rot){
       const t = tileTypes[idx];
+      if(t === "E") return [];
       const ends = t === "L" ? L_ENDS : t === "I" ? I_ENDS : T_ENDS;
       return ends[rot % 4];
     }
     function hasOpening(idx, dir, rotations){
-      const ends = tileEnds(idx, rotations[idx]);
-      return ends.includes(dir);
+      return tileEnds(idx, rotations[idx]).includes(dir);
     }
     function neighbors(idx){
-      const row = Math.floor(idx / 3), col = idx % 3;
+      const row = Math.floor(idx / GRID), col = idx % GRID;
       const n = [];
-      if(row > 0) n.push({idx: idx - 3, dir: 0});
-      if(col < 2) n.push({idx: idx + 1, dir: 1});
-      if(row < 2) n.push({idx: idx + 3, dir: 2});
+      if(row > 0) n.push({idx: idx - GRID, dir: 0});
+      if(col < GRID-1) n.push({idx: idx + 1, dir: 1});
+      if(row < GRID-1) n.push({idx: idx + GRID, dir: 2});
       if(col > 0) n.push({idx: idx - 1, dir: 3});
       return n;
     }
-    // BFS from source to drain
     function isConnected(rotations){
       const visited = new Set([source]);
       const queue = [source];
@@ -2703,7 +2716,6 @@
       }
       return false;
     }
-    // Get path cells (for highlighting)
     function getPathCells(rotations){
       const visited = new Set([source]);
       const queue = [source];
@@ -2725,22 +2737,20 @@
     let rotations;
     let attempts = 0;
     do {
-      rotations = Array.from({length: 9}, () => Math.floor(Math.random() * 4));
+      rotations = Array.from({length: GRID*GRID}, () => Math.floor(Math.random() * 4));
       attempts++;
-    } while(isConnected(rotations) && attempts < 50);
+    } while(isConnected(rotations) && attempts < 80);
 
     function buildPathSvg(tileType, rot, onPath){
+      if(tileType === "E") return "";
       const ends = tileType === "L" ? L_ENDS[rot] : tileType === "I" ? I_ENDS[rot] : T_ENDS[rot];
       const pts = ends.map(d => END_POINTS[d]);
       const color = onPath ? "var(--green)" : "var(--text-dim)";
       const glow = onPath ? "filter:drop-shadow(0 0 4px var(--green))" : "";
-      // Build path: for L, two segments meeting at center; for I, straight line; for T, three segments
       let d;
-      if(tileType === "I"){
+      if(tileType === "I" || tileType === "L"){
         d = `M ${pts[0]} L 20 20 L ${pts[1]}`;
-      } else if(tileType === "L"){
-        d = `M ${pts[0]} L 20 20 L ${pts[1]}`;
-      } else { // T: 3 ends, all connect to center
+      } else {
         d = `M ${pts[0]} L 20 20 M 20 20 L ${pts[1]} M 20 20 L ${pts[2]}`;
       }
       return `<path d="${d}" style="stroke:${color};stroke-width:8;fill:none;${glow}"/>`;
@@ -2748,26 +2758,29 @@
 
     function render(){
       const pathCells = isConnected(rotations) ? getPathCells(rotations) : [];
-      const cellsHtml = Array.from({length: 9}, (_, i) => {
+      const cellsHtml = Array.from({length: GRID*GRID}, (_, i) => {
         const onPath = pathCells.includes(i);
         const isSource = i === source;
         const isDrain = i === drain;
+        const isEmpty = tileTypes[i] === "E";
         const pathSvg = buildPathSvg(tileTypes[i], rotations[i], onPath);
         const marker = isSource ? `<circle cx="20" cy="20" r="6" style="fill:var(--cyan);filter:drop-shadow(0 0 8px var(--cyan))"/>` :
                        isDrain ? `<circle cx="20" cy="20" r="6" style="fill:var(--amber);filter:drop-shadow(0 0 8px var(--amber))"/>` : "";
-        return `<div class="circuit-cell${onPath?" flow":""}" data-cell="${i}"><svg viewBox="0 0 40 40">
+        const emptyClass = isEmpty ? " empty" : "";
+        return `<div class="circuit-cell${onPath?" flow":""}${emptyClass}" data-cell="${i}"><svg viewBox="0 0 40 40">
           ${pathSvg}${marker}
         </svg></div>`;
       }).join("");
       slot.innerHTML = `<div>
-        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:8px">соедините трубы: <span style="color:var(--cyan)">● источник</span> → <span style="color:var(--amber)">● сток</span></div>
-        <div class="circuit-grid">${cellsHtml}</div>
+        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:8px">соедините: <span style="color:var(--cyan)">● ист.</span> → <span style="color:var(--amber)">● сток</span> | ходов: <b style="color:var(--green)">${moveCount}</b></div>
+        <div class="circuit-grid" style="grid-template-columns:repeat(${GRID},1fr)">${cellsHtml}</div>
       </div>`;
-      $$(".circuit-cell", slot).forEach(c => {
+      $$(".circuit-cell:not(.empty)", slot).forEach(c => {
         c.addEventListener("click", () => {
           if(_puzzleLocked) return;
           const i = parseInt(c.dataset.cell, 10);
           rotations[i] = (rotations[i] + 1) % 4;
+          moveCount++;
           Audio.blip(440 + i * 30, 0.04, 0.08);
           if(isConnected(rotations)){
             render();
