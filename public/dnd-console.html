@@ -832,8 +832,12 @@
   .meter-tooltip{position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:#0a0805;border:1px solid var(--green-dim);padding:6px 10px;font-size:10px;color:var(--text);line-height:1.4;opacity:0;visibility:hidden;transition:opacity .2s;z-index:100;text-align:left;font-family:'Share Tech Mono',monospace;box-shadow:0 0 12px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));white-space:normal}
 
   /* ============ WITCHING HOUR INDICATOR ============ */
-  .witching-indicator{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9300;background:rgba(20,0,40,.9);border:2px solid #a78bfa;padding:8px 20px;font-family:'MedievalSharp',serif;font-size:18px;color:#a78bfa;text-shadow:0 0 12px rgba(167,139,250,.8);letter-spacing:3px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));box-shadow:0 0 30px rgba(167,139,250,.3);animation:witchingPulse 2s ease-in-out infinite;display:none}
+  .witching-indicator{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9300;background:rgba(20,0,40,.92);border:2px solid #a78bfa;padding:8px 20px;font-family:'MedievalSharp',serif;font-size:18px;color:#a78bfa;text-shadow:0 0 12px rgba(167,139,250,.8);letter-spacing:3px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));box-shadow:0 0 30px rgba(167,139,250,.3);animation:witchingPulse 2s ease-in-out infinite;display:none;cursor:pointer;max-width:90vw}
   .witching-indicator.show{display:block}
+  .witching-msg{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(167,139,250,.3);font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text);letter-spacing:1px;line-height:1.5;text-shadow:none;font-weight:normal}
+  .witching-indicator.expanded .witching-msg{display:block}
+  .witching-indicator .witching-hint{font-size:10px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px;margin-top:4px;display:block}
+  @media(max-width:560px){.witching-indicator{font-size:14px;padding:6px 14px;top:50px}}
   @keyframes witchingPulse{0%,100%{opacity:.7;box-shadow:0 0 20px rgba(167,139,250,.2)}50%{opacity:1;box-shadow:0 0 40px rgba(167,139,250,.5)}}
 
   /* ============ PROJECTION (fullscreen holo) ============ */
@@ -956,7 +960,11 @@
 <div id="achToastContainer"></div>
 
 <!-- WITCHING HOUR INDICATOR -->
-<div class="witching-indicator" id="witchingIndicator">🌙 ЧАС ВЕДЬМЫ 🌙</div>
+<div class="witching-indicator" id="witchingIndicator">
+  <span id="witchingTitle">🌙 ЧАС ВЕДЬМЫ 🌙</span>
+  <span class="witching-hint">нажмите, чтобы прочитать</span>
+  <div class="witching-msg" id="witchingMsg"></div>
+</div>
 
 <!-- PROJECTION (fullscreen hologram) -->
 <div class="projection-overlay" id="projectionOverlay">
@@ -2964,6 +2972,12 @@
     setTimeout(()=>Audio.beep(330, 0.15, 0.14), 150);
   }
 
+  // Witching indicator: click to expand/collapse message
+  $("#witchingIndicator")?.addEventListener("click", () => {
+    $("#witchingIndicator")?.classList.toggle("expanded");
+    Audio.blip(440, 0.04, 0.08);
+  });
+
   // Projection close button + ESC
   $("#projectionClose").addEventListener("click", () => {
     $("#projectionOverlay").classList.remove("show");
@@ -3162,17 +3176,20 @@
           : (curMin >= startMin || curMin < endMin));
     if(inRange){
       const wi = $("#witchingIndicator");
-      if(wi) wi.textContent = "🌙 " + (cfg.title || "ЧАС ВЕДЬМЫ") + " 🌙";
+      const wt = $("#witchingTitle");
+      const wm = $("#witchingMsg");
+      if(wt) wt.textContent = "🌙 " + (cfg.title || "ЧАС ВЕДЬМЫ") + " 🌙";
+      if(wm) wm.textContent = cfg.msg || "";
       wi?.classList.add("show");
       if(!_witchTriggered){
         _witchTriggered = true;
         addGaze(cfg.boost || 5);
-        triggerAlert(cfg.title || "ЧАС ВЕДЬМЫ", cfg.msg || "бог смотрит пристальнее");
         Audio.whisper(0.18);
         unlockAchievement("WITCHING_HOUR");
       }
     } else {
       $("#witchingIndicator")?.classList.remove("show");
+      $("#witchingIndicator")?.classList.remove("expanded");
       _witchTriggered = false;
     }
   }
