@@ -808,37 +808,45 @@
   .shard-word{display:inline-block;font-family:'MedievalSharp',serif;font-size:14px;color:var(--amber);text-shadow:0 0 6px rgba(232,161,58,.5);margin:2px 4px;letter-spacing:1px}
   .shard-progress{font-size:10px;color:var(--text-dim);font-family:'VT323',monospace;margin-top:4px}
 
-  /* ============ GOD'S GAZE — 4 levels of divine observation ============ */
-  body.gaze-low .crt-scanlines{opacity:.55}
-  body.gaze-med .crt-scanlines{opacity:.6}
-  body.gaze-med .crt-noise{opacity:.06}
-  body.gaze-med .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 6s ease-in-out infinite}
-  @keyframes gazeBlink{0%,95%,100%{opacity:1}97%{opacity:.3}98%{opacity:1}}
-  body.gaze-high .crt-scanlines{opacity:.65}
-  body.gaze-high .crt-noise{opacity:.08}
-  body.gaze-high .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 4s ease-in-out infinite}
-  body.gaze-high .holo::after{content:"👁";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:80px;color:rgba(255,36,36,.03);pointer-events:none;z-index:1;animation:gazeEyeFlicker 8s ease-in-out infinite}
-  @keyframes gazeEyeFlicker{0%,90%,100%{opacity:0}93%{opacity:.08}96%{opacity:0}}
-  body.gaze-extreme .crt-scanlines{opacity:.7}
-  body.gaze-extreme .crt-noise{opacity:.1}
-  body.gaze-extreme .holo-subj{animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite,gazeBlink 2s ease-in-out infinite}
-  body.gaze-extreme .holo::after{content:"👁";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;color:rgba(255,36,36,.05);pointer-events:none;z-index:1;animation:gazeEyeFlicker 4s ease-in-out infinite}
-  body.gaze-extreme .console{animation:gazeInvert 12s ease-in-out infinite}
-  @keyframes gazeInvert{0%,92%,100%{filter:none}94%{filter:invert(1) hue-rotate(180deg)}96%{filter:none}}
+  /* ============ GOD'S GAZE — atmospheric CRT degradation ============ */
+  body.gaze-low .crt-scanlines{opacity:.5}
+  body.gaze-med .crt-scanlines{opacity:.58}
+  body.gaze-med .crt-vignette{box-shadow:inset 0 0 120px rgba(255,36,36,.06)}
+  body.gaze-med .crt-noise{opacity:.07}
+  body.gaze-med .holo-subj{animation:holoSpin3D 8s linear infinite,holoFloat 4s ease-in-out infinite,gazeFlicker 8s ease-in-out infinite}
+  @keyframes gazeFlicker{0%,92%,100%{opacity:1}94%{opacity:.85}96%{opacity:1}}
+  body.gaze-high .crt-scanlines{opacity:.62}
+  body.gaze-high .crt-vignette{box-shadow:inset 0 0 140px rgba(255,36,36,.1)}
+  body.gaze-high .crt-noise{opacity:.09}
+  body.gaze-high .holo-subj{animation:holoSpin3D 8s linear infinite,holoFloat 4s ease-in-out infinite,gazeFlicker 5s ease-in-out infinite}
+  body.gaze-high .crt-flicker{animation:crtFlickerHigh .15s steps(2) infinite}
+  @keyframes crtFlickerHigh{0%{opacity:0}50%{opacity:.03}100%{opacity:0}}
+  body.gaze-extreme .crt-scanlines{opacity:.68}
+  body.gaze-extreme .crt-vignette{box-shadow:inset 0 0 160px rgba(255,36,36,.15)}
+  body.gaze-extreme .crt-noise{opacity:.11}
+  body.gaze-extreme .holo-subj{animation:holoSpin3D 8s linear infinite,holoFloat 4s ease-in-out infinite,gazeFlicker 3s ease-in-out infinite}
+  body.gaze-extreme .crt-flicker{animation:crtFlickerHigh .12s steps(2) infinite}
+  body.gaze-extreme .console{animation:gazeJitter 6s ease-in-out infinite}
+  @keyframes gazeJitter{0%,90%,100%{transform:translate(0,0)}92%{transform:translate(.5px,0)}94%{transform:translate(-.5px,.5px)}96%{transform:translate(0,-.5px)}98%{transform:translate(.5px,0)}}
 
   /* ============ METER TOOLTIPS ============ */
   .meter .lbl{cursor:help;position:relative}
   .meter .lbl:hover .meter-tooltip{opacity:1;visibility:visible}
   .meter-tooltip{position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:#0a0805;border:1px solid var(--green-dim);padding:6px 10px;font-size:10px;color:var(--text);line-height:1.4;opacity:0;visibility:hidden;transition:opacity .2s;z-index:100;text-align:left;font-family:'Share Tech Mono',monospace;box-shadow:0 0 12px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));white-space:normal}
 
-  /* ============ WITCHING HOUR INDICATOR ============ */
-  .witching-indicator{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9300;background:rgba(20,0,40,.92);border:2px solid #a78bfa;padding:8px 20px;font-family:'MedievalSharp',serif;font-size:18px;color:#a78bfa;text-shadow:0 0 12px rgba(167,139,250,.8);letter-spacing:3px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));box-shadow:0 0 30px rgba(167,139,250,.3);animation:witchingPulse 2s ease-in-out infinite;display:none;cursor:pointer;max-width:90vw}
-  .witching-indicator.show{display:block}
-  .witching-msg{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(167,139,250,.3);font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text);letter-spacing:1px;line-height:1.5;text-shadow:none;font-weight:normal}
-  .witching-indicator.expanded .witching-msg{display:block}
-  .witching-indicator .witching-hint{font-size:10px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px;margin-top:4px;display:block}
-  @media(max-width:560px){.witching-indicator{font-size:14px;padding:6px 14px;top:50px}}
-  @keyframes witchingPulse{0%,100%{opacity:.7;box-shadow:0 0 20px rgba(167,139,250,.2)}50%{opacity:1;box-shadow:0 0 40px rgba(167,139,250,.5)}}
+  /* ============ WITCHING HOUR — compact statusbar icon + popup ============ */
+  .witching-icon{display:none;cursor:pointer;color:#a78bfa;font-family:'VT323',monospace;font-size:14px;letter-spacing:1px;padding:2px 10px;border:1px solid rgba(167,139,250,.4);background:rgba(20,0,40,.6);clip-path:polygon(0 0,calc(100% - 4px) 0,100% 4px,100% 100%,4px 100%,0 calc(100% - 4px));transition:all .2s;animation:witchingPulse 3s ease-in-out infinite}
+  .witching-icon.show{display:inline-block}
+  .witching-icon:hover{background:rgba(20,0,40,.9);border-color:#a78bfa;box-shadow:0 0 12px rgba(167,139,250,.4)}
+  .witching-popup{position:fixed;bottom:40px;right:20px;z-index:9300;width:320px;max-width:90vw;background:linear-gradient(180deg,rgba(20,0,40,.97),rgba(10,0,20,.97));border:1px solid #a78bfa;padding:16px 20px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));box-shadow:0 0 40px rgba(167,139,250,.3),0 10px 30px rgba(0,0,0,.8);font-family:'VT323',monospace;opacity:0;transform:translateY(20px) scale(.95);pointer-events:none;transition:all .3s ease-out}
+  .witching-popup.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+  .witching-popup-title{font-family:'MedievalSharp',serif;font-size:18px;color:#a78bfa;text-shadow:0 0 10px rgba(167,139,250,.6);letter-spacing:2px;margin-bottom:8px}
+  .witching-popup-msg{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text);line-height:1.6;letter-spacing:.5px;margin-bottom:10px}
+  .witching-popup-info{font-size:11px;color:var(--text-dim);line-height:1.4;border-top:1px dashed rgba(167,139,250,.2);padding-top:8px;margin-top:8px}
+  .witching-popup-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;font-family:'VT323',monospace}
+  .witching-popup-close:hover{color:var(--red)}
+  @media(max-width:560px){.witching-popup{bottom:60px;right:10px;left:10px;width:auto}}
+  @keyframes witchingPulse{0%,100%{opacity:.8}50%{opacity:1}}
 
   /* ============ PROJECTION (fullscreen holo) ============ */
   .projection-overlay{position:fixed;inset:0;z-index:9600;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.95);opacity:0;pointer-events:none;transition:opacity .4s;padding:40px 20px;overflow-y:auto}
@@ -959,11 +967,12 @@
 <!-- ACHIEVEMENT TOAST CONTAINER -->
 <div id="achToastContainer"></div>
 
-<!-- WITCHING HOUR INDICATOR -->
-<div class="witching-indicator" id="witchingIndicator">
-  <span id="witchingTitle">🌙 ЧАС ВЕДЬМЫ 🌙</span>
-  <span class="witching-hint">нажмите, чтобы прочитать</span>
-  <div class="witching-msg" id="witchingMsg"></div>
+<!-- WITCHING HOUR — compact icon in statusbar + popup -->
+<div class="witching-popup" id="witchingPopup">
+  <button class="witching-popup-close" id="witchingPopupClose">×</button>
+  <div class="witching-popup-title" id="witchingPopupTitle"></div>
+  <div class="witching-popup-msg" id="witchingPopupMsg"></div>
+  <div class="witching-popup-info">// Час Ведьмы — время, когда бог смотрит пристальнее.<br>// Взгляд Бога растёт, архив дрожит. Действует до конца часа.</div>
 </div>
 
 <!-- PROJECTION (fullscreen hologram) -->
@@ -1041,7 +1050,7 @@
           </div>
           <div class="meter">
             <div class="lbl"><span>ВЗГЛЯД БОГА</span><b id="m2v">0%</b>
-              <div class="meter-tooltip"><b style="color:var(--amber)">ВЗГЛЯД БОГА</b><br>Мёртвый бог наблюдает через архив. Растёт от чтения и решения головоломок. <span style="color:var(--amber)">30%</span> — моргание. <span style="color:var(--amber)">60%</span> — силуэт глаза. <span style="color:var(--amber)">90%</span> — инверсия. <span style="color:var(--amber)">100%</span> — ОН ВИДИТ ТЕБЯ.</div>
+              <div class="meter-tooltip"><b style="color:var(--amber)">ВЗГЛЯД БОГА</b><br>Мёртвый бог наблюдает через архив. Растёт от чтения записей и решения головоломок.<br><span style="color:var(--amber)">30%</span> — лёгкие помехи.<br><span style="color:var(--amber)">60%</span> — красная виньетка, мерцание.<br><span style="color:var(--amber)">90%</span> — дрожь архива, сильные помехи.<br><span style="color:var(--amber)">100%</span> — ОН ВИДИТ ТЕБЯ.</div>
             </div>
             <div class="bar"><i id="m2" class="red" style="width:0%"></i></div>
           </div>
@@ -1060,7 +1069,7 @@
           <span>КОРЕНЬ</span><span class="sep">&gt;</span>
           <span>СЕКТОР_07</span><span class="sep">&gt;</span>
           <b id="crumbCur">АРХИВ_НПС</b>
-          <div class="right">
+          <div class="right"><span class="witching-icon" id="witchingIcon" title="Час Ведьмы активен">🌙 ВЕДЬМИН ЧАС</span>
             <span>КАНАЛ: <b style="color:var(--green)">СТАБИЛЕН</b></span>
             <span>ИСТОЧНИК: <b style="color:var(--cyan)">SUPABASE</b></span>
             <span id="clock">--:--:--</span>
@@ -1376,7 +1385,7 @@
     }
     if(corruptionLevel >= 100 && !window._gaze100){
       window._gaze100 = true;
-      triggerAlert("👁 ОН ВИДИТ ТЕБЯ", "взгляд бога достиг максимума. архив дрожит.");
+      triggerAlert("ОН ВИДИТ ТЕБЯ", "взгляд бога достиг максимума. архив содрогается.");
       Audio.glitch(0.3);
     }
   }
@@ -2972,10 +2981,15 @@
     setTimeout(()=>Audio.beep(330, 0.15, 0.14), 150);
   }
 
-  // Witching indicator: click to expand/collapse message
-  $("#witchingIndicator")?.addEventListener("click", () => {
-    $("#witchingIndicator")?.classList.toggle("expanded");
+  // Witching icon: click to toggle popup
+  $("#witchingIcon")?.addEventListener("click", () => {
+    $("#witchingPopup")?.classList.toggle("show");
     Audio.blip(440, 0.04, 0.08);
+  });
+  $("#witchingPopupClose")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    $("#witchingPopup")?.classList.remove("show");
+    Audio.blip(330, 0.04, 0.08);
   });
 
   // Projection close button + ESC
@@ -3175,21 +3189,24 @@
           ? (curMin >= startMin && curMin < endMin)
           : (curMin >= startMin || curMin < endMin));
     if(inRange){
-      const wi = $("#witchingIndicator");
-      const wt = $("#witchingTitle");
-      const wm = $("#witchingMsg");
-      if(wt) wt.textContent = "🌙 " + (cfg.title || "ЧАС ВЕДЬМЫ") + " 🌙";
+      const wt = $("#witchingPopupTitle");
+      const wm = $("#witchingPopupMsg");
+      if(wt) wt.textContent = cfg.title || "ЧАС ВЕДЬМЫ";
       if(wm) wm.textContent = cfg.msg || "";
-      wi?.classList.add("show");
+      $("#witchingIcon")?.classList.add("show");
       if(!_witchTriggered){
         _witchTriggered = true;
         addGaze(cfg.boost || 5);
         Audio.whisper(0.18);
         unlockAchievement("WITCHING_HOUR");
+        // Auto-show popup on first trigger
+        $("#witchingPopup")?.classList.add("show");
+        // Auto-hide popup after 8 seconds (icon stays)
+        setTimeout(()=>{ $("#witchingPopup")?.classList.remove("show"); }, 8000);
       }
     } else {
-      $("#witchingIndicator")?.classList.remove("show");
-      $("#witchingIndicator")?.classList.remove("expanded");
+      $("#witchingIcon")?.classList.remove("show");
+      $("#witchingPopup")?.classList.remove("show");
       _witchTriggered = false;
     }
   }
