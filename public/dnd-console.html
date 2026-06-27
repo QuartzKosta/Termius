@@ -1417,15 +1417,57 @@
 
   function loadAchievements(){
     if(_player){ syncAchievementsFromServer(); return; }
+    // Anonymous mode: use localStorage as cache only
     try{
       STORE.achievements = new Set(JSON.parse(localStorage.getItem("ashen_achievements") || "[]"));
     }catch(e){ STORE.achievements = new Set(); }
   }
 
   function saveAchievements(){
-    if(_player) return;
+    if(_player) return; // server handles persistence when logged in
     try{
       localStorage.setItem("ashen_achievements", JSON.stringify([...STORE.achievements]));
+    }catch(e){}
+  }
+
+  /** Sync ALL player-specific data from server achievements.
+   *  Prefixes: FRAG_<id>, READ_<id>, SHARD_<word>, TYPE_<type>
+   *  Plain IDs (FIRST_BREACH etc.) are regular achievements. */
+  async function syncAllFromServer(){
+    if(!_player) return;
+    try{
+      const r = await fetch("/api/auth/achievements");
+      if(!r.ok) return;
+      const j = await r.json();
+      if(!j.ok || !j.achievements) return;
+      const all = j.achievements;
+      // Regular achievements (no prefix)
+      STORE.achievements = new Set(all.filter(a => !a.includes("_") || ["FIRST_BREACH","ARCHIVIST","SEALBREAKER","SHARD_COLLECTOR","CARTOGRAPHER","WITCHING_HOUR","FINAL_REVELATION","MASTER_KEYS","EYE_OF_GOD","FRAGMENT_MASTER"].includes(a)));
+      // Prefixed data
+      STORE.revealedFragments = new Set();
+      STORE.readRecords = new Set();
+      STORE.collectedFragments = new Set();
+      STORE.solvedPuzzleTypes = new Set();
+      all.forEach(a => {
+        if(a.startsWith("FRAG_")) STORE.revealedFragments.add(a.slice(5));
+        else if(a.startsWith("READ_")) STORE.readRecords.add(a.slice(5));
+        else if(a.startsWith("SHARD_")) STORE.collectedFragments.add(a.slice(6));
+        else if(a.startsWith("TYPE_")) STORE.solvedPuzzleTypes.add(a.slice(5));
+      });
+      const ta = $("#tag-ach");
+      if(ta) ta.textContent = STORE.achievements.size;
+    }catch(e){}
+  }
+
+  /** Send a prefixed achievement to server (player-specific data). */
+  async function sendServerData(prefix, value){
+    if(!_player) return;
+    try{
+      await fetch("/api/auth/achievements", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ achievement_id: prefix + value })
+      });
     }catch(e){}
   }
 
@@ -1476,6 +1518,7 @@
     if(!record || !record.id || STORE.readRecords.has(record.id)) return;
     STORE.readRecords.add(record.id);
     try{ localStorage.setItem("ashen_read_records", JSON.stringify([...STORE.readRecords])); }catch(e){}
+    sendServerData("READ_", record.id); // server sync (player-specific)
     // Each read record draws the god's gaze (+2%)
     addGaze(2);
     // ARCHIVIST: read all unlocked records
@@ -1494,6 +1537,7 @@
     if(STORE.collectedFragments.has(word)) return;
     STORE.collectedFragments.add(word);
     try{ localStorage.setItem("ashen_collected_fragments", JSON.stringify([...STORE.collectedFragments])); }catch(e){}
+    sendServerData("SHARD_", word); // server sync (player-specific)
     unlockAchievement("SHARD_COLLECTOR");
     triggerAlert("ОСКОЛОК СОБРАН", `слово <b>${escapeHtml(word)}</b> добавлено.<br>собрано: <b>${STORE.collectedFragments.size}</b>`);
     Audio.beep(523, 0.1, 0.14);
@@ -2201,14 +2245,7 @@
     // Mark fragment as revealed (locally + localStorage + server sync)
     STORE.revealedFragments.add(ctx.record.id);
     try{ localStorage.setItem("ashen_revealed_fragments", JSON.stringify([...STORE.revealedFragments])); }catch(e){}
-    // Server sync: store as achievement with FRAG_ prefix (player-specific)
-    if(_player){
-      fetch("/api/auth/achievements", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ achievement_id: "FRAG_" + ctx.record.id })
-      }).catch(()=>{});
-    }
+    sendServerData("FRAG_", ctx.record.id); // server sync (player-specific)
     addGaze(4);
     // FRAGMENT_MASTER: solve 5 hidden fragments
     if(STORE.revealedFragments.size >= 5) unlockAchievement("FRAGMENT_MASTER");
@@ -2221,25 +2258,7 @@
     if(currentPanel) startPanel(currentPanel);
   }
 
-  /** Sync revealed fragments from server (called after login). */
-  async function syncFragmentsFromServer(){
-    if(!_player) return;
-    try{
-      const r = await fetch("/api/auth/achievements");
-      if(r.ok){
-        const j = await r.json();
-        if(j.ok && j.achievements){
-          // Extract fragment achievements (FRAG_ prefix)
-          j.achievements.forEach(a => {
-            if(a.startsWith("FRAG_")){
-              STORE.revealedFragments.add(a.slice(5));
-            }
-          });
-          try{ localStorage.setItem("ashen_revealed_fragments", JSON.stringify([...STORE.revealedFragments])); }catch(e){}
-        }
-      }
-    }catch(e){}
-  }
+  // syncFragmentsFromServer removed — replaced by syncAllFromServer()
 
   function bypassFail(reason){
     const box = $("#bypassBox");
@@ -2398,7 +2417,8 @@
         if(ctx.record.puzzle_type && ctx.record.puzzle_type !== "none" && ctx.record.puzzle_type !== "fragment" && ctx.record.puzzle_type !== "meta"){
           STORE.solvedPuzzleTypes.add(ctx.record.puzzle_type);
           try{ localStorage.setItem("ashen_solved_types", JSON.stringify([...STORE.solvedPuzzleTypes])); }catch(e){}
-          // MASTER_KEYS: solve all 7 types (keyword, tumbler, constellation, circuit, alchemy, runes, fragment)
+          sendServerData("TYPE_", ctx.record.puzzle_type); // server sync
+          // MASTER_KEYS: solve all 7 types
           if(STORE.solvedPuzzleTypes.size >= 7) unlockAchievement("MASTER_KEYS");
         }
         const allLocked = [];
@@ -3081,9 +3101,9 @@
     const loggedIn = await checkSession();
     if(loggedIn){
       setWardenName();
-      // Sync achievements + revealed fragments from server (overrides local cache)
-      await syncAchievementsFromServer();
-      await syncFragmentsFromServer();
+      // Sync ALL player-specific data from server (achievements, fragments,
+      // read records, shards, solved types — all stored as achievements)
+      await syncAllFromServer();
       $("#wardensGate").classList.add("gone");
       setTimeout(bootStep, 650);
     } else {
