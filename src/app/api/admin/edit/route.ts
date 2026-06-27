@@ -58,6 +58,9 @@ export async function POST(req: NextRequest) {
     if (body.map_x !== undefined) update.map_x = numOrNull(body.map_x);
     if (body.map_y !== undefined) update.map_y = numOrNull(body.map_y);
     if (body.custom_trigger !== undefined) update.custom_trigger = str(body.custom_trigger, 2000);
+    if (body.fragment_puzzle_type !== undefined) update.fragment_puzzle_type = str(body.fragment_puzzle_type, 50);
+    if (body.fragment_puzzle_data !== undefined) update.fragment_puzzle_data = str(body.fragment_puzzle_data, 10000);
+    if (body.fragment_puzzle_hint !== undefined) update.fragment_puzzle_hint = str(body.fragment_puzzle_hint, 1000);
 
     const supabase = getAdminClient();
     const { data, error } = await supabase

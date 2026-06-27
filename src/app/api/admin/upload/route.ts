@@ -59,6 +59,9 @@ export async function POST(req: NextRequest) {
       map_x: numOrNull(body.map_x),
       map_y: numOrNull(body.map_y),
       custom_trigger: str(body.custom_trigger, 2000),
+      fragment_puzzle_type: str(body.fragment_puzzle_type, 50),
+      fragment_puzzle_data: str(body.fragment_puzzle_data, 10000),
+      fragment_puzzle_hint: str(body.fragment_puzzle_hint, 1000),
     };
     const supabase = getAdminClient();
     const { data, error } = await supabase

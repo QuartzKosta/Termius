@@ -1047,3 +1047,32 @@ Stage Summary:
 - Lint чистый, v6.0-messy ветка тоже чиста.
 - Внимание: хэши всех коммитов изменились после filter-repo (нормально при переписывании истории).
 - Готов к push на GitHub.
+
+---
+
+## FRAGMENT-PUZZLE-ADMIN — 2025-06-25
+
+**Agent**: coder · **File**: `src/app/admin/page.tsx`
+
+### Summary
+Extended the ASHEN CODEX admin panel to manage the new **fragment puzzle** system per record (`fragment_puzzle_type` / `fragment_puzzle_data` / `fragment_puzzle_hint`), independent of the existing main puzzle used for unlocking. The fragment puzzle is intended to decrypt `[[HIDDEN:...]]` spans inside the record description.
+
+### Changes
+1. **`ArchiveRecord` interface** — added three optional nullable fields (`fragment_puzzle_type`, `fragment_puzzle_data`, `fragment_puzzle_hint`) right after the main puzzle fields, with a comment explaining their purpose.
+2. **`UploadForm`** — added three `useState` hooks (`fragmentPuzzleType` defaults to `"none"`), a `fragmentPuzzleDataParsed` JSON.parse guard with its own localized error message, three new keys in the `/api/admin/upload` request body, and a visually-separated UI block (dashed `#2a2017` border + amber `VT323` header `🔓 ГОЛОВОЛОМКА СКРЫТОГО ФРАГМЕНТА` + explanatory `//` note) with Type select / Hint input / Data textarea, reusing the existing `PUZZLE_TYPES` array and `styles.input`/`styles.select`/`styles.fieldLabel`.
+3. **`EditModal`** — same three `useState` hooks pre-filled from the loaded record (using `stringifyMaybe` for `fragment_puzzle_data` so stored JSON is pretty-printed), same JSON.parse guard, three new keys in the `/api/admin/edit` body, and an identical visually-separated UI block inserted after the main puzzle data textarea and before "СЛОВО-ОСКОЛОК".
+
+### Labels (Russian, per spec)
+- `ТИП ГОЛОВОЛОМКИ ФРАГМЕНТА` (select)
+- `ПОДСКАЗКА ФРАГМЕНТА` (input)
+- `ДАННЫЕ ГОЛОВОЛОМКИ ФРАГМЕНТА (JSON)` (textarea)
+
+### Validation
+- `bun run lint` → **0 errors, 0 warnings**. (Initially had 2 `react/jsx-no-comment-textnodes` errors because the `// используется для расшифровки...` note was raw text in JSX; fixed by wrapping it in `{}`.)
+- `dev.log` shows no compile/runtime regressions; admin API routes continue responding 200.
+
+### Notes
+- The dashed separator is inline (`borderTop: "1px dashed #2a2017"`) because the codebase has no shared `separator` style; keeping it local avoids touching the shared `styles` object.
+- Amber accent `#e8a13a` + `VT323` font visually distinguishes the fragment-puzzle section from the green-terminal main puzzle.
+- Backend routes (`/api/admin/upload`, `/api/admin/edit`) and `src/lib/supabase.ts` already accepted/stored these fields — no backend changes needed.
+- Work record also saved to `/agent-ctx/FRAGMENT-PUZZLE-ADMIN-coder.md`.

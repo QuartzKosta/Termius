@@ -1722,7 +1722,7 @@
     const hiddenText = match[1];
     const after = desc.slice(match.index + match[0].length);
     const revealed = STORE.revealedFragments && STORE.revealedFragments.has(record.id);
-    const hasPuzzle = record.puzzle_type && record.puzzle_type !== "none";
+    const hasPuzzle = record.fragment_puzzle_type && record.fragment_puzzle_type !== "none";
     if(revealed){
       // Fragment already solved — show full text
       return escapeHtml(before) + `<span class="hidden-fragment revealed">${escapeHtml(hiddenText)}</span>` + escapeHtml(after);
@@ -2163,7 +2163,7 @@
   let fragmentContext = null; // { record, type }
 
   function openFragmentPuzzle(record, type){
-    if(!record || !record.puzzle_type || record.puzzle_type === "none") return;
+    if(!record || !record.fragment_puzzle_type || record.fragment_puzzle_type === "none") return;
     fragmentContext = { record, type };
     // Reuse the bypass overlay but with fragment-specific context
     bypassContext = { record, type, isFragment: true };
@@ -2182,9 +2182,9 @@
     const title = box.querySelector(".bypass-title");
     if(title) title.textContent = "РАСШИФРОВКА ФРАГМЕНТА";
     let pd = {};
-    try { pd = record.puzzle_data ? JSON.parse(record.puzzle_data) : {}; } catch(e){}
-    hint.textContent = record.puzzle_hint || "// расшифруйте фрагмент записи";
-    renderPuzzle(record.puzzle_type, pd);
+    try { pd = record.fragment_puzzle_data ? JSON.parse(record.fragment_puzzle_data) : {}; } catch(e){}
+    hint.textContent = record.fragment_puzzle_hint || "// расшифруйте фрагмент записи";
+    renderPuzzle(record.fragment_puzzle_type, pd);
     $("#bypassOverlay").classList.add("show");
     Audio.beep(330, 0.08, 0.1);
     setTimeout(()=>Audio.beep(220, 0.08, 0.1), 100);

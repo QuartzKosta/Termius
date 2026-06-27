@@ -29,6 +29,9 @@ export interface ArchiveRecord {
   puzzle_data: string | null;
   puzzle_hint: string | null;
   shard_word: string | null;
+  fragment_puzzle_type: string | null;
+  fragment_puzzle_data: string | null;
+  fragment_puzzle_hint: string | null;
   created_at: string | null;
 }
 

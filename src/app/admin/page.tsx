@@ -38,6 +38,10 @@ interface ArchiveRecord {
   puzzle_type?: string | null;
   puzzle_data?: string | null;
   puzzle_hint?: string | null;
+  // Fragment puzzle (decrypts [[HIDDEN:...]] inside description; record must be unlocked first)
+  fragment_puzzle_type?: string | null;
+  fragment_puzzle_data?: string | null;
+  fragment_puzzle_hint?: string | null;
   shard_word?: string | null;
   prophecy_bonus_text?: string | null;
   map_x?: number | null;
@@ -412,6 +416,9 @@ function UploadForm({
   const [puzzleType, setPuzzleType] = useState("none");
   const [puzzleHint, setPuzzleHint] = useState("");
   const [puzzleData, setPuzzleData] = useState("");
+  const [fragmentPuzzleType, setFragmentPuzzleType] = useState("none");
+  const [fragmentPuzzleHint, setFragmentPuzzleHint] = useState("");
+  const [fragmentPuzzleData, setFragmentPuzzleData] = useState("");
   const [shardWord, setShardWord] = useState("");
   const [prophecyBonusText, setProphecyBonusText] = useState("");
   const [mapX, setMapX] = useState("0");
@@ -424,11 +431,17 @@ function UploadForm({
     e.preventDefault();
     if (!name.trim()) { setErr("Имя обязательно."); return; }
     let puzzleDataParsed: unknown = null;
+    let fragmentPuzzleDataParsed: unknown = null;
     let customTriggerParsed: unknown = null;
     try {
       if (puzzleData.trim()) puzzleDataParsed = JSON.parse(puzzleData);
     } catch {
       setErr("puzzle_data: неверный JSON"); return;
+    }
+    try {
+      if (fragmentPuzzleData.trim()) fragmentPuzzleDataParsed = JSON.parse(fragmentPuzzleData);
+    } catch {
+      setErr("fragment_puzzle_data: неверный JSON"); return;
     }
     try {
       if (customTrigger.trim()) customTriggerParsed = JSON.parse(customTrigger);
@@ -453,6 +466,9 @@ function UploadForm({
           puzzle_type: puzzleType,
           puzzle_hint: puzzleHint.trim() || null,
           puzzle_data: puzzleDataParsed,
+          fragment_puzzle_type: fragmentPuzzleType,
+          fragment_puzzle_hint: fragmentPuzzleHint.trim() || null,
+          fragment_puzzle_data: fragmentPuzzleDataParsed,
           shard_word: shardWord.trim() || null,
           prophecy_bonus_text: prophecyBonusText.trim() || null,
           map_x: Number(mapX) || 0,
@@ -508,6 +524,25 @@ function UploadForm({
 
       <label style={styles.fieldLabel}>ДАННЫЕ ГОЛОВОЛОМКИ (JSON)</label>
       <textarea value={puzzleData} onChange={(e) => setPuzzleData(e.target.value)} placeholder={'{\n  "answer": "shadow",\n  "tries": 3\n}'} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "'Share Tech Mono', monospace" }} />
+
+      <div style={{ marginTop: 16, marginBottom: 8, borderTop: "1px dashed #2a2017" }} />
+      <div style={{ fontSize: 13, color: "#e8a13a", fontFamily: "'VT323', monospace", letterSpacing: 2, marginBottom: 8 }}>
+        🔓 ГОЛОВОЛОМКА СКРЫТОГО ФРАГМЕНТА
+      </div>
+      <div style={{ fontSize: 11, color: "#5a5a5a", marginBottom: 10, fontFamily: "'Share Tech Mono', monospace" }}>
+        {"// используется для расшифровки [[HIDDEN:...]] в описании (запись должна быть открыта)"}
+      </div>
+
+      <label style={styles.fieldLabel}>ТИП ГОЛОВОЛОМКИ ФРАГМЕНТА</label>
+      <select value={fragmentPuzzleType} onChange={(e) => setFragmentPuzzleType(e.target.value)} style={styles.select}>
+        {PUZZLE_TYPES.map((p) => (<option key={p} value={p}>{p}</option>))}
+      </select>
+
+      <label style={styles.fieldLabel}>ПОДСКАЗКА ФРАГМЕНТА</label>
+      <input value={fragmentPuzzleHint} onChange={(e) => setFragmentPuzzleHint(e.target.value)} placeholder="напр. // имя забыто пеплом" style={styles.input} />
+
+      <label style={styles.fieldLabel}>ДАННЫЕ ГОЛОВОЛОМКИ ФРАГМЕНТА (JSON)</label>
+      <textarea value={fragmentPuzzleData} onChange={(e) => setFragmentPuzzleData(e.target.value)} placeholder={'{\n  "answer": "ash",\n  "tries": 2\n}'} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "'Share Tech Mono', monospace" }} />
 
       <label style={styles.fieldLabel}>СЛОВО-ОСКОЛОК</label>
       <input value={shardWord} onChange={(e) => setShardWord(e.target.value)} placeholder="напр. ПЕПЕЛ" style={styles.input} />
@@ -565,6 +600,9 @@ function EditModal({
   const [puzzleType, setPuzzleType] = useState(rec.puzzle_type || "none");
   const [puzzleHint, setPuzzleHint] = useState(rec.puzzle_hint || "");
   const [puzzleData, setPuzzleData] = useState(() => stringifyMaybe(rec.puzzle_data));
+  const [fragmentPuzzleType, setFragmentPuzzleType] = useState(rec.fragment_puzzle_type || "none");
+  const [fragmentPuzzleHint, setFragmentPuzzleHint] = useState(rec.fragment_puzzle_hint || "");
+  const [fragmentPuzzleData, setFragmentPuzzleData] = useState(() => stringifyMaybe(rec.fragment_puzzle_data));
   const [shardWord, setShardWord] = useState(rec.shard_word || "");
   const [prophecyBonusText, setProphecyBonusText] = useState(rec.prophecy_bonus_text || "");
   const [mapX, setMapX] = useState(rec.map_x != null ? String(rec.map_x) : "0");
@@ -586,11 +624,17 @@ function EditModal({
     e.preventDefault();
     if (!name.trim()) { setErr("Имя обязательно."); return; }
     let puzzleDataParsed: unknown = null;
+    let fragmentPuzzleDataParsed: unknown = null;
     let customTriggerParsed: unknown = null;
     try {
       if (puzzleData.trim()) puzzleDataParsed = JSON.parse(puzzleData);
     } catch {
       setErr("puzzle_data: неверный JSON"); return;
+    }
+    try {
+      if (fragmentPuzzleData.trim()) fragmentPuzzleDataParsed = JSON.parse(fragmentPuzzleData);
+    } catch {
+      setErr("fragment_puzzle_data: неверный JSON"); return;
     }
     try {
       if (customTrigger.trim()) customTriggerParsed = JSON.parse(customTrigger);
@@ -615,6 +659,9 @@ function EditModal({
           puzzle_type: puzzleType,
           puzzle_hint: puzzleHint.trim() || null,
           puzzle_data: puzzleDataParsed,
+          fragment_puzzle_type: fragmentPuzzleType,
+          fragment_puzzle_hint: fragmentPuzzleHint.trim() || null,
+          fragment_puzzle_data: fragmentPuzzleDataParsed,
           shard_word: shardWord.trim() || null,
           prophecy_bonus_text: prophecyBonusText.trim() || null,
           map_x: Number(mapX) || 0,
@@ -675,6 +722,25 @@ function EditModal({
 
           <label style={styles.fieldLabel}>ДАННЫЕ ГОЛОВОЛОМКИ (JSON)</label>
           <textarea value={puzzleData} onChange={(e) => setPuzzleData(e.target.value)} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "'Share Tech Mono', monospace" }} />
+
+          <div style={{ marginTop: 16, marginBottom: 8, borderTop: "1px dashed #2a2017" }} />
+          <div style={{ fontSize: 13, color: "#e8a13a", fontFamily: "'VT323', monospace", letterSpacing: 2, marginBottom: 8 }}>
+            🔓 ГОЛОВОЛОМКА СКРЫТОГО ФРАГМЕНТА
+          </div>
+          <div style={{ fontSize: 11, color: "#5a5a5a", marginBottom: 10, fontFamily: "'Share Tech Mono', monospace" }}>
+            {"// используется для расшифровки [[HIDDEN:...]] в описании (запись должна быть открыта)"}
+          </div>
+
+          <label style={styles.fieldLabel}>ТИП ГОЛОВОЛОМКИ ФРАГМЕНТА</label>
+          <select value={fragmentPuzzleType} onChange={(e) => setFragmentPuzzleType(e.target.value)} style={styles.select}>
+            {PUZZLE_TYPES.map((p) => (<option key={p} value={p}>{p}</option>))}
+          </select>
+
+          <label style={styles.fieldLabel}>ПОДСКАЗКА ФРАГМЕНТА</label>
+          <input value={fragmentPuzzleHint} onChange={(e) => setFragmentPuzzleHint(e.target.value)} style={styles.input} />
+
+          <label style={styles.fieldLabel}>ДАННЫЕ ГОЛОВОЛОМКИ ФРАГМЕНТА (JSON)</label>
+          <textarea value={fragmentPuzzleData} onChange={(e) => setFragmentPuzzleData(e.target.value)} rows={4} style={{ ...styles.input, resize: "vertical", fontFamily: "'Share Tech Mono', monospace" }} />
 
           <label style={styles.fieldLabel}>СЛОВО-ОСКОЛОК</label>
           <input value={shardWord} onChange={(e) => setShardWord(e.target.value)} style={styles.input} />
