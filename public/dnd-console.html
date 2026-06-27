@@ -1347,6 +1347,7 @@
     achievements: new Set(), // achievement IDs unlocked
     readRecords: new Set(), // record IDs the player has opened (for ARCHIVIST)
     revealedFragments: new Set(), // record IDs with solved hidden fragments
+    solvedPuzzleTypes: new Set(), // puzzle types solved (for MASTER_KEYS)
   };
 
   // God's Gaze — grows from reading records, solving puzzles, witching hour.
@@ -1361,6 +1362,10 @@
             : corruptionLevel < 90 ? "gaze-high"
             : "gaze-extreme";
     document.body.className = document.body.className.replace(/gaze-\w+/g, "").trim() + " " + t;
+    if(corruptionLevel >= 90 && !window._gaze90){
+      window._gaze90 = true;
+      unlockAchievement("EYE_OF_GOD");
+    }
     if(corruptionLevel >= 100 && !window._gaze100){
       window._gaze100 = true;
       triggerAlert("👁 ОН ВИДИТ ТЕБЯ", "взгляд бога достиг максимума. архив дрожит.");
@@ -1374,14 +1379,14 @@
   const ACHIEVEMENTS=[
     {id:"FIRST_BREACH",icon:"🥇",name:"Первый взлом",desc:"Решить первую головоломку"},
     {id:"ARCHIVIST",icon:"📚",name:"Архивариус",desc:"Прочитать все открытые записи"},
-    {id:"SEALBREAKER",icon:"🔓",name:"Взломщик Печатей",desc:"Открыть все закрытые файлы"},
+    {id:"SEALBREAKER",icon:"🔓",name:"Взломщик Печатей",desc:"Открыть все запечатанные записи"},
     {id:"SHARD_COLLECTOR",icon:"🧩",name:"Собиратель Осколков",desc:"Найти первый осколок памяти"},
-    {id:"PROPHECY_FULFILLED",icon:"🔮",name:"Исполнитель Пророчества",desc:"Открыть Пророчество дня"},
+    {id:"CARTOGRAPHER",icon:"🗺",name:"Картограф",desc:"Переключиться в режим карты"},
     {id:"WITCHING_HOUR",icon:"🌙",name:"Полуночный Свидетель",desc:"Зайти в Час Ведьмы"},
     {id:"FINAL_REVELATION",icon:"💀",name:"Окончательное Откровение",desc:"Пройти мета-головоломку"},
-    {id:"RESEAL",icon:"🔒",name:"Страж Печати",desc:"Запечатать обратно запись"},
-    {id:"VOICE_OF_GOD",icon:"🎧",name:"Голос Мёртвого Бога",desc:"Прослушать TTS-озвучку"},
-    {id:"CARTOGRAPHER",icon:"🗺",name:"Картограф",desc:"Переключиться в режим карты"},
+    {id:"MASTER_KEYS",icon:"🔑",name:"Мастер Ключей",desc:"Решить головоломки всех 7 типов"},
+    {id:"EYE_OF_GOD",icon:"👁️",name:"Око Бога",desc:"Достичь 90% Взгляда Бога"},
+    {id:"FRAGMENT_MASTER",icon:"🔓",name:"Мастер Фрагментов",desc:"Решить 5 скрытых фрагментов"},
   ];
 
   async function syncAchievementsFromServer(){
@@ -2205,6 +2210,8 @@
       }).catch(()=>{});
     }
     addGaze(4);
+    // FRAGMENT_MASTER: solve 5 hidden fragments
+    if(STORE.revealedFragments.size >= 5) unlockAchievement("FRAGMENT_MASTER");
     Audio.beep(523, 0.15, 0.16);
     setTimeout(()=>Audio.beep(659, 0.15, 0.16), 120);
     setTimeout(()=>Audio.beep(784, 0.2, 0.18), 240);
@@ -2387,7 +2394,13 @@
         const realName = updated ? (updated.name || "") : "";
         addGaze(8);
         unlockAchievement("FIRST_BREACH");
-        if(ctx.record.puzzle_type) unlockAchievement("PUZZLE_" + ctx.record.puzzle_type.toUpperCase());
+        // Track solved puzzle types for MASTER_KEYS achievement
+        if(ctx.record.puzzle_type && ctx.record.puzzle_type !== "none" && ctx.record.puzzle_type !== "fragment" && ctx.record.puzzle_type !== "meta"){
+          STORE.solvedPuzzleTypes.add(ctx.record.puzzle_type);
+          try{ localStorage.setItem("ashen_solved_types", JSON.stringify([...STORE.solvedPuzzleTypes])); }catch(e){}
+          // MASTER_KEYS: solve all 7 types (keyword, tumbler, constellation, circuit, alchemy, runes, fragment)
+          if(STORE.solvedPuzzleTypes.size >= 7) unlockAchievement("MASTER_KEYS");
+        }
         const allLocked = [];
         ["npcs","lore","rulers"].forEach(t => {
           allLocked.push(...STORE[t].filter(r => r.is_locked));
@@ -3060,6 +3073,7 @@
   try{ STORE.collectedFragments = new Set(JSON.parse(localStorage.getItem("ashen_collected_fragments") || "[]")); }catch(e){}
   try{ STORE.readRecords = new Set(JSON.parse(localStorage.getItem("ashen_read_records") || "[]")); }catch(e){}
   try{ STORE.revealedFragments = new Set(JSON.parse(localStorage.getItem("ashen_revealed_fragments") || "[]")); }catch(e){}
+  try{ STORE.solvedPuzzleTypes = new Set(JSON.parse(localStorage.getItem("ashen_solved_types") || "[]")); }catch(e){}
   loadAchievements();
 
   // On load: check session, then either boot directly or show gate
