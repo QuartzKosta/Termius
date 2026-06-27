@@ -785,6 +785,23 @@
   .g2048-info{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--text-dim);font-family:'VT323',monospace}
   .g2048-info b{color:var(--green)}
 
+  /* ============ PUZZLES: memory (Simon) ============ */
+  .mem-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-width:240px;margin:0 auto}
+  .mem-pad{aspect-ratio:1/1;border-radius:4px;cursor:pointer;transition:all .15s;opacity:.4;border:2px solid}
+  .mem-pad:hover{opacity:.6}
+  .mem-pad.lit{opacity:1;transform:scale(1.05)}
+  .mem-pad.p0{background:var(--green-dim);border-color:var(--green)}
+  .mem-pad.p0.lit{background:var(--green);box-shadow:0 0 20px var(--green)}
+  .mem-pad.p1{background:rgba(232,161,58,.15);border-color:var(--amber)}
+  .mem-pad.p1.lit{background:var(--amber);box-shadow:0 0 20px var(--amber)}
+  .mem-pad.p2{background:rgba(255,36,36,.1);border-color:var(--red)}
+  .mem-pad.p2.lit{background:var(--red);box-shadow:0 0 20px var(--red)}
+  .mem-pad.p3{background:rgba(63,214,200,.1);border-color:var(--cyan)}
+  .mem-pad.p3.lit{background:var(--cyan);box-shadow:0 0 20px var(--cyan)}
+  .mem-info{text-align:center;margin-top:12px;font-size:14px;color:var(--text-dim);font-family:'VT323',monospace;letter-spacing:1px;min-height:20px}
+  .mem-info b{color:var(--green)}
+  .mem-start{display:block;margin:12px auto 0;padding:8px 24px}
+
   /* ============ PUZZLES: alchemy ============ */
   .alchemy-slot{width:60px;height:60px;border:2px dashed var(--amber);background:rgba(232,161,58,.04);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--amber);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));transition:all .15s}
   .alchemy-slot.filled{border-style:solid;border-color:var(--green);color:var(--green);box-shadow:0 0 10px rgba(74,246,38,.3)}
@@ -2519,6 +2536,7 @@
     else if(ptype === "runes") renderRunes(slot, pd);
     else if(ptype === "sliding") renderSliding(slot, pd);
     else if(ptype === "g2048") render2048(slot, pd);
+    else if(ptype === "memory") renderMemory(slot, pd);
     else if(ptype === "meta") renderMeta(slot, pd);
     else if(ptype === "fragment") slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// эта запись содержит осколок памяти.<br>закройте это окно и прочтите запись — осколок соберётся автоматически.</div>`;
     else slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// печать без головоломки — запись нельзя открыть.</div>`;
@@ -3122,6 +3140,109 @@
       touchStart = null;
     }, {passive: true});
 
+    render();
+  }
+
+  /** Memory puzzle (Simon) — watch sequence, repeat it. Growing difficulty.
+   *  puzzle_data: {"startLength": 3, "maxLength": 7}
+   *  Player must repeat N rounds, each adds one more step. */
+  function renderMemory(slot, pd){
+    const START_LEN = pd.startLength || 3;
+    const MAX_LEN = pd.maxLength || 7;
+    const TONES = [330, 392, 440, 523]; // E4, G4, A4, C5
+    let sequence = [];
+    let playerInput = [];
+    let currentRound = 0;
+    let phase = "idle"; // idle | watching | playing | done
+    let accepting = false;
+
+    function genSequence(){
+      sequence = [];
+      for(let i = 0; i < MAX_LEN; i++){
+        sequence.push(Math.floor(Math.random() * 4));
+      }
+    }
+
+    function flashPad(idx, duration){
+      return new Promise(resolve => {
+        const pad = slot.querySelector(`.mem-pad.p${idx}`);
+        if(pad) pad.classList.add("lit");
+        Audio.beep(TONES[idx], duration / 1000, 0.15);
+        setTimeout(() => {
+          if(pad) pad.classList.remove("lit");
+          setTimeout(resolve, 120);
+        }, duration);
+      });
+    }
+
+    async function playSequence(upTo){
+      accepting = false;
+      phase = "watching";
+      const info = slot.querySelector(".mem-info");
+      if(info) info.innerHTML = `смотрите... <b>раунд ${currentRound + 1}/${MAX_LEN - START_LEN + 1}</b>`;
+      for(let i = 0; i <= upTo; i++){
+        await flashPad(sequence[i], 500);
+      }
+      phase = "playing";
+      accepting = true;
+      playerInput = [];
+      if(info) info.innerHTML = `повторите: <b>0/${upTo + 1}</b>`;
+    }
+
+    function handlePadClick(idx){
+      if(!accepting || _puzzleLocked) return;
+      playerInput.push(idx);
+      const pad = slot.querySelector(`.mem-pad.p${idx}`);
+      if(pad){ pad.classList.add("lit"); setTimeout(()=>pad.classList.remove("lit"), 200); }
+      Audio.beep(TONES[idx], 0.12, 0.15);
+      const stepIdx = playerInput.length - 1;
+      const expected = sequence[stepIdx];
+      const info = slot.querySelector(".mem-info");
+      if(idx !== expected){
+        accepting = false;
+        if(info) info.textContent = "ошибка! неверная последовательность";
+        bypassFail("неверная последовательность");
+        // Reset to start of current round
+        setTimeout(() => { if(currentRound === 0) render(); else playSequence(currentRound - 1 + START_LEN - 1); }, 1500);
+        return;
+      }
+      if(info) info.innerHTML = `повторите: <b>${playerInput.length}/${currentRound + START_LEN}</b>`;
+      if(playerInput.length === currentRound + START_LEN){
+        accepting = false;
+        currentRound++;
+        if(currentRound + START_LEN > MAX_LEN){
+          if(info) info.textContent = "последовательность воспроизведена!";
+          bypassSuccess();
+          return;
+        }
+        if(info) info.innerHTML = `верно! следующий раунд...`;
+        Audio.beep(523, 0.1, 0.15);
+        setTimeout(()=>Audio.beep(659, 0.1, 0.15), 80);
+        setTimeout(()=>Audio.beep(784, 0.15, 0.18), 160);
+        setTimeout(() => playSequence(currentRound + START_LEN - 1), 1200);
+      }
+    }
+
+    function render(){
+      const pads = [0,1,2,3].map(i => `<div class="mem-pad p${i}" data-pad="${i}"></div>`).join("");
+      slot.innerHTML = `<div>
+        <div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:8px">запомните и повторите последовательность</div>
+        <div class="mem-grid">${pads}</div>
+        <div class="mem-info">${phase === "idle" ? 'нажмите «старт»' : ''}</div>
+        <button class="seal-btn mem-start" id="memStart" style="${phase !== 'idle' ? 'display:none' : ''}">СТАРТ</button>
+      </div>`;
+      $$(".mem-pad", slot).forEach(p => {
+        p.addEventListener("click", () => handlePadClick(parseInt(p.dataset.pad, 10)));
+      });
+      const startBtn = $("#memStart", slot);
+      if(startBtn){
+        startBtn.addEventListener("click", () => {
+          genSequence();
+          currentRound = 0;
+          playSequence(START_LEN - 1);
+        });
+      }
+    }
     render();
   }
 
