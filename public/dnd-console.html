@@ -3266,18 +3266,22 @@
     render();
   }
 
-  /** Maze puzzle (Darkness) — navigate a dark maze with limited vision.
-   *  Hitting a wall = bypassFail (cooldown), then maze regenerates.
-   *  puzzle_data: {"size": 8, "visionRadius": 2} */
+  /** Maze puzzle (Memory) — see the maze briefly, then navigate blind.
+   *  Hitting a wall = bypassFail (cooldown). Maze persists for retry.
+   *  puzzle_data: {"size": 8, "showTime": 3, "attempts": 3}
+   *  showTime: seconds the maze is visible before going dark.
+   *  attempts: max wrong moves before full fail (0 = unlimited, just cooldown each). */
   function renderMaze(slot, pd){
     const SIZE = pd.size || 8;
-    const VR = pd.visionRadius || 2;
-    // Grid: 0=path, 1=wall
+    const SHOW_TIME = (pd.showTime || 3) * 1000;
+    const MAX_ATTEMPTS = pd.attempts || 0; // 0 = unlimited
     let grid = [];
     let playerR = 0, playerC = 0;
     let exitR = SIZE - 1, exitC = SIZE - 1;
     let moveCount = 0;
-    let visited = new Set();
+    let wrongCount = 0;
+    let phase = "preview"; // preview → playing → done
+    let countdownTimer = null;
 
     // Generate maze using DFS
     function generateMaze(){
@@ -3294,46 +3298,48 @@
         }
       }
       carve(0, 0);
-      // Ensure exit is a path
       grid[SIZE-1][SIZE-1] = 0;
-      // Ensure player start is a path
       grid[0][0] = 0;
       playerR = 0; playerC = 0;
       exitR = SIZE - 1; exitC = SIZE - 1;
       moveCount = 0;
-      visited = new Set(["0,0"]);
+      wrongCount = 0;
+      phase = "preview";
     }
     generateMaze();
 
-    function isVisible(r, c){
-      const dr = Math.abs(r - playerR), dc = Math.abs(c - playerC);
-      return dr + dc <= VR;
-    }
-    function isDim(r, c){
-      const dr = Math.abs(r - playerR), dc = Math.abs(c - playerC);
-      return dr + dc <= VR + 1 && dr + dc > VR;
-    }
-
     function move(dr, dc){
-      if(_puzzleLocked) return;
+      if(_puzzleLocked || phase !== "playing") return;
       const nr = playerR + dr, nc = playerC + dc;
       if(nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) return;
       if(grid[nr][nc] === 1){
         // Wall = fail!
+        wrongCount++;
         Audio.glitch(0.2);
+        if(MAX_ATTEMPTS > 0 && wrongCount >= MAX_ATTEMPTS){
+          phase = "done";
+          bypassFail("превышен лимит ошибок");
+          return;
+        }
         bypassFail("вы врезались в стену");
-        // Regenerate maze after cooldown
         return;
       }
       playerR = nr; playerC = nc;
       moveCount++;
-      visited.add(nr + "," + nc);
       Audio.blip(440 + (nr + nc) * 15, 0.03, 0.06);
       if(playerR === exitR && playerC === exitC){
+        phase = "done";
         render();
         bypassSuccess();
         return;
       }
+      render();
+    }
+
+    function startPlaying(){
+      phase = "playing";
+      Audio.beep(220, 0.15, 0.12);
+      setTimeout(()=>Audio.beep(330, 0.15, 0.12), 150);
       render();
     }
 
@@ -3348,28 +3354,27 @@
           let cls = "maze-cell ";
           if(isWall) cls += "wall ";
           else cls += "path ";
-          // Visibility
           if(isPlayer) cls += "player visible";
-          else if(isExit && isVisible(r, c)) cls += "exit visible";
-          else if(isStart) cls += "start visible";
-          else if(isVisible(r, c)) cls += "visible";
-          else if(isDim(r, c)) cls += "dim";
+          else if(isExit && phase === "preview") cls += "exit visible";
+          else if(isExit && phase === "playing") cls += "exit visible";
+          else if(isStart && phase === "preview") cls += "start visible";
+          else if(phase === "preview") cls += "visible";
+          else if(phase === "playing") cls += "dark";
           else cls += "dark";
           cellsHtml += `<div class="${cls}"></div>`;
         }
       }
+      const infoText = phase === "preview"
+        ? `запомните лабиринт... <b>${Math.ceil((SHOW_TIME - (Date.now() - previewStart)) / 1000)}с</b>`
+        : phase === "playing"
+        ? `ходов: <b>${moveCount}</b>` + (MAX_ATTEMPTS > 0 ? ` | ошибок: <b style="color:var(--red)">${wrongCount}/${MAX_ATTEMPTS}</b>` : "")
+        : "готово";
       slot.innerHTML = `<div>
-        <div class="maze-info">ходов: <b>${moveCount}</b> | виден радиус <b>${VR}</b> | цель — <span style="color:var(--amber)">●</span></div>
+        <div class="maze-info">${infoText}</div>
         <div class="maze-grid" style="grid-template-columns:repeat(${SIZE},1fr)">${cellsHtml}</div>
-        <div class="maze-controls">
-          <button data-dir="up">▲</button>
-        </div>
-        <div class="maze-controls" style="margin-top:2px">
-          <button data-dir="left">◄</button>
-          <button data-dir="down">▼</button>
-          <button data-dir="right">►</button>
-        </div>
-        <div style="text-align:center;margin-top:6px;font-size:11px;color:var(--text-dim)">или стрелки ← ↑ → ↓ | стена = провал</div>
+        ${phase === "playing" ? `<div class="maze-controls"><button data-dir="up">▲</button></div>
+        <div class="maze-controls" style="margin-top:2px"><button data-dir="left">◄</button><button data-dir="down">▼</button><button data-dir="right">►</button></div>
+        <div style="text-align:center;margin-top:6px;font-size:11px;color:var(--text-dim)">стрелки ← ↑ → ↓ или свайп | стена = провал</div>` : ""}
       </div>`;
       $$("[data-dir]", slot).forEach(btn => {
         btn.addEventListener("click", () => {
@@ -3382,10 +3387,25 @@
       });
     }
 
+    let previewStart = Date.now();
+    // Show maze for SHOW_TIME, then go dark
+    render();
+    // Countdown render
+    countdownTimer = setInterval(() => {
+      if(phase !== "preview"){ clearInterval(countdownTimer); return; }
+      const elapsed = Date.now() - previewStart;
+      if(elapsed >= SHOW_TIME){
+        clearInterval(countdownTimer);
+        startPlaying();
+      } else {
+        render();
+      }
+    }, 250);
+
     // Keyboard
     const keyHandler = (e) => {
       if(_puzzleLocked) return;
-      if(!document.body.contains(slot)){ document.removeEventListener("keydown", keyHandler); return; }
+      if(!document.body.contains(slot)){ document.removeEventListener("keydown", keyHandler); clearInterval(countdownTimer); return; }
       const map = {ArrowLeft:[0,-1], ArrowRight:[0,1], ArrowUp:[-1,0], ArrowDown:[1,0]};
       if(map[e.key]){
         e.preventDefault();
@@ -3400,7 +3420,7 @@
       touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
     }, {passive: true});
     slot.addEventListener("touchend", (e) => {
-      if(!touchStart) return;
+      if(!touchStart || phase !== "playing") return;
       const dx = e.changedTouches[0].clientX - touchStart.x;
       const dy = e.changedTouches[0].clientY - touchStart.y;
       if(Math.abs(dx) > 30 || Math.abs(dy) > 30){
@@ -3413,7 +3433,7 @@
     render();
   }
 
-  /** Meta puzzle — final revelation. Requires all shard fragments collected,
+    /** Meta puzzle — final revelation. Requires all shard fragments collected,
    *  then enter the phrase composed from the fragment words.
    *  (Stage 6 will populate STORE.collectedFragments; until then this shows
    *  the "collect all fragments" message.) */
