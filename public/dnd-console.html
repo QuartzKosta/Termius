@@ -2236,6 +2236,8 @@
       }
       Audio.beep(120,0.08,0.10);
       setTimeout(()=>Audio.beep(220,0.08,0.10),80);
+      // Re-check witching on return from background (setTimeout may have been throttled)
+      checkWitching();
     }
   });
 
