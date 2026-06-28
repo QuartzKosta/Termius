@@ -1034,7 +1034,7 @@
   <button class="witching-popup-close" id="witchingPopupClose">×</button>
   <div class="witching-popup-title" id="witchingPopupTitle"></div>
   <div class="witching-popup-msg" id="witchingPopupMsg"></div>
-  <div class="witching-popup-info">// Час Ведьмы — время, когда бог смотрит пристальнее.<br>// Взгляд Бога растёт, архив дрожит. Действует до конца часа.</div>
+  <div class="witching-popup-info" id="witchingPopupInfo" style="display:none"></div>
 </div>
 
 <!-- PROJECTION (fullscreen hologram) -->
@@ -3793,7 +3793,7 @@
       _witchTriggered = false;
     }
   }
-  setInterval(checkWitching, 30000);
+  setInterval(checkWitching, 5000);
   checkWitching();
 
   // God's Gaze command bridge — admin (stage 12 EventsPanel) writes commands to localStorage.
