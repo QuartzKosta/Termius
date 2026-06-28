@@ -3759,14 +3759,16 @@
       $("#witchingIcon")?.classList.remove("show");
       $("#witchingPopup")?.classList.remove("show");
       _witchTriggered = false;
-      scheduleNextWitchingCheck(cfg);
       return;
     }
     const now = new Date();
     const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
     const tzMs = utcMs + (cfg.timezone || 0) * 3600000;
     const tzDate = new Date(tzMs);
-    const h = tzDate.getHours(), m = tzDate.getMinutes();
+    // BUGFIX: use getUTCHours/getUTCMinutes instead of getHours/getMinutes.
+    // getHours() returns hour in browser's local timezone, not the target timezone.
+    // This caused witching to not trigger on phones in different timezones.
+    const h = tzDate.getUTCHours(), m = tzDate.getUTCMinutes();
     const curMin = h * 60 + m;
     const startMin = (cfg.startHour || 0) * 60 + (cfg.startMinute || 0);
     const endMin = (cfg.endHour || 0) * 60 + (cfg.endMinute || 0);
@@ -3793,45 +3795,13 @@
       $("#witchingPopup")?.classList.remove("show");
       _witchTriggered = false;
     }
-    scheduleNextWitchingCheck(cfg);
   }
 
-  /** Smart scheduling: compute ms until next state change (start/end of range),
-   *  set a single timeout. No polling between events. */
-  let _witchTimeout = null;
-  function scheduleNextWitchingCheck(cfg){
-    if(_witchTimeout){ clearTimeout(_witchTimeout); _witchTimeout = null; }
-    if(!cfg || (!cfg.enabled && !_witchManual)) return;
-    // Compute ms until next boundary (start or end of range)
-    const now = new Date();
-    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-    const tzMs = utcMs + (cfg.timezone || 0) * 3600000;
-    const tzDate = new Date(tzMs);
-    const curMin = tzDate.getHours() * 60 + tzDate.getMinutes();
-    const startMin = (cfg.startHour || 0) * 60 + (cfg.startMinute || 0);
-    const endMin = (cfg.endHour || 0) * 60 + (cfg.endMinute || 0);
-    // Find next boundary
-    let nextMs = 60000; // default: check in 1 min (safety net)
-    const startDiff = ((startMin - curMin) + 1440) % 1440; // ms until start
-    const endDiff = ((endMin - curMin) + 1440) % 1440; // ms until end
-    if(startDiff > 0 && startDiff < nextMs) nextMs = startDiff;
-    if(endDiff > 0 && endDiff < nextMs) nextMs = endDiff;
-    // Convert minutes to ms, add small buffer (2 sec)
-    const delay = Math.max(2000, nextMs * 60000 + 2000);
-    _witchTimeout = setTimeout(() => { checkWitching(); }, delay);
-  }
-
-  // Lightweight manual override check — only reads one localStorage key,
-  // no JSON parsing, no Date calculations. Fires every 2 seconds.
-  let _lastManualState = localStorage.getItem("ashen_witching_manual");
-  setInterval(() => {
-    const current = localStorage.getItem("ashen_witching_manual");
-    if(current !== _lastManualState){
-      _lastManualState = current;
-      if(current === "false") localStorage.removeItem("ashen_witching_manual");
-      checkWitching(); // state changed — full check
-    }
-  }, 2000);
+  // Reliable 10-second interval — lightweight but always works.
+  // Previous smart scheduling (setTimeout) had timezone calculation bugs
+  // that caused witching to not trigger on phones in different timezones.
+  // 10-second polling has negligible CPU impact (one Date + few comparisons).
+  setInterval(checkWitching, 10000);
 
   // Cross-tab: react instantly if admin changes config in another tab
   window.addEventListener("storage", (e) => {
