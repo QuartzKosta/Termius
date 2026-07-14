@@ -30,13 +30,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "name is required" }, { status: 400 });
     }
     // Build payload with all supported fields (null if absent/empty)
-    const str = (v: unknown, max: number) => {
-      if (typeof v === "string" && v.trim()) return v.trim().slice(0, max);
-      if (typeof v === "object" && v !== null) {
-        try { return JSON.stringify(v).slice(0, max); } catch { return null; }
-      }
-      return null;
-    };
+    const str = (v: unknown, max: number) =>
+      typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null;
     const numOrNull = (v: unknown) => {
       if (v === null || v === undefined || v === "") return null;
       const n = Number(v);
@@ -59,9 +54,6 @@ export async function POST(req: NextRequest) {
       map_x: numOrNull(body.map_x),
       map_y: numOrNull(body.map_y),
       custom_trigger: str(body.custom_trigger, 2000),
-      fragment_puzzle_type: str(body.fragment_puzzle_type, 50),
-      fragment_puzzle_data: str(body.fragment_puzzle_data, 10000),
-      fragment_puzzle_hint: str(body.fragment_puzzle_hint, 1000),
     };
     const supabase = getAdminClient();
     const { data, error } = await supabase

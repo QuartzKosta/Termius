@@ -53,3 +53,12 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Tool outputs (ephemeral, may contain sanitized secrets)
+/tool-results/
+
+# Agent context (ephemeral work records)
+/agent-ctx/
+
+# Process files
+.zscripts/

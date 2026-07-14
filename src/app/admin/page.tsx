@@ -22,7 +22,7 @@ import { useState, useEffect, useCallback } from "react";
    ============================================================ */
 
 type RecordType = "npcs" | "lore" | "rulers";
-type TabKey = RecordType | "wardens";
+type TabKey = RecordType | "wardens" | "states";
 
 interface ArchiveRecord {
   id: string;
@@ -54,6 +54,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "npcs", label: "NPC" },
   { key: "lore", label: "LORE" },
   { key: "rulers", label: "RULERS" },
+  { key: "states", label: "ГОСУДАРСТВА" },
   { key: "wardens", label: "WARDENS" },
 ];
 
@@ -234,7 +235,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   }
 
   const isWardens = tab === "wardens";
-  const records = isWardens ? [] : data[tab as RecordType];
+  const isStates = tab === "states";
+  const records = isWardens || isStates ? [] : data[tab as RecordType];
   const lockedCount = records.filter((r) => r.is_locked).length;
 
   return (
@@ -266,6 +268,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             <span style={styles.tabCount}>
               {t.key === "wardens"
                 ? (wardenCount === null ? "—" : wardenCount)
+                : t.key === "states"
+                ? "◆"
                 : data[t.key as RecordType].length}
             </span>
           </button>
@@ -274,6 +278,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
       {isWardens ? (
         <WardensPanel flash={flash} onChanged={loadWardenCount} />
+      ) : isStates ? (
+        <StatesPanel flash={flash} />
       ) : (
         <>
           <div style={styles.subHeader}>
@@ -336,6 +342,514 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
       {toast && <div style={styles.toast}>{toast}</div>}
     </div>
+  );
+}
+
+/* ============================================================
+   STATES PANEL — diplomatic matrix + alliance web
+   ============================================================ */
+interface StateRow {
+  id: string;
+  name: string;
+  sigil: string | null;
+  color: string | null;
+  description: string | null;
+  category: string | null;
+  isLocked: boolean;
+}
+
+interface StateRowAdmin extends StateRow {
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface RelationRow {
+  id: string;
+  stateAId: string;
+  stateBId: string;
+  stateA: { id: string; name: string; sigil: string | null; color: string | null };
+  stateB: { id: string; name: string; sigil: string | null; color: string | null };
+  relationshipType: string;
+  description: string | null;
+  treatyDate: string | null;
+}
+
+const RELATIONSHIP_TYPES: { value: string; label: string; color: string }[] = [
+  { value: "alliance", label: "🤝 СОЮЗ", color: "#4af626" },
+  { value: "war", label: "⚔️ ВОЙНА", color: "#ff2424" },
+  { value: "pact", label: "📜 ПАКТ", color: "#3fd6c8" },
+  { value: "rivalry", label: "💀 ВРАЖДА", color: "#e8a13a" },
+  { value: "neutral", label: "⚖️ НЕЙТРАЛ", color: "#888888" },
+  { value: "vassal", label: "🛡️ ВАССАЛ", color: "#a78bfa" },
+  { value: "trade", label: "💰 ТОРГОВЛЯ", color: "#fbbf24" },
+];
+
+const STATE_CATEGORIES = [
+  "ИМПЕРИЯ",
+  "КОРОЛЕВСТВО",
+  "РЕСПУБЛИКА",
+  "ОРДА",
+  "КОЛОВОД",
+  "БРАТСТВО",
+  "КНЯЖЕСТВО",
+  "ТЕОКРАТИЯ",
+];
+
+function relMeta(type: string) {
+  return (
+    RELATIONSHIP_TYPES.find((r) => r.value === type) || {
+      value: type,
+      label: type.toUpperCase(),
+      color: "#888888",
+    }
+  );
+}
+
+function StatesPanel({ flash }: { flash: (m: string) => void }) {
+  const [states, setStates] = useState<StateRowAdmin[]>([]);
+  const [relations, setRelations] = useState<RelationRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  // ===== State form state =====
+  const [sEditingId, setSEditingId] = useState<string | null>(null);
+  const [sName, setSName] = useState("");
+  const [sSigil, setSSigil] = useState("🔥");
+  const [sColor, setSColor] = useState("#4af626");
+  const [sCategory, setSCategory] = useState("ИМПЕРИЯ");
+  const [sDescription, setSDescription] = useState("");
+  const [sLocked, setSLocked] = useState(false);
+  const [sSubmitting, setSSubmitting] = useState(false);
+  const [sErr, setSErr] = useState("");
+
+  // ===== Relation form state =====
+  const [rEditingId, setREditingId] = useState<string | null>(null);
+  const [rAId, setRAId] = useState("");
+  const [rBId, setRBId] = useState("");
+  const [rType, setRType] = useState("alliance");
+  const [rDesc, setRDesc] = useState("");
+  const [rDate, setRDate] = useState("");
+  const [rSubmitting, setRSubmitting] = useState(false);
+  const [rErr, setRErr] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setErr("");
+    try {
+      const [sRes, rRes] = await Promise.all([
+        fetch("/api/admin/states"),
+        fetch("/api/admin/states/relations"),
+      ]);
+      if (!sRes.ok || !rRes.ok) {
+        setErr("Не удалось загрузить государства — сессия могла истечь.");
+        return;
+      }
+      const sJ = await sRes.json();
+      const rJ = await rRes.json();
+      setStates(Array.isArray(sJ?.data) ? sJ.data : []);
+      setRelations(Array.isArray(rJ?.data) ? rJ.data : []);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "сетевая ошибка");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  function resetStateForm() {
+    setSEditingId(null);
+    setSName("");
+    setSSigil("🔥");
+    setSColor("#4af626");
+    setSCategory("ИМПЕРИЯ");
+    setSDescription("");
+    setSLocked(false);
+    setSErr("");
+  }
+
+  function editState(s: StateRowAdmin) {
+    setSEditingId(s.id);
+    setSName(s.name);
+    setSSigil(s.sigil || "🔥");
+    setSColor(s.color || "#4af626");
+    setSCategory(s.category || "ИМПЕРИЯ");
+    setSDescription(s.description || "");
+    setSLocked(s.isLocked);
+    setSErr("");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function submitState(e: React.FormEvent) {
+    e.preventDefault();
+    if (!sName.trim()) {
+      setSErr("Имя государства обязательно.");
+      return;
+    }
+    setSSubmitting(true);
+    setSErr("");
+    try {
+      const res = await fetch("/api/admin/states", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: sEditingId || undefined,
+          name: sName.trim(),
+          sigil: sSigil.trim() || null,
+          color: sColor.trim() || null,
+          category: sCategory.trim() || null,
+          description: sDescription.trim() || null,
+          isLocked: sLocked,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setSErr(j.error || "сохранение не удалось");
+        return;
+      }
+      flash(sEditingId ? "ГОСУДАРСТВО ОБНОВЛЕНО" : "ГОСУДАРСТВО СОЗДАНО");
+      resetStateForm();
+      load();
+    } catch (e: unknown) {
+      setSErr(e instanceof Error ? e.message : "сетевая ошибка");
+    } finally {
+      setSSubmitting(false);
+    }
+  }
+
+  async function deleteState(s: StateRowAdmin) {
+    if (!window.confirm(`Удалить государство «${s.name}»? Все его отношения будут удалены.`)) return;
+    try {
+      const res = await fetch("/api/admin/states/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: s.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        flash(j.error || "УДАЛЕНИЕ НЕ УДАЛОСЬ");
+        return;
+      }
+      flash("ГОСУДАРСТВО УДАЛЕНО");
+      if (sEditingId === s.id) resetStateForm();
+      load();
+    } catch {
+      flash("сетевая ошибка");
+    }
+  }
+
+  function resetRelationForm() {
+    setREditingId(null);
+    setRAId("");
+    setRBId("");
+    setRType("alliance");
+    setRDesc("");
+    setRDate("");
+    setRErr("");
+  }
+
+  function editRelation(r: RelationRow) {
+    setREditingId(r.id);
+    setRAId(r.stateAId);
+    setRBId(r.stateBId);
+    setRType(r.relationshipType);
+    setRDesc(r.description || "");
+    setRDate(r.treatyDate || "");
+    setRErr("");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function submitRelation(e: React.FormEvent) {
+    e.preventDefault();
+    if (!rAId || !rBId) {
+      setRErr("Выберите оба государства.");
+      return;
+    }
+    if (rAId === rBId) {
+      setRErr("Государство не может относиться к самому себе.");
+      return;
+    }
+    setRSubmitting(true);
+    setRErr("");
+    try {
+      const res = await fetch("/api/admin/states/relations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: rEditingId || undefined,
+          stateAId: rAId,
+          stateBId: rBId,
+          relationshipType: rType,
+          description: rDesc.trim() || null,
+          treatyDate: rDate.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setRErr(j.error || "сохранение не удалось");
+        return;
+      }
+      flash(rEditingId ? "ОТНОШЕНИЕ ОБНОВЛЕНО" : "ОТНОШЕНИЕ СОЗДАНО");
+      resetRelationForm();
+      load();
+    } catch (e: unknown) {
+      setRErr(e instanceof Error ? e.message : "сетевая ошибка");
+    } finally {
+      setRSubmitting(false);
+    }
+  }
+
+  async function deleteRelation(r: RelationRow) {
+    if (!window.confirm(`Удалить отношение «${r.stateA.name} ↔ ${r.stateB.name}»?`)) return;
+    try {
+      const res = await fetch("/api/admin/states/relations/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: r.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        flash(j.error || "УДАЛЕНИЕ НЕ УДАЛОСЬ");
+        return;
+      }
+      flash("ОТНОШЕНИЕ УДАЛЕНО");
+      if (rEditingId === r.id) resetRelationForm();
+      load();
+    } catch {
+      flash("сетевая ошибка");
+    }
+  }
+
+  return (
+    <>
+      {err && <div style={{ ...styles.err, margin: "12px 16px", maxWidth: "none" }}>{err}</div>}
+
+      {/* ============ SECTION 1: STATES CRUD ============ */}
+      <div style={styles.subHeader}>
+        <span style={{ color: "#5d685c" }}>
+          {"ГОСУДАРСТВ: "}{states.length}{" // ОПЕЧАТАНО: "}{states.filter((s) => s.isLocked).length}
+        </span>
+        {sEditingId && (
+          <button onClick={resetStateForm} style={styles.uploadToggle}>× ОТМЕНА</button>
+        )}
+      </div>
+
+      <form onSubmit={submitState} style={styles.uploadForm}>
+        <div style={styles.uploadTitle}>
+          {sEditingId ? "✎ РЕДАКТИРОВАНИЕ ГОСУДАРСТВА" : "+ НОВОЕ ГОСУДАРСТВО"}
+        </div>
+
+        <label style={styles.fieldLabel}>НАЗВАНИЕ *</label>
+        <input value={sName} onChange={(e) => setSName(e.target.value)} placeholder="напр. Ашеновый Трон" style={styles.input} />
+
+        <div style={styles.fieldRow}>
+          <div>
+            <label style={styles.fieldLabel}>КАТЕГОРИЯ</label>
+            <select value={sCategory} onChange={(e) => setSCategory(e.target.value)} style={styles.select}>
+              {STATE_CATEGORIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+              {sCategory && !STATE_CATEGORIES.includes(sCategory) && (
+                <option value={sCategory}>{sCategory}</option>
+              )}
+            </select>
+          </div>
+          <div>
+            <label style={styles.fieldLabel}>СИГИЛ (emoji/текст)</label>
+            <input value={sSigil} onChange={(e) => setSSigil(e.target.value)} placeholder="🔥" maxLength={20} style={styles.input} />
+          </div>
+        </div>
+
+        <label style={styles.fieldLabel}>ЦВЕТ УЗЛА ГРАФА</label>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="color"
+            value={sColor}
+            onChange={(e) => setSColor(e.target.value)}
+            style={{
+              width: 56,
+              height: 44,
+              padding: 0,
+              background: "#0a0d0a",
+              border: "1px solid #2c8a17",
+              borderRadius: 2,
+              cursor: "pointer",
+            }}
+          />
+          <input value={sColor} onChange={(e) => setSColor(e.target.value)} placeholder="#4af626" style={{ ...styles.input, flex: 1 }} />
+          <span
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              background: sColor || "#4af626",
+              border: "1px solid #1a201a",
+              boxShadow: `0 0 8px ${sColor || "#4af626"}`,
+              display: "inline-block",
+            }}
+          />
+        </div>
+
+        <label style={styles.fieldLabel}>ОПИСАНИЕ / ЛОР</label>
+        <textarea value={sDescription} onChange={(e) => setSDescription(e.target.value)} placeholder="Описание государства, его история и культура…" rows={4} style={{ ...styles.input, resize: "vertical" }} />
+
+        <label style={styles.checkRow}>
+          <input type="checkbox" checked={sLocked} onChange={(e) => setSLocked(e.target.checked)} style={styles.checkbox} />
+          <span>{"🔒 ОПЕЧАТАТЬ (скрыть от публичной консоли)"}</span>
+        </label>
+
+        {sErr && <div style={styles.err}>{sErr}</div>}
+
+        <button type="submit" disabled={sSubmitting} style={{ ...styles.btn, ...(sSubmitting ? styles.btnDisabled : {}) }}>
+          {sSubmitting ? "СОХРАНЕНИЕ…" : sEditingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "СОЗДАТЬ ГОСУДАРСТВО"}
+        </button>
+      </form>
+
+      <div style={styles.listWrap}>
+        {loading ? (
+          <div style={styles.empty}>ЗАГРУЗКА ГОСУДАРСТВ…</div>
+        ) : states.length === 0 ? (
+          <div style={styles.empty}>{"// нет государств. Создайте первое выше."}</div>
+        ) : (
+          states.map((s) => (
+            <div key={s.id} style={{ ...styles.card, ...(s.isLocked ? styles.cardLocked : {}) }}>
+              <div style={styles.cardHead}>
+                <span style={styles.cardId}>#{s.id.slice(0, 8).toUpperCase()}</span>
+                <span style={{ ...styles.cardStatus, ...(s.isLocked ? styles.statusLocked : styles.statusOpen) }}>
+                  {s.isLocked ? "🔒 ОПЕЧАТАНО" : "🔓 ОТКРЫТО"}
+                </span>
+              </div>
+              <div style={{ ...styles.cardName, display: "flex", alignItems: "center", gap: 10 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: `${s.color || "#4af626"}22`,
+                    border: `1px solid ${s.color || "#4af626"}`,
+                    color: s.color || "#4af626",
+                    fontSize: 16,
+                    boxShadow: `0 0 8px ${(s.color || "#4af626")}55`,
+                    flexShrink: 0,
+                  }}
+                >
+                  {s.sigil || "◈"}
+                </span>
+                {s.name}
+              </div>
+              <div style={styles.cardCat}>{s.category || "БЕЗ КАТЕГОРИИ"}</div>
+              {s.description && (
+                <div style={styles.cardDesc}>
+                  {s.description.length > 140 ? s.description.slice(0, 140) + "…" : s.description}
+                </div>
+              )}
+              <div style={styles.cardActions}>
+                <button onClick={() => editState(s)} style={{ ...styles.iconBtn, ...styles.iconEdit, flex: 1, width: "auto" }} title="Редактировать">✎ РЕДАКТИРОВАТЬ</button>
+                <button onClick={() => deleteState(s)} style={{ ...styles.iconBtn, ...styles.iconDel, flex: 1, width: "auto" }} title="Удалить">✕ УДАЛИТЬ</button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ============ SECTION 2: RELATIONS CRUD ============ */}
+      <div style={{ ...styles.subHeader, borderTop: "1px solid #2a2017", marginTop: 8 }}>
+        <span style={{ color: "#5d685c" }}>
+          {"ОТНОШЕНИЙ: "}{relations.length}
+        </span>
+        {rEditingId && (
+          <button onClick={resetRelationForm} style={styles.uploadToggle}>× ОТМЕНА</button>
+        )}
+      </div>
+
+      <form onSubmit={submitRelation} style={styles.uploadForm}>
+        <div style={styles.uploadTitle}>
+          {rEditingId ? "✎ РЕДАКТИРОВАНИЕ ОТНОШЕНИЯ" : "+ НОВОЕ ОТНОШЕНИЕ"}
+        </div>
+
+        <div style={styles.fieldRow}>
+          <div>
+            <label style={styles.fieldLabel}>ГОСУДАРСТВО A *</label>
+            <select value={rAId} onChange={(e) => setRAId(e.target.value)} style={styles.select}>
+              <option value="">— выбрать —</option>
+              {states.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+            </select>
+          </div>
+          <div>
+            <label style={styles.fieldLabel}>ГОСУДАРСТВО B *</label>
+            <select value={rBId} onChange={(e) => setRBId(e.target.value)} style={styles.select}>
+              <option value="">— выбрать —</option>
+              {states.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+            </select>
+          </div>
+        </div>
+
+        <label style={styles.fieldLabel}>ТИП ОТНОШЕНИЯ</label>
+        <select value={rType} onChange={(e) => setRType(e.target.value)} style={styles.select}>
+          {RELATIONSHIP_TYPES.map((r) => (
+            <option key={r.value} value={r.value}>{r.label}</option>
+          ))}
+        </select>
+
+        <label style={styles.fieldLabel}>ОПИСАНИЕ ДОГОВОРА</label>
+        <textarea value={rDesc} onChange={(e) => setRDesc(e.target.value)} placeholder="Условия союза, причины войны, статьи пакта…" rows={3} style={{ ...styles.input, resize: "vertical" }} />
+
+        <label style={styles.fieldLabel}>ДАТА ДОГОВОРА (свободный текст)</label>
+        <input value={rDate} onChange={(e) => setRDate(e.target.value)} placeholder="напр. 1247 г. Третьей Эпохи" style={styles.input} />
+
+        {rErr && <div style={styles.err}>{rErr}</div>}
+
+        <button type="submit" disabled={rSubmitting} style={{ ...styles.btn, ...(rSubmitting ? styles.btnDisabled : {}) }}>
+          {rSubmitting ? "СОХРАНЕНИЕ…" : rEditingId ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "СОЗДАТЬ ОТНОШЕНИЕ"}
+        </button>
+      </form>
+
+      <div style={styles.listWrap}>
+        {loading ? (
+          <div style={styles.empty}>ЗАГРУЗКА ОТНОШЕНИЙ…</div>
+        ) : relations.length === 0 ? (
+          <div style={styles.empty}>{"// нет отношений. Создайте первое выше."}</div>
+        ) : (
+          relations.map((r) => {
+            const m = relMeta(r.relationshipType);
+            return (
+              <div key={r.id} style={{ ...styles.card, borderColor: `${m.color}44` }}>
+                <div style={styles.cardHead}>
+                  <span style={styles.cardId}>#{r.id.slice(0, 8).toUpperCase()}</span>
+                  <span style={{ ...styles.cardStatus, borderColor: m.color, color: m.color }}>
+                    {m.label}
+                  </span>
+                </div>
+                <div style={{ ...styles.cardName, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ color: r.stateA.color || "#4af626" }}>{r.stateA.sigil || "◈"}</span>
+                    <span>{r.stateA.name}</span>
+                  <span style={{ color: "#5d685c", margin: "0 4px" }}>↔</span>
+                  <span style={{ color: r.stateB.color || "#4af626" }}>{r.stateB.sigil || "◈"}</span>
+                    <span>{r.stateB.name}</span>
+                </div>
+                {r.description && (
+                  <div style={styles.cardDesc}>
+                    {r.description.length > 160 ? r.description.slice(0, 160) + "…" : r.description}
+                  </div>
+                )}
+                {r.treatyDate && (
+                  <div style={{ ...styles.cardCat, color: "#e8a13a" }}>📜 {r.treatyDate}</div>
+                )}
+                <div style={styles.cardActions}>
+                  <button onClick={() => editRelation(r)} style={{ ...styles.iconBtn, ...styles.iconEdit, flex: 1, width: "auto" }} title="Редактировать">✎ РЕДАКТИРОВАТЬ</button>
+                  <button onClick={() => deleteRelation(r)} style={{ ...styles.iconBtn, ...styles.iconDel, flex: 1, width: "auto" }} title="Удалить">✕ УДАЛИТЬ</button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <button onClick={load} style={styles.refreshBtn}>↻ ОБНОВИТЬ МАТРИЦУ</button>
+    </>
   );
 }
 

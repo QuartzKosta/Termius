@@ -30,3 +30,32 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model State {
+  id          String   @id @default(cuid())
+  name        String
+  sigil       String?  // CSS color or emoji for the state's emblem
+  color       String?  // hex color for graph node (e.g. "#4af626")
+  description String?
+  category    String?  // e.g. "ИМПЕРИЯ", "КОРОЛЕВСТВО", "ОРДА", "РЕСПУБЛИКА"
+  isLocked    Boolean  @default(false) // sealed = hidden from public
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  relationsA  StateRelation[] @relation("stateA")
+  relationsB  StateRelation[] @relation("stateB")
+}
+
+model StateRelation {
+  id              String   @id @default(cuid())
+  stateAId        String
+  stateBId        String
+  relationshipType String  // "alliance" | "war" | "pact" | "rivalry" | "neutral" | "vassal" | "trade"
+  description     String?
+  treatyDate      String?  // free-text date like "1247 г. Третьей Эпохи"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  stateA          State    @relation("stateA", fields: [stateAId], references: [id], onDelete: Cascade)
+  stateB          State    @relation("stateB", fields: [stateBId], references: [id], onDelete: Cascade)
+
+  @@unique([stateAId, stateBId])
+}

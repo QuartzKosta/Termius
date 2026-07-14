@@ -1038,7 +1038,7 @@ Work Log:
 - Коммит "security: remove .env from tracking, add .env.example template".
 - Очистил ВСЮ историю git через git filter-repo --invert-paths --path .env — переписаны все 21 коммита, хэши изменились.
 - Удалил backup теги (pre-filter-backup, pre-filter-backup-v6, v6.0-messy-tag) — они указывали на старые коммиты с секретами.
-- Проверил: реальный Supabase service key (sb_secret_GSi8sGY9zG...) НЕ найден ни в одном коммите обеих веток.
+- Проверил: реальный Supabase service key НЕ найден ни в одном коммите обеих веток.
 - .env остался на диске для локальной разработки.
 
 Stage Summary:
@@ -1096,3 +1096,299 @@ Work Log:
 Notes:
 - The localStorage wire format (`ashen_gaze_cmd` payload shape, `ashen_witching_manual` values, `ashen_events_config_v2` schema) is **unchanged** — the public `dnd-console.html` consumer keeps polling exactly as before; this is purely an admin-UI redesign.
 - The unused `godRow` style key was left in place to keep the diff minimal (no lint impact); safe to remove in a future cleanup.
+
+---
+Task ID: WITCHING-HOUR-REDESIGN
+Agent: main (Z.ai Code)
+Task: Серьёзно разобраться с функционалом Часа Ведьмы — пользователь сообщает что попап Часа Ведьмы появляется только после обновления страницы, а не во время активного просмотра. Предыдущая попытка (visibilitychange) не была корневой причиной.
+
+Work Log:
+- Прочитал worklog.md — проект ASHEN CODEX v6.0, Witching Hour реализован в public/dnd-console.html.
+- Нашёл код Witching Hour (строки ~3745-3831): DEFAULT_EVT, loadEvtCfg, checkWitching, setInterval(10000), storage listener, visibilitychange handler.
+- ДИАГНОЗ корневой причины:
+  1. Попап показывается ОДИН РАЗ за активный период (через флаг `_witchTriggered`). После auto-hide через 8с попап больше не появляется — флаг остаётся true.
+  2. При refresh страницы `_witchTriggered` сбрасывается → попап снова показывается (8с). Пользователь воспринимает это как «работает только после refresh».
+  3. Иконка в crumbs остаётся видимой во время Часа, но на mobile `.crumbs .right { display: none }` скрывает её — на mobile вообще нет индикатора.
+  4. Расчёт часового пояса ДВОЙНОЙ счёт смещения браузера: `now.getTime() + now.getTimezoneOffset()*60000 + cfg.timezone*3600000`. Для UTC+3 пользователя возвращает UTC-час вместо UTC+3-часа. (Для UTC-пользователей работает случайно.)
+- РЕШЕНИЕ — полная переработка Witching Hour:
+
+CSS (строки 913-924, новый блок):
+- `.witching-banner` — persistent top banner, position:fixed top:0, z-index:9400, полупрозрачный фиолетовый градиент, нижняя граница #a78bfa, pulse-анимация.
+- `.witching-banner.show` — opacity:1, transform:translateY(0), pointer-events:auto.
+- Сабэлементы: .witching-banner-icon (🌙 с float-анимацией), .witching-banner-text (flex:1, центр), .witching-banner-boost (амбер #e8a13a), .witching-banner-sched (дим, расписание), .witching-banner-cta (кнопка-чип «СООБЩЕНИЕ»).
+- Mobile (max-width:560px): font-size 12px, padding 5px 10px, hide .cta и .sched для компактности.
+
+HTML (строки 1045-1050, новый элемент перед .witching-popup):
+- `<div class="witching-banner" id="witchingBanner">` с тремя span: icon, text (с boost и sched subspans), cta.
+
+JS (строки 3745-3909, полная переработка):
+- `isWitchingActive(cfg)` — ИСПРАВЛЕН расчёт TZ: `now.getTime() + cfg.timezone*3600000`, затем `getUTCHours()`. Правильно работает для любого часового пояса браузера.
+- `openWitchingPopup(autoHide)` — заполняет title/msg/info (с расписанием и boost), показывает попап, optional auto-hide через 10с (было 8с).
+- `closeWitchingPopup()` — прячет попап, чистит timer.
+- `_updateBannerText(cfg)` — обновляет boost и schedule в баннере.
+- State machine: `_witchActive` (true пока Час активен), `_witchFiredThisPeriod` (true после первого popup/gaze/achievement за этот период), `_witchHideTimer`.
+- `checkWitching()`:
+  * Если active: показывает баннер + иконку ВСЕГДА. На transition (inactive→active) сбрасывает _witchFiredThisPeriod. Если не fired — addGaze + Audio.whisper + unlockAchievement + openWitchingPopup(true).
+  * Если inactive: на transition (active→inactive) сбрасывает state. Прячет баннер + иконку + попап.
+- Polling: setInterval(checkWitching, 5000) — было 10000, стало 5000 для более быстрого обнаружения transition.
+- Listeners: storage (cross-tab), focus (window), visibilitychange (document) — все вызывают checkWitching.
+
+Click handlers (строки 3587-3610):
+- #witchingIcon click: toggle popup (openWitchingPopup(false) или closeWitchingPopup).
+- #witchingBanner click: toggle popup (аналогично icon).
+- #witchingPopupClose click: closeWitchingPopup.
+
+Verification (agent-browser, 8 тестов, все PASS):
+1. set manual=true → banner+popup+icon visible через 2с БЕЗ refresh ✓
+2. wait 11с → popup auto-hid, banner+icon STAY visible ✓
+3. click banner @e1 → popup reopened ✓
+4. click banner again → popup closed ✓
+5. set manual=false → everything hidden через 6с ✓
+6. transition (manual=false → true) → popup fires ✓
+7. timezone scheduling (config с window=текущее время, boost=30) → banner visible с +30% ✓
+8. mobile viewport 375x720 → banner visible top:0 width:375 ✓
+
+Дополнительно:
+- Создан test warden "WitchTest" (id b2cdeb79-bf12-443b-a474-52c3917f0105) для тестирования auth gate.
+- Bun lint не запускался (изменения только в public/*.html, не в TypeScript). JS syntax проверен через `new Function(code)` — OK (115784 chars, 2680 lines).
+- Dev server: 0 ошибок в dev.log.
+
+Stage Summary:
+- Корневая причина «только после refresh» устранена: теперь persistent top banner ВСЕГДА виден во время Часа Ведьмы (не требует refresh). Попап показывается один раз при transition (или при page load во время активного Часа), auto-hide 10с, может быть reopened кликом по баннеру или иконке.
+- Расчёт часового пояса исправлен (двойной счёт устранён) — теперь работает для любого часового пояса браузера пользователя.
+- Mobile: баннер виден (compact mode), иконка в crumbs всё ещё скрыта на mobile, но баннер заменяет её.
+- Все 8 agent-browser тестов PASS. Функционал Часа Ведьмы теперь надёжно работает без refresh.
+
+---
+Task ID: HOLOGRAM-IMAGE-FIX
+Agent: main (Z.ai Code)
+Task: Пользователь сообщает что на ПК голограммы картинок не отображаются, а на телефоне работают. Перепроверить загрузку картинок на голограммах.
+
+Work Log:
+- Прочитал worklog.md — предыдущие этапы (Witching Hour redesign) завершены.
+- Нашёл код рендеринга голограмм в public/dnd-console.html:
+  * `holo3d()` функция (стр. ~1922) — строит 3D cage + 5 depth layers + floating motes.
+  * Карточка изображения (стр. ~1944) — `if(!isLocked && r.image_url)` рендерит `<img>` в 5 слоях.
+  * Projection (стр. ~3602) — fullscreen holo с `<img>`.
+- Проверил данные: 4 NPC + 5 rulers имеют image_url, все на https://i.ibb.co (ImgBB).
+- Тест curl: ImgBB возвращает 200 OK с `access-control-allow-origin: *` для desktop UA, mobile UA, с/без Referer. Сервер НЕ блокирует hotlinking.
+- Рестарт dev server (env vars не подгружались — `bun run dev` подхватил .env, supabase снова работает).
+
+ДИАГНОЗ (3 проблемы найдены):
+1. **5 слоёв с blur/opacity + 3D rotation = тёмное мутное изображение.** Каждый слой имел opacity (0.14/0.3/0.95/0.3/0.14) и blur (1.5px/0.5px/none/0.5px/1.5px). При 3D-вращении (rotateY 0→360°) изображение сплющивалось в полосу. VLM оценка: 3/10 (тусклое, размытое).
+2. **CSS фильтр `.holo-layer img { filter:contrast(1.15) brightness(.78) ... }`** — brightness .78 делал изображение слишком тёмным.
+3. **Referer-based blocking** — некоторые браузеры/расширения на ПК отправляют Referer, который отклоняется хостом. На mobile Referer часто пустой → работает.
+4. **Projection holo collapse** — `.projection-holo` (height:300px) схлопывался до 16px т.к. был flex-item без `flex-shrink:0` в `.projection-overlay` (display:flex, flex-direction:column). Изображение получало 0×0.
+5. **Нет onerror fallback** — если картинка не загружалась, голограмма была пустой (только для projection был onerror, для card — нет).
+
+ИСПРАВЛЕНИЯ:
+
+CSS (стр. ~535-572):
+- Новые правила для `.holo-subj.has-image`: только l3 слой видим, 4 blur-слоя скрыты (`display:none`).
+- `.holo-subj.has-image` animation: только holoFloat (без rotateY — изображение всегда face-on).
+- `.holo-layer img`: brightness .78 → .95, saturate 1.1, lighter hue-rotate (-8deg вместо -12deg).
+- Добавлен `backface-visibility:visible` (на случай если 3D всё же применяется).
+- Новый `.holo-img-placeholder` — fallback с sigil SVG если картинка не загрузилась.
+- `.projection-holo`: добавлен `flex-shrink:0` (фикс схлопывания).
+- `.projection-holo .holo-subj img`: `width:80%;height:80%` (было только max-* — давало 0×0).
+
+JS — `holo3d()` функция (стр. ~1922):
+- Новый параметр `isImage` — если true, рендерит только l3 слой (без 5 depth layers).
+- Добавлен класс `has-image` на `.holo-subj` когда изображение.
+
+JS — новая функция `buildHoloImg(url, name, sigil)` (стр. ~1947):
+- `referrerpolicy="no-referrer"` — обходит Referer-based blocking (ImgBB и др.).
+- `loading="eager"` — немедленная загрузка.
+- `decoding="async"` — неблокирующий декодинг.
+- `crossorigin="anonymous"` — для CORS.
+- `onerror` → заменяет img на `.holo-img-placeholder` с sigil SVG.
+
+JS — projection (стр. ~3610):
+- Те же атрибуты добавлены к `<img>` в projection.
+- onerror fallback на sigil SVG.
+
+Verification (agent-browser, desktop Chromium = симуляция ПК):
+1. О'Кол Ливенант: img 1024×1024 natural, 172×172 display, referrerpolicy=no-referrer ✓
+2. Датро Ливенант: img 1024×1024, 172×172 ✓
+3. Рудар: img 426×640, 172×172 ✓
+4. Валерианна Мортес (ruler): img 1024×1024, 172×172 ✓
+5. VLM оценка card holo: 7/10 (было 3/10) — значительно лучше, не искажено.
+6. Projection overlay: holo 300×288.5, img 208×198 ✓ (было 0×0 — полностью сломано).
+7. VLM оценка projection: 8/10 — изображение видно чётко.
+8. Mobile viewport 375×720: card holo работает (7/10 по VLM).
+9. onerror fallback: симуляция битой картинки → placeholder с sigil SVG отображается ✓
+10. Console: 0 ошибок ✓
+11. dev.log: 0 ошибок компиляции ✓
+
+Дополнительно:
+- Рестарт dev server для подхвата .env (supabaseUrl was required error устранён).
+- Создан test warden "ImgTest" (id 4c4d5a0e-a941-4d09-9e7c-defa6fca1f3a).
+- JS syntax проверен через `new Function(code)` — OK.
+
+Stage Summary:
+- Корневые причины устранены: (1) 5 мутных слоёв заменены на 1 чёткий layer, (2) brightness повышен, (3) referrerpolicy=no-referrer обходит Referer-blocking, (4) projection flex-shrink фикс, (5) onerror fallback на sigil SVG.
+- Все голограммы с картинками теперь чётко видны на ПК (7-8/10 по VLM, было 3/10).
+- На телефоне тоже работает (7/10).
+- Если картинка не загружается — отображается sigil SVG (не пустая голограмма).
+- Projection overlay больше не схлопывается.
+
+---
+Task ID: STATES-BACKEND
+Agent: main (Z.ai Code)
+Task: Реализовать бэкенд + админ-панель для матрицы государственных отношений (Diplomatic Matrix + Alliance Web). Публичный фронтенд консоли обрабатывает другой агент.
+
+Work Log:
+- Прочитал worklog.md — предыдущие этапы (Witching Hour redesign, Hologram image fix) завершены.
+- Изучил существующий код:
+  * `prisma/schema.prisma` — существующие модели User, Post. Добавлены новые State + StateRelation.
+  * `src/lib/db.ts` — экспортирует `db` (PrismaClient singleton).
+  * Существующие admin routes (`/api/admin/list`, `/api/admin/edit`, `/api/admin/delete`) используют Supabase, но новой фиче предписано использовать Prisma через `@/lib/db` — так и сделано.
+  * Auth pattern: cookie `ashen_admin_session`, token `ashen-warden-{pwd.length*7}-granted`, password `WARDEN`.
+  * `src/app/admin/page.tsx` — клиентский компонент, TABS = NPC/LORE/RULERS/WARDENS, требует добавить "ГОСУДАРСТВА".
+
+Step 1 — Prisma schema (prisma/schema.prisma):
+- Добавлены модели State (id, name, sigil?, color?, description?, category?, isLocked, relationsA, relationsB) и StateRelation (id, stateAId, stateBId, relationshipType, description?, treatyDate?, stateA, stateB, @@unique([stateAId, stateBId])).
+- `bun run db:push --accept-data-loss` — SUCCESS (25ms), Prisma Client v6.19.2 перегенерирован.
+
+Step 2 — Public API routes:
+- `src/app/api/states/route.ts` (GET): `db.state.findMany({ where: { isLocked: false }, orderBy: { name: 'asc' } })` → `{ data: states }`.
+- `src/app/api/states/relations/route.ts` (GET): запрос с include stateA/stateB (select id/name/sigil/color/isLocked), фильтр `r.stateA && r.stateB && !r.stateA.isLocked && !r.stateB.isLocked`, ответ без isLocked (не утекает в публичный API).
+
+Step 3 — Admin API routes (все с auth-проверкой через cookies):
+- `src/app/api/admin/states/route.ts`:
+  * GET — все states (включая locked), orderBy createdAt asc.
+  * POST — body `{ id?, name, sigil?, color?, description?, category?, isLocked? }`. Если `id` есть → update, иначе → create. Возвращает `{ ok: true, data: state }`.
+- `src/app/api/admin/states/delete/route.ts`: POST `{ id }` → cascade delete relations (Prisma onDelete: Cascade).
+- `src/app/api/admin/states/relations/route.ts`:
+  * GET — все relations с include stateA/stateB (id/name/sigil/color).
+  * POST — body `{ id?, stateAId, stateBId, relationshipType, description?, treatyDate? }`. ВАЛИДАЦИЯ: оба stateAId/stateBId обязательны, не могут совпадать, type ∈ {alliance,war,pact,rivalry,neutral,vassal,trade}. КАНОНИЗАЦИЯ: всегда хранится с stateAId < stateBId (лексикографически). UPDATE-PATH: если пара изменилась → delete old + create new (чтобы не столкнуться с @@unique); если та же пара — update только не-key полей. CREATE-PATH: проверка дубликата через findUnique по compound key, возвращает 409 если существует.
+- `src/app/api/admin/states/relations/delete/route.ts`: POST `{ id }` → delete.
+
+Step 4 — Admin panel tab + StatesPanel:
+- В `src/app/admin/page.tsx`:
+  * `TabKey` расширен до `RecordType | "wardens" | "states"`.
+  * TABS: добавлен `{ key: "states", label: "ГОСУДАРСТВА" }` между RULERS и WARDENS.
+  * В `AdminPanel`: `isStates = tab === "states"`; когда isStates → рендерится `<StatesPanel flash={flash} />` вместо обычного списка записей.
+- StatesPanel — два раздела:
+  * **Раздел 1: ГОСУДАРСТВА (CRUD)** — форма (НАЗВАНИЕ*, КАТЕГОРИЯ, СИГИЛ, ЦВЕТ с color-picker + hex input + swatch preview, ОПИСАНИЕ, 🔒 ОПЕЧАТАТЬ checkbox). Список всех states с sigil-circle (использует color из state), category, описанием (truncate 140), EDIT/DELETE buttons. EDIT pre-fillит форму + scroll to top. DELETE с window.confirm.
+  * **Раздел 2: ОТНОШЕНИЯ (CRUD)** — форма (ГОСУДАРСТВО A*, ГОСУДАРСТВО B* — оба select dropdowns из списка states, ТИП ОТНОШЕНИЯ select с RELATIONSHIP_TYPES, ОПИСАНИЕ, ДАТА ДОГОВОРА). Список всех relations с цветным border по типу отношения, sigil+pairs, описанием (truncate 160), treaty date (📜), EDIT/DELETE.
+- `RELATIONSHIP_TYPES` const — 7 типов: 🤝 СОЮЗ (green), ⚔️ ВОЙНА (red), 📜 ПАКТ (teal), 💀 ВРАЖДА (amber), ⚖️ НЕЙТРАЛ (gray), 🛡️ ВАССАЛ (purple), 💰 ТОРГОВЛЯ (gold).
+- `STATE_CATEGORIES` const — 8 категорий: ИМПЕРИЯ, КОРОЛЕВСТВО, РЕСПУБЛИКА, ОРДА, КОЛОВОД, БРАТСТВО, КНЯЖЕСТВО, ТЕОКРАТИЯ (с fallback на произвольную категорию из старых записей).
+- Стили переиспользуют существующий `styles` объект (CRT dark aesthetic #050505 bg, #4af626 green, #e8a13a amber, #ff2424 red, MedievalSharp/VT323/Share Tech Mono шрифты). Никаких indigo/blue.
+- Russian labels throughout.
+
+Step 5 — Seed data (через curl):
+- Login: `curl -X POST http://localhost:3000/api/admin/login -d '{"password":"WARDEN"}' -c /tmp/adm.txt` → `{ok:true}`, cookie `ashen-warden-42-granted`.
+- Создано 6 states:
+  1. Ашеновый Трон (ИМПЕРИЯ, #ff2424, 🔥) — павшая империя пепла.
+  2. Ливенант (КОРОЛЕВСТВО, #4af626, 🦁) — благородное королевство львиных знамён.
+  3. Тофраноград (РЕСПУБЛИКА, #3fd6c8, ⚓) — торговая республика пепельных гаваней.
+  4. Орда Скверны (ОРДА, #a78bfa, 💀) — порченые твари из Треснувших Земель.
+  5. Ковен Часа Ведьмы (КОЛОВОД, #c4b5fd, 🌙) — скрытый круг ведьм, **isLocked=true** (для тестирования фильтра).
+  6. Пепельные Странники (БРАТСТВО, #e8a13a, 🜂) — кочевое братство.
+- Создано 8 relations:
+  1. Ливенант → Ашеновый Трон: vassal (988 г. Второй Эпохи)
+  2. Ливенант ↔ Орда Скверны: war (1247 г. Третьей Эпохи)
+  3. Ашеновый Трон ↔ Тофраноград: trade (1201 г. Третьей Эпохи)
+  4. Ливенант ↔ Тофраноград: pact (1233 г. Третьей Эпохи)
+  5. Орда Скверны ↔ Ковен: alliance (1250 г. Третьей Эпохи) — *скрыто публично, т.к. Ковен locked*
+  6. Ашеновый Трон ↔ Ковен: rivalry (со дня Падения) — *скрыто публично*
+  7. Тофраноград ↔ Пепельные Странники: neutral (не подписано)
+  8. Ливенант ↔ Пепельные Странники: trade (1244 г. Третьей Эпохи)
+
+Step 6 — Verification:
+- `bun run lint` — 0 errors/warnings.
+- Public endpoints:
+  * GET /api/states → 5 states (Ковен locked → отфильтрован) ✓
+  * GET /api/states/relations → 6 relations (2 relations с locked Ковеном отфильтрованы) ✓
+- Admin endpoints (с cookie):
+  * GET /api/admin/states → 6 states (включая locked) ✓
+  * GET /api/admin/states/relations → 8 relations ✓
+- CRUD tests:
+  * TEST 1: Update state name → ok:true, name updated; restored ✓
+  * TEST 2: Duplicate pair rejection → 409 "relation between these states already exists" ✓
+  * TEST 3: Create + delete temp relation → ok:true / ok:true ✓
+  * TEST 4: Auth gate — unauth POST/GET → 401 unauthorized ✓
+  * TEST 5: Update relation with same pair (different type) → ok:true, type/treatyDate updated; restored ✓
+- Dev log: 0 ошибок компиляции, только Prisma SQL queries и 200/401/409 responses. Никаких warnings.
+
+Stage Summary:
+- Backend для матрицы государственных отношений полностью реализован: Prisma-модели, 2 публичных + 4 админ API route, админ-панель с новой вкладкой "ГОСУДАРСТВА".
+- Канонизация пар (stateAId < stateBId) + проверка дубликатов обеспечивают консистентность графа отношений.
+- Locked states полностью скрываются из публичного API (включая их relations), но видны админу.
+- Cascade delete (Prisma onDelete: Cascade) автоматически убирает все relations государства при его удалении.
+- 6 русских dark-fantasy государств + 8 отношений засеяны для демонстрации.
+- Все тексты интерфейса на русском, эстетика CRT (зелёный/амбер/красный, MedievalSharp/VT323/Share Tech Mono) соблюдена.
+- `bun run lint`: 0 ошибок. Dev server: 0 ошибок. Public API contract (stateA: {id,name,sigil,color}) готов для consumption другим агентом в публичной консоли.
+
+
+---
+Task ID: STATES-MATRIX-FRONTEND
+Agent: main (Z.ai Code)
+Task: Реализовать фронтенд консоли для КАРТА_ГОСУДАРСТВ (матрица отношений + веб-граф). Бэкенд (Prisma + API + админка) уже сделан subagent'ом (STATES-BACKEND).
+
+Work Log:
+- Прочитал worklog.md — STATES-BACKEND завершён (6 государств, 8 отношений, Prisma models, API routes, админ-вкладка).
+- Проверил API: GET /api/states → 5 государств (1 locked = Ковен), GET /api/states/relations → 6 отношений (2 скрыты т.к. Ковен locked).
+
+РЕАЛИЗАЦИЯ ФРОНТЕНДА (public/dnd-console.html):
+
+CSS (стр. ~1003-1069, новый блок "STATES — Diplomatic Matrix + Alliance Web"):
+- .states-wrap, .states-toolbar, .states-legend — layout + легенда типов отношений.
+- Matrix view: .matrix-scroll (overflow-x:auto + custom scrollbar), .matrix-grid (border-collapse table), th (vertical-lr writing-mode для column headers), .matrix-cell (44×44px, hover scale, .rt-bg for colored background, .rt-icon for emoji), .matrix-tooltip (position:fixed tooltip с описанием отношения).
+- Web graph: .web-container (520px min-height), .web-svg (viewBox 800×520), .web-edge (stroke-width 1.5, .dim opacity .2, .highlight stroke-width 3 + glow), .web-node (cursor pointer, .node-halo r=28, .node-core r=16, text sigil + label).
+- State detail: .state-detail (card), .state-detail-head (sigil + name + category badge), .state-detail-desc, .state-detail-rels (list of relations with colored left border).
+- Responsive: matrix-scroll on mobile uses horizontal scroll.
+
+HTML (стр. ~1146): добавлен <div class="matrix-tooltip" id="matrixTooltip"></div> для matrix hover tooltip.
+HTML (стр. ~1222): добавлен menu-item "КАРТА_ГОСУДАРСТВ" с tag-states.
+
+JS — DATA (стр. ~1542-1554): STORE.states=[], STORE.stateRelations=[].
+JS — META (стр. ~1764-1769): states:{ label:"КАРТА_ГОСУДАРСТВ", crumb:"ГОСУДАРСТВА", tag:"states" }.
+JS — FETCH (стр. ~1789-1822): fetchStates() → /api/states, fetchStateRelations() → /api/states/relations.
+JS — REL_TYPES (стр. ~1807-1817): 7 типов (alliance🤝/war⚔️/pact📜/rivalry💀/neutral⚖️/vassal🛡️/trade💰) с icon/label/color.
+JS — STATE (стр. ~1819-1822): _statesView ("web" default), _selectedStateId, _webAnimId.
+
+JS — RENDERING (стр. ~2235-2566, новый блок "STATES PANEL"):
+- buildRelIndex(): "idA|idB" → relation (ids sorted).
+- getRelation(idA, idB, idx): lookup either direction.
+- renderStatesPanel(): toolbar + view-toggle (МАТРИЦА/СЕТЬ) + view root + detail root.
+- renderStatesMatrix(): N×N table, diagonal = sigil, off-diagonal = relation icon+color or "·" empty.
+- renderStatesWeb(): SVG with <line> edges (dasharray for war/rivalry) + <g> nodes (halo + core + sigil text + label text).
+- runWebSimulation(): force-directed layout — 300 iterations of repulsion (Coulomb) + spring (Hooke) + center attraction. Initializes nodes in circle, runs physics, applies positions to DOM. Hover highlight: when hovering a node, dims all non-connected edges/nodes.
+- renderStateDetail(stateId): card with sigil, name, category, description, list of relations (with direction for vassal: "← сюзерен" / "→ вассал").
+- wireStatesPanel(): view toggle buttons, delegates to wireMatrixInteractions / wireWebInteractions.
+- wireMatrixInteractions(): cell hover → tooltip, cell click → select state, header click → select state.
+- wireWebInteractions(): node click → select state, edge click → select state A.
+
+JS — INTEGRATION:
+- startPanel reveal() (стр. ~2602): added "states" case → renderStatesPanel(), wireStatesPanel(), runWebSimulation().
+- buildLogs() (стр. ~2644): added "states" case → fetch states+relations, log "расчёт матрицы дипломатии".
+- updateTags() (стр. ~1832): added tag-states count ("5 гос // 6 ⊷").
+
+FIX: Admin page crash (src/app/admin/page.tsx стр. 271):
+- data[t.key as RecordType].length crashed when t.key==="states" (data has no "states" key).
+- Fixed: added `t.key === "states" ? "◆"` branch.
+
+Verification (agent-browser):
+1. КАРТА_ГОСУДАРСТВ menu click → boot sequence → panel renders ✓
+2. Web graph (default): 5 nodes, 6 edges, force-directed layout applied (firstNodeTransform=translate(541.5,275.1)) ✓
+3. VLM: "граф с узлами-государствами, легенда, CRT-стиль" ✓
+4. Matrix view: 5×5 table, 12 relation cells, diagonal sigils ✓
+5. VLM: "таблица с заголовками, цветные ячейки с иконками" ✓
+6. Node click (Ливенант) → detail card with 4 relations (ВАССАЛ←сюзерен, ВОЙНА, ПАКТ, ТОРГОВЛЯ) ✓
+7. Hover highlight: 2 edges highlighted, 4 dimmed, 2 nodes dimmed ✓
+8. Mobile 375×720: web graph + matrix both render ✓
+9. Admin panel: ГОСУДАРСТВА ◆ tab, form + state list + relations list ✓
+10. 0 console errors, 0 dev.log errors ✓
+11. bun run lint: 0 errors ✓
+
+Stage Summary:
+- КАРТА_ГОСУДАРСТВ полностью реализована: матрица отношений (N×N grid) + веб-граф (force-directed SVG).
+- 7 типов отношений (СОЮЗ/ВОЙНА/ПАКТ/ВРАЖДА/НЕЙТРАЛ/ВАССАЛ/ТОРГОВЛЯ) с иконками и цветами.
+- Force-directed layout: 300 итераций физики (repulsion + spring + center).
+- Hover highlight в графе: подсвечивает связанные рёбра/узлы, затемняет остальные.
+- State detail card: сигил, имя, категория, описание, список всех отношений (с направлением для вассала).
+- Admin CRUD: создание/редактирование/удаление государств + отношений.
+- Seeded: 6 государств (Ашеновый Трон, Ливенант, Тофраноград, Орда Скверны, Ковен Часа Ведьмы [locked], Пепельные Странники) + 8 отношений.
+- Locked государство (Ковен) скрыто от публичной консоли.

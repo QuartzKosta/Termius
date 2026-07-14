@@ -532,7 +532,12 @@
     to{transform:rotateY(360deg) rotateX(-8deg)}
   }
   @keyframes holoFloat{0%,100%{translate:0 -3px}50%{translate:0 5px}}
-  /* depth-extruded layers — 5 copies at different Z create 3D volume */
+  /* depth-extruded layers — for SIGIL svg we keep the 5-layer extruded volume,
+     but for IMG we render ONLY the central layer (l3) so the image is always crisp.
+     The 4 blur layers are hidden when showing an image (see .holo-layer.img-layer).
+     This fixes the "image invisible on PC" bug: previously 5 stacked, filtered, blurred
+     image copies produced a muddy, dim, rotation-distorted mess on desktop GPUs.
+     Now the cage still rotates in 3D (decorative), but the image stays face-on & bright. */
   .holo-layer{
     position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   }
@@ -542,7 +547,29 @@
   .holo-layer.l3{transform:translateZ(0);opacity:.95}
   .holo-layer.l4{transform:translateZ(14px);opacity:.3;filter:blur(.5px)}
   .holo-layer.l5{transform:translateZ(28px);opacity:.14;filter:blur(1.5px)}
-  .holo-layer img{object-fit:cover;border-radius:4px;filter:contrast(1.15) brightness(.78) hue-rotate(-12deg) drop-shadow(0 0 8px rgba(63,214,200,.5))}
+  /* When the subject is an IMAGE (not a sigil SVG), hide the 4 blur layers and keep
+     only l3. The image is rendered face-on, fully opaque, brightly. The 3D cage still
+     rotates around it as a decorative hologram frame. */
+  .holo-subj.has-image .holo-layer:not(.l3){display:none}
+  .holo-subj.has-image{animation:holoFloat 4s ease-in-out infinite !important}
+  .holo-subj.has-image .holo-layer.l3{opacity:1;width:100%;height:100%}
+  .holo-layer img{
+    object-fit:cover;border-radius:4px;
+    /* Lighter filter than before: image was too dark (brightness .78) on desktop.
+       Now brighter (.95), slight contrast boost, subtle cyan glow — still holographic
+       but clearly visible. backface-visibility visible so it never disappears. */
+    filter:contrast(1.08) brightness(.95) hue-rotate(-8deg) saturate(1.1) drop-shadow(0 0 10px rgba(63,214,200,.45));
+    backface-visibility:visible;
+    -webkit-backface-visibility:visible;
+  }
+  /* Hologram image placeholder shown while loading or on error */
+  .holo-layer .holo-img-placeholder{
+    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    color:var(--green-dim);font-family:'VT323',monospace;font-size:12px;letter-spacing:2px;
+    background:radial-gradient(circle at 50% 50%,rgba(74,246,38,.06),transparent 70%);
+    border:1px dashed var(--green-deep);
+  }
+  .holo-layer .holo-img-placeholder svg{width:60%;height:60%;color:var(--green-dim);opacity:.5}
   /* floating data motes inside hologram — 3D depth particles */
   .holo-motes{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none;z-index:3}
   .holo-motes .mote{
@@ -910,12 +937,25 @@
   @media(max-width:560px){.witching-popup{bottom:60px;right:10px;left:10px;width:auto}}
   @keyframes witchingPulse{0%,100%{opacity:.8}50%{opacity:1}}
 
+  /* ============ WITCHING HOUR — persistent top banner (always visible during active period) ============ */
+  .witching-banner{position:fixed;top:0;left:0;right:0;z-index:9400;display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 18px;background:linear-gradient(90deg,rgba(20,0,40,.96),rgba(46,16,76,.98) 50%,rgba(20,0,40,.96));border-bottom:1px solid #a78bfa;color:#c4b5fd;font-family:'VT323',monospace;font-size:14px;letter-spacing:2px;text-shadow:0 0 8px rgba(167,139,250,.7);opacity:0;transform:translateY(-100%);pointer-events:none;transition:opacity .4s ease-out,transform .4s ease-out;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.6)}
+  .witching-banner.show{opacity:1;transform:translateY(0);pointer-events:auto;animation:witchingBannerPulse 4.5s ease-in-out infinite}
+  .witching-banner:hover{background:linear-gradient(90deg,rgba(36,8,66,.98),rgba(60,20,96,1) 50%,rgba(36,8,66,.98));box-shadow:0 4px 24px rgba(167,139,250,.45),0 0 0 1px rgba(167,139,250,.5) inset}
+  .witching-banner-icon{font-size:16px;filter:drop-shadow(0 0 6px rgba(167,139,250,.8));animation:witchingIconFloat 3s ease-in-out infinite}
+  .witching-banner-text{flex:1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .witching-banner-boost{color:var(--amber);font-weight:bold;text-shadow:0 0 8px rgba(232,161,58,.7)}
+  .witching-banner-sched{color:var(--text-dim);font-size:12px;letter-spacing:1px}
+  .witching-banner-cta{font-size:11px;color:#a78bfa;border:1px solid rgba(167,139,250,.5);padding:2px 8px;clip-path:polygon(0 0,calc(100% - 4px) 0,100% 4px,100% 100%,4px 100%,0 calc(100% - 4px));background:rgba(167,139,250,.08);letter-spacing:1px}
+  @keyframes witchingBannerPulse{0%,100%{box-shadow:0 4px 18px rgba(0,0,0,.6),inset 0 0 0 rgba(167,139,250,0)}50%{box-shadow:0 4px 18px rgba(0,0,0,.6),inset 0 0 30px rgba(167,139,250,.18)}}
+  @keyframes witchingIconFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+  @media(max-width:560px){.witching-banner{font-size:12px;padding:5px 10px;gap:8px;letter-spacing:1px}.witching-banner-text{font-size:11px;letter-spacing:.5px}.witching-banner-cta{display:none}.witching-banner-sched{display:none}}
+
   /* ============ PROJECTION (fullscreen holo) ============ */
   .projection-overlay{position:fixed;inset:0;z-index:9600;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.95);opacity:0;pointer-events:none;transition:opacity .4s;padding:40px 20px;overflow-y:auto}
   .projection-overlay.show{opacity:1;pointer-events:auto}
   .projection-close{position:absolute;top:20px;right:20px;background:none;border:1px solid var(--text-dim);color:var(--text-dim);font-family:'VT323',monospace;font-size:24px;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:10}
   .projection-close:hover{color:var(--red);border-color:var(--red)}
-  .projection-holo{position:relative;width:300px;height:300px;max-width:90vw;max-height:50vh;margin-bottom:20px}
+  .projection-holo{position:relative;width:300px;height:300px;flex-shrink:0;max-width:90vw;max-height:50vh;margin-bottom:20px}
   .projection-holo .bracket{position:absolute;width:22px;height:22px;border:2px solid var(--green)}
   .projection-holo .bracket.tl{top:0;left:0;border-right:none;border-bottom:none}
   .projection-holo .bracket.tr{top:0;right:0;border-left:none;border-bottom:none}
@@ -924,7 +964,14 @@
   .projection-holo .holo-stage{position:absolute;inset:20px;display:flex;align-items:center;justify-content:center}
   .projection-holo .holo-subj{width:100%;height:100%;display:flex;align-items:center;justify-content:center;animation:holoSpin 9s linear infinite,holoSway 5s ease-in-out infinite}
   .projection-holo .holo-subj svg{width:70%;height:70%;color:var(--green);filter:drop-shadow(0 0 14px rgba(74,246,38,.6))}
-  .projection-holo .holo-subj img{max-width:80%;max-height:80%;object-fit:contain;filter:drop-shadow(0 0 16px rgba(74,246,38,.5)) sepia(.3) hue-rotate(70deg) saturate(1.4);animation:holoSpin 9s linear infinite}
+  /* Image in projection: explicit width/height (not just max-) so it always renders.
+     max-* alone produced 0×0 on some browsers when the parent had no intrinsic size. */
+  .projection-holo .holo-subj img{
+    width:80%;height:80%;max-width:80%;max-height:80%;object-fit:contain;
+    filter:drop-shadow(0 0 16px rgba(74,246,38,.5)) sepia(.3) hue-rotate(70deg) saturate(1.4) brightness(.95);
+    animation:holoSpin 9s linear infinite;
+    backface-visibility:visible;-webkit-backface-visibility:visible;
+  }
   .projection-holo .scan{position:absolute;left:0;right:0;height:14px;top:-14px;background:linear-gradient(180deg,transparent,rgba(74,246,38,.55),transparent);animation:holoScan 3.4s linear infinite;pointer-events:none}
   .projection-name{font-family:'MedievalSharp',serif;font-size:32px;color:var(--green);text-shadow:0 0 20px rgba(74,246,38,.8);letter-spacing:4px;margin-bottom:8px}
   .projection-title{font-family:'VT323',monospace;font-size:16px;color:var(--text-dim);letter-spacing:2px;margin-bottom:16px}
@@ -952,6 +999,74 @@
   .map-legend .dot.open{border-color:var(--green);background:var(--green-deep)}
   .map-legend .dot.locked{border-color:var(--red);background:#3a1414}
   .map-legend .dot.fragment{border-color:var(--amber);background:var(--green-deep);border-style:dashed}
+
+  /* ============ STATES — Diplomatic Matrix + Alliance Web ============ */
+  .states-wrap{display:flex;flex-direction:column;gap:12px}
+  .states-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 12px;background:rgba(74,246,38,.04);border:1px solid var(--green-deep);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px))}
+  .states-toolbar .label{font-family:'VT323',monospace;font-size:14px;color:var(--green-dim);letter-spacing:2px}
+  .states-toolbar .count{font-family:'VT323',monospace;font-size:14px;color:var(--green);letter-spacing:1px}
+  .states-legend{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+  .states-legend .item{display:flex;align-items:center;gap:4px;font-family:'VT323',monospace;font-size:12px;color:var(--text-dim);letter-spacing:1px;cursor:default}
+  .states-legend .item .swatch{width:12px;height:12px;border-radius:2px;border:1px solid rgba(255,255,255,.2);display:inline-block}
+
+  /* Matrix view */
+  .matrix-scroll{overflow-x:auto;max-height:70vh;overflow-y:auto;border:1px solid var(--green-deep);background:radial-gradient(ellipse at center,rgba(74,246,38,.03),transparent 70%),#020510}
+  .matrix-scroll::-webkit-scrollbar{width:8px;height:8px}
+  .matrix-scroll::-webkit-scrollbar-track{background:#0a0f08}
+  .matrix-scroll::-webkit-scrollbar-thumb{background:var(--green-deep);border-radius:4px}
+  .matrix-grid{border-collapse:collapse;font-family:'VT323',monospace;font-size:13px;width:100%}
+  .matrix-grid th,.matrix-grid td{border:1px solid rgba(74,246,38,.15);padding:0;text-align:center;vertical-align:middle;position:relative}
+  .matrix-grid th{background:rgba(74,246,38,.08);color:var(--green);font-size:11px;letter-spacing:1px;padding:6px 4px;min-width:44px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;writing-mode:vertical-lr;text-orientation:mixed;line-height:1.2}
+  .matrix-grid th.row-header{writing-mode:horizontal-tb;text-align:left;padding:6px 8px;min-width:100px;cursor:pointer}
+  .matrix-grid th.row-header:hover{background:rgba(74,246,38,.16);color:var(--green)}
+  .matrix-grid th.col-header{cursor:pointer}
+  .matrix-grid th.col-header:hover{background:rgba(74,246,38,.16);color:var(--green)}
+  .matrix-grid th.corner{background:#020510;min-width:40px}
+  .matrix-cell{width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;font-size:16px}
+  .matrix-cell:hover{transform:scale(1.12);z-index:5;box-shadow:0 0 12px rgba(74,246,38,.4)}
+  .matrix-cell.diag{background:rgba(74,246,38,.06);font-size:20px;cursor:default}
+  .matrix-cell.diag:hover{transform:none;box-shadow:none}
+  .matrix-cell.empty{cursor:default;color:var(--text-dim);font-size:10px}
+  .matrix-cell.empty:hover{transform:none;box-shadow:none}
+  .matrix-cell .rt-icon{font-size:18px;line-height:1;filter:drop-shadow(0 0 4px currentColor)}
+  .matrix-cell .rt-bg{position:absolute;inset:2px;opacity:.18;border-radius:3px;pointer-events:none}
+  .matrix-tooltip{position:fixed;z-index:9500;background:#0a0805;border:1px solid var(--green);padding:8px 12px;font-family:'VT323',monospace;font-size:12px;color:var(--text);max-width:280px;pointer-events:none;opacity:0;transition:opacity .15s;box-shadow:0 0 20px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px))}
+  .matrix-tooltip.show{opacity:1}
+  .matrix-tooltip .tt-title{color:var(--green);font-size:13px;letter-spacing:1px;margin-bottom:4px}
+  .matrix-tooltip .tt-desc{color:var(--text-dim);font-size:11px;line-height:1.4}
+
+  /* Web graph view */
+  .web-container{position:relative;width:100%;min-height:520px;max-height:75vh;border:1px solid var(--green-deep);background:radial-gradient(ellipse at 30% 30%,rgba(74,246,38,.04),transparent 50%),radial-gradient(ellipse at 70% 70%,rgba(63,214,200,.03),transparent 50%),#020510;overflow:hidden}
+  .web-svg{width:100%;height:100%;min-height:520px;display:block;cursor:grab}
+  .web-svg:active{cursor:grabbing}
+  .web-svg .web-edge{fill:none;stroke-width:1.5;transition:stroke-width .2s,opacity .2s}
+  .web-svg .web-edge.dim{opacity:.2}
+  .web-svg .web-edge.highlight{stroke-width:3;filter:drop-shadow(0 0 6px currentColor)}
+  .web-svg .web-node{cursor:pointer;transition:opacity .2s}
+  .web-svg .web-node.dim{opacity:.25}
+  .web-svg .web-node circle.node-halo{fill:none;stroke-width:1;opacity:.3}
+  .web-svg .web-node circle.node-core{stroke-width:1.5;transition:all .2s;filter:drop-shadow(0 0 6px currentColor)}
+  .web-svg .web-node:hover circle.node-core{stroke-width:3;filter:drop-shadow(0 0 12px currentColor)}
+  .web-svg .web-node text{fill:var(--text);font-family:'VT323',monospace;font-size:11px;text-anchor:middle;pointer-events:none;letter-spacing:.5px;text-shadow:0 0 4px #000,0 0 4px #000}
+  .web-svg .web-node text.node-sigil{font-size:16px;dominant-baseline:central}
+  .web-svg .web-node text.node-label{dominant-baseline:hanging;y:22}
+  .web-svg .web-glow{pointer-events:none}
+
+  /* State detail card (shown when clicking a state) */
+  .state-detail{background:rgba(74,246,38,.04);border:1px solid var(--green-deep);padding:14px 18px;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));font-family:'Share Tech Mono',monospace}
+  .state-detail-head{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+  .state-detail-sigil{font-size:28px;filter:drop-shadow(0 0 8px currentColor)}
+  .state-detail-name{font-family:'MedievalSharp',serif;font-size:22px;color:var(--green);text-shadow:0 0 10px rgba(74,246,38,.5);letter-spacing:2px}
+  .state-detail-cat{font-family:'VT323',monospace;font-size:13px;color:var(--amber);letter-spacing:1px;border:1px solid var(--amber);padding:2px 8px;background:rgba(232,161,58,.06);clip-path:polygon(0 0,calc(100% - 4px) 0,100% 4px,100% 100%,4px 100%,0 calc(100% - 4px))}
+  .state-detail-desc{color:var(--text);font-size:13px;line-height:1.6;margin-bottom:10px}
+  .state-detail-rels{display:flex;flex-direction:column;gap:4px}
+  .state-detail-rel{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 8px;background:rgba(0,0,0,.3);border-left:3px solid;transition:background .15s}
+  .state-detail-rel:hover{background:rgba(74,246,38,.08)}
+  .state-detail-rel .rt-icon{font-size:14px}
+  .state-detail-rel .rt-label{font-family:'VT323',monospace;letter-spacing:1px;min-width:80px}
+  .state-detail-rel .rt-target{color:var(--text);flex:1}
+  .state-detail-rel .rt-desc{color:var(--text-dim);font-size:11px;font-style:italic}
+  .state-detail-empty{color:var(--text-dim);font-style:italic;font-size:13px;text-align:center;padding:20px}
 
   /* ---------- Responsive ---------- */
   @media (max-width:900px){
@@ -1028,8 +1143,14 @@
 
 <!-- ACHIEVEMENT TOAST CONTAINER -->
 <div id="achToastContainer"></div>
+<div class="matrix-tooltip" id="matrixTooltip"></div>
 
-<!-- WITCHING HOUR — compact icon in statusbar + popup -->
+<!-- WITCHING HOUR — persistent top banner + popup -->
+<div class="witching-banner" id="witchingBanner" title="Открыть сообщение Часа Ведьмы">
+  <span class="witching-banner-icon">🌙</span>
+  <span class="witching-banner-text">ЧАС ВЕДЬМЫ АКТИВЕН · <span class="witching-banner-boost" id="witchingBannerBoost">+15%</span> ВЗГЛЯД <span class="witching-banner-sched" id="witchingBannerSched"></span></span>
+  <span class="witching-banner-cta">СООБЩЕНИЕ</span>
+</div>
 <div class="witching-popup" id="witchingPopup">
   <button class="witching-popup-close" id="witchingPopupClose">×</button>
   <div class="witching-popup-title" id="witchingPopupTitle"></div>
@@ -1099,6 +1220,7 @@
           <button class="menu-item active" data-panel="npcs" data-txt="> ЗАПРОС_АРХИВ_НПС"><span class="chev">&gt;</span>ЗАПРОС_АРХИВ_НПС<span class="tag" id="tag-npcs">…</span></button>
           <button class="menu-item" data-panel="lore" data-txt="> БАЗА_ЛОРА"><span class="chev">&gt;</span>БАЗА_ЛОРА<span class="tag" id="tag-lore">…</span></button>
           <button class="menu-item" data-panel="rulers" data-txt="> РЕЕСТР_ПРАВИТЕЛЕЙ"><span class="chev">&gt;</span>РЕЕСТР_ПРАВИТЕЛЕЙ<span class="tag" id="tag-rulers">…</span></button>
+          <button class="menu-item" data-panel="states" data-txt="> КАРТА_ГОСУДАРСТВ"><span class="chev">&gt;</span>КАРТА_ГОСУДАРСТВ<span class="tag" id="tag-states">…</span></button>
           <button class="menu-item" data-panel="achievements" data-txt="> ДОСТИЖЕНИЯ"><span class="chev">&gt;</span>ДОСТИЖЕНИЯ<span class="tag" id="tag-ach">0</span></button>
         </nav>
 
@@ -1421,6 +1543,8 @@
     npcs: [],
     lore: [],
     rulers: [],
+    states: [],
+    stateRelations: [],
     selectedIdx: { npcs:0, lore:0, rulers:0 },
     collectedFragments: new Set(), // shard words collected by player
     achievements: new Set(), // achievement IDs unlocked
@@ -1641,6 +1765,7 @@
     npcs:{ label:"АРХИВ_НПС", crumb:"АРХИВ_НПС", tag:"npcs" },
     lore:{ label:"БАЗА_ЛОРА", crumb:"МИРОВОЙ_ЛОР", tag:"lore" },
     rulers:{ label:"РЕЕСТР_ПРАВИТЕЛЕЙ", crumb:"ПРАВИТЕЛИ", tag:"rulers" },
+    states:{ label:"КАРТА_ГОСУДАРСТВ", crumb:"ГОСУДАРСТВА", tag:"states" },
   };
   let corruptionLevel=0; // God's Gaze — grows from actions, drives CRT degradation
 
@@ -1661,6 +1786,41 @@
     }
   }
 
+  /* ---------- fetch states + relations from /api/states ---------- */
+  async function fetchStates(){
+    try{
+      const res=await fetch("/api/states");
+      if(!res.ok) return [];
+      const json=await res.json();
+      return json.data||[];
+    }catch(e){ console.error("[fetch] states",e); return []; }
+  }
+  async function fetchStateRelations(){
+    try{
+      const res=await fetch("/api/states/relations");
+      if(!res.ok) return [];
+      const json=await res.json();
+      return json.data||[];
+    }catch(e){ console.error("[fetch] state-relations",e); return []; }
+  }
+
+  /* ---------- relationship type metadata (shared by matrix + web + detail) ---------- */
+  const REL_TYPES={
+    alliance:{ icon:"🤝", label:"СОЮЗ",   color:"#4af626" },
+    war:     { icon:"⚔️", label:"ВОЙНА",  color:"#ff2424" },
+    pact:    { icon:"📜", label:"ПАКТ",   color:"#3fd6c8" },
+    rivalry: { icon:"💀", label:"ВРАЖДА", color:"#e8a13a" },
+    neutral: { icon:"⚖️", label:"НЕЙТРАЛ",color:"#888888" },
+    vassal:  { icon:"🛡️", label:"ВАССАЛ", color:"#a78bfa" },
+    trade:   { icon:"💰", label:"ТОРГОВЛЯ",color:"#fbbf24" },
+  };
+  function relMeta(t){ return REL_TYPES[t] || REL_TYPES.neutral; }
+
+  /* ---------- states panel state ---------- */
+  let _statesView = "web"; // "matrix" | "web"
+  let _selectedStateId = null;
+  let _webAnimId = null;
+
   /* ---------- update tags + meters ---------- */
   function updateTags(){
     ["npcs","lore","rulers"].forEach(t=>{
@@ -1669,6 +1829,9 @@
       const el=$("#tag-"+t);
       if(el) el.textContent = recs.length+" rec"+(locked>0?" // "+locked+" 🔒":"");
     });
+    // States tag — show count + relation count
+    const stEl=$("#tag-states");
+    if(stEl) stEl.textContent = STORE.states.length+" гос"+(STORE.stateRelations.length>0?" // "+STORE.stateRelations.length+" ⊷":"");
     const total=STORE.npcs.length+STORE.lore.length+STORE.rulers.length;
     const locked=STORE.npcs.filter(r=>r.is_locked).length+STORE.lore.filter(r=>r.is_locked).length+STORE.rulers.filter(r=>r.is_locked).length;
     const sbRec=$("#sbRecords"); if(sbRec) sbRec.textContent=total;
@@ -1875,19 +2038,23 @@
     const idShort = (r.id||"").toString().slice(0,8).toUpperCase()||"—";
 
     // 3D hologram helper: builds wireframe cage + depth-extruded subject + floating motes
-    function holo3d(innerSvgOrImg, tagText, isCorrupt){
+    // isImage=true → image mode: only l3 layer shown, image stays face-on & bright.
+    // isImage=false → sigil SVG mode: 5 depth layers for volumetric 3D extrusion.
+    function holo3d(innerSvgOrImg, tagText, isCorrupt, isImage){
       const cageFaces = ['f1','f2','f3','f4','f5','f6'].map(f=>`<div class="cage-face ${f}"></div>`).join("");
       // 8 floating motes at random positions
       const motes = Array.from({length:8},(_,i)=>{
         const x=10+Math.random()*80, y=10+Math.random()*80, d=(Math.random()*7).toFixed(2)+"s";
         return `<span class="mote" style="--x:${x}%;--y:${y}%;--d:${d}"></span>`;
       }).join("");
-      // 5 depth layers for 3D volume
-      const layers = ['l1','l2','l3','l4','l5'].map(l=>`<div class="holo-layer ${l}">${innerSvgOrImg}</div>`).join("");
+      // 5 depth layers for 3D volume (sigil mode) — or just l3 (image mode, CSS hides others)
+      const layerClasses = isImage ? ['l3'] : ['l1','l2','l3','l4','l5'];
+      const layers = layerClasses.map(l=>`<div class="holo-layer ${l}">${innerSvgOrImg}</div>`).join("");
       const cageStyle = isCorrupt ? ' style="filter:hue-rotate(0deg)"' : '';
+      const subjClasses = 'holo-subj' + (isCorrupt?' err':'') + (isImage?' has-image':'');
       return `<div class="holo-stage">
         <div class="holo-cage"${cageStyle}>${cageFaces}</div>
-        <div class="holo-subj${isCorrupt?' err':''}">${layers}</div>
+        <div class="${subjClasses}">${layers}</div>
         <div class="holo-motes">${motes}</div>
       </div>
       <div class="scan"></div>${isCorrupt?'<div class="static"></div>':''}
@@ -1895,10 +2062,27 @@
       <div class="tag">${tagText}</div>`;
     }
 
+    // Build a robust <img> tag with: no-referrer (bypasses hotlink protection on some hosts),
+    // eager loading, async decoding, and onerror fallback to the record's sigil SVG.
+    // The data-fallback-sigil attribute lets the onerror handler render the right sigil.
+    function buildHoloImg(url, name, sigil){
+      const placeholder = `<div class="holo-img-placeholder"><svg><use href="#${sigil}"/></svg></div>`;
+      // referrerpolicy="no-referrer" — ImgBB & many hosts block hotlinks when Referer is sent.
+      //   This was likely the root cause: some PC browsers/extensions send a Referer that the
+      //   image host rejects, while mobile browsers may send a different/empty Referer.
+      // onerror → replace with sigil SVG so the hologram is never empty.
+      return `<img src="${escapeAttr(url)}" alt="${escapeAttr(name||"")}"
+        referrerpolicy="no-referrer"
+        loading="eager"
+        decoding="async"
+        crossorigin="anonymous"
+        onerror="this.outerHTML='<div class=&quot;holo-img-placeholder&quot;><svg><use href=&quot;#${sigil}&quot;/></svg></div>'" />`;
+    }
+
     // If has image_url and not locked — render image card with 3D hologram
     if(!isLocked && r.image_url){
       const chips = [r.category||"НЕИЗВЕСТНО"].map(c=>`<span class="chip">${c}</span>`).join("");
-      const imgTag = `<img src="${escapeAttr(r.image_url)}" alt="${escapeAttr(r.name||"")}" />`;
+      const imgTag = buildHoloImg(r.image_url, r.name, sigil);
       return `<div class="card image-card">
         <div class="card-top">
           <div class="card-id">ИД: <b>${idShort}</b> // ИСТ: ${type==="npcs"?"НПС":type==="lore"?"ЛОР":"ПРАВ"}</div>
@@ -1918,7 +2102,7 @@
             <div class="bracket bl"></div><div class="bracket br"></div>
             <div class="crosshair"></div>
             <div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
-            ${holo3d(imgTag, "ГОЛО_ПРОЕКЦИЯ :: ИЗОБРАЖЕНИЕ", false)}
+            ${holo3d(imgTag, "ГОЛО_ПРОЕКЦИЯ :: ИЗОБРАЖЕНИЕ", false, true)}
           </div>
         </div>
       </div>`;
@@ -2048,6 +2232,339 @@
     }
   }
 
+  /* =========================================================
+     STATES PANEL — Diplomatic Matrix + Alliance Web
+     ========================================================= */
+
+  // Build a lookup: "idA|idB" → relation (with ids sorted alphabetically)
+  function buildRelIndex(){
+    const idx={};
+    STORE.stateRelations.forEach(r=>{
+      const ids=[r.stateAId, r.stateBId].sort();
+      idx[ids[0]+"|"+ids[1]]=r;
+    });
+    return idx;
+  }
+
+  // Get relation between two states (either direction)
+  function getRelation(idA, idB, idx){
+    const ids=[idA, idB].sort();
+    return idx[ids[0]+"|"+ids[1]];
+  }
+
+  // Render the full states panel (toolbar + view + detail)
+  function renderStatesPanel(){
+    const states=STORE.states;
+    const rels=STORE.stateRelations;
+    const legendItems=Object.entries(REL_TYPES).map(([k,v])=>
+      `<span class="item"><span class="swatch" style="background:${v.color}"></span>${v.icon} ${v.label}</span>`
+    ).join("");
+    return `<div class="states-wrap">
+      <div class="panel-head">
+        <h2><span class="g">&gt;</span> КАРТА_ГОСУДАРСТВ <span class="g">::</span> СЕКТОР_07</h2>
+        <div class="view-toggle">
+          <button class="view-btn${_statesView==="matrix"?" active":""}" id="statesViewMatrix">◧ МАТРИЦА</button>
+          <button class="view-btn${_statesView==="web"?" active":""}" id="statesViewWeb">◉ СЕТЬ</button>
+        </div>
+      </div>
+      <div class="states-toolbar">
+        <span class="label">// ДОСЬЕ_ГОСУДАРСТВ</span>
+        <span class="count">${states.length} гос · ${rels.length} связей</span>
+        <div class="states-legend">${legendItems}</div>
+      </div>
+      <div id="statesViewRoot">${_statesView==="matrix"?renderStatesMatrix():renderStatesWeb()}</div>
+      <div id="stateDetailRoot">${renderStateDetail(_selectedStateId)}</div>
+    </div>`;
+  }
+
+  // Matrix view: N×N grid, cells colored by relationship type
+  function renderStatesMatrix(){
+    const states=STORE.states;
+    if(states.length===0){
+      return `<div class="state-detail-empty">// хранилище государств пусто. обратитесь к стражу.</div>`;
+    }
+    const idx=buildRelIndex();
+    // Column headers (state sigils, vertical text)
+    const colHeaders=states.map(s=>
+      `<th class="col-header" data-state="${s.id}" title="${escapeAttr(s.name)}">${escapeHtml(s.sigil||s.name.charAt(0))}</th>`
+    ).join("");
+    // Rows
+    const rows=states.map((sa,ri)=>{
+      const cells=states.map((sb,ci)=>{
+        if(ri===ci) return `<td><div class="matrix-cell diag" title="${escapeAttr(sa.name)}">${escapeHtml(sa.sigil||"●")}</div></td>`;
+        const rel=getRelation(sa.id, sb.id, idx);
+        if(!rel) return `<td><div class="matrix-cell empty">·</div></td>`;
+        const m=relMeta(rel.relationshipType);
+        const otherName = rel.stateAId===sa.id ? rel.stateB.name : rel.stateA.name;
+        return `<td><div class="matrix-cell" data-rel="${rel.id}" data-state-a="${sa.id}" data-state-b="${sb.id}"
+          style="color:${m.color}"
+          title="${escapeAttr(sa.name+' '+m.icon+' '+otherName)}">
+          <div class="rt-bg" style="background:${m.color}"></div>
+          <span class="rt-icon">${m.icon}</span>
+        </div></td>`;
+      }).join("");
+      return `<tr><th class="row-header" data-state="${sa.id}">${escapeHtml(states[ri].sigil||"●")} ${escapeHtml(states[ri].name)}</th>${cells}</tr>`;
+    }).join("");
+    return `<div class="matrix-scroll"><table class="matrix-grid">
+      <thead><tr><th class="corner"></th>${colHeaders}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  // Web graph view: force-directed SVG with nodes + edges
+  function renderStatesWeb(){
+    const states=STORE.states;
+    const rels=STORE.stateRelations;
+    if(states.length===0){
+      return `<div class="state-detail-empty">// хранилище государств пусто. обратитесь к стражу.</div>`;
+    }
+    // Edges
+    const edges=rels.map(r=>{
+      const m=relMeta(r.relationshipType);
+      return `<line class="web-edge" x1="" y1="" x2="" y2=""
+        data-a="${r.stateAId}" data-b="${r.stateBId}"
+        stroke="${m.color}" stroke-dasharray="${r.relationshipType==="war"?"5 3":r.relationshipType==="rivalry"?"2 2":"none"}"
+        opacity="0.6" style="color:${m.color}">
+        <title>${escapeHtml(r.stateA.name+" "+m.icon+" "+r.stateB.name)}</title>
+      </line>`;
+    }).join("");
+    // Nodes
+    const nodes=states.map(s=>{
+      const color=s.color||"#4af626";
+      return `<g class="web-node" data-state="${s.id}" style="color:${color}">
+        <circle class="node-halo" r="28" stroke="${color}"></circle>
+        <circle class="node-core" r="16" fill="#020510" stroke="${color}"></circle>
+        <text class="node-sigil" y="0">${escapeHtml(s.sigil||"●")}</text>
+        <text class="node-label" y="26">${escapeHtml(s.name)}</text>
+      </g>`;
+    }).join("");
+    return `<div class="web-container">
+      <svg class="web-svg" id="webSvg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <filter id="webGlow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <g id="webEdges">${edges}</g>
+        <g id="webNodes">${nodes}</g>
+      </svg>
+    </div>`;
+  }
+
+  // Force-directed layout simulation for the web graph
+  function runWebSimulation(){
+    const svg=$("#webSvg");
+    if(!svg) return;
+    const states=STORE.states;
+    const rels=STORE.stateRelations;
+    if(states.length===0) return;
+    const W=800, H=520;
+    // Initialize nodes in a circle
+    const nodes=states.map((s,i)=>{
+      const angle=(i/states.length)*Math.PI*2;
+      const r=Math.min(W,H)*0.3;
+      return { id:s.id, x:W/2+r*Math.cos(angle), y:H/2+r*Math.sin(angle), vx:0, vy:0, fx:null, fy:null };
+    });
+    const nodeMap={}; nodes.forEach(n=>nodeMap[n.id]=n);
+    // Edges
+    const edges=rels.map(r=>({ a:nodeMap[r.stateAId], b:nodeMap[r.stateBId], type:r.relationshipType }));
+    // Run simulation: 300 iterations of repulsion + spring + center
+    const REPULSION=8000, SPRING=0.04, SPRING_LEN=140, CENTER=0.005, DAMP=0.85;
+    for(let iter=0; iter<300; iter++){
+      // Repulsion
+      for(let i=0;i<nodes.length;i++){
+        for(let j=i+1;j<nodes.length;j++){
+          const a=nodes[i], b=nodes[j];
+          let dx=b.x-a.x, dy=b.y-a.y;
+          let d2=dx*dx+dy*dy; if(d2<1) d2=1;
+          const d=Math.sqrt(d2);
+          const f=REPULSION/d2;
+          const fx=f*dx/d, fy=f*dy/d;
+          a.vx-=fx; a.vy-=fy; b.vx+=fx; b.vy+=fy;
+        }
+      }
+      // Spring (attraction along edges)
+      edges.forEach(e=>{
+        if(!e.a||!e.b) return;
+        let dx=e.b.x-e.a.x, dy=e.b.y-e.a.y;
+        let d=Math.sqrt(dx*dx+dy*dy); if(d<0.01) d=0.01;
+        const f=SPRING*(d-SPRING_LEN);
+        const fx=f*dx/d, fy=f*dy/d;
+        e.a.vx+=fx; e.a.vy+=fy; e.b.vx-=fx; e.b.vy-=fy;
+      });
+      // Center attraction + integrate
+      nodes.forEach(n=>{
+        if(n.fx!==null){ n.x=n.fx; n.y=n.fy; n.vx=0; n.vy=0; return; }
+        n.vx+=(W/2-n.x)*CENTER; n.vy+=(H/2-n.y)*CENTER;
+        n.vx*=DAMP; n.vy*=DAMP;
+        n.x+=n.vx; n.y+=n.vy;
+        // Keep in bounds
+        n.x=Math.max(40, Math.min(W-40, n.x));
+        n.y=Math.max(40, Math.min(H-40, n.y));
+      });
+    }
+    // Apply positions to DOM
+    nodes.forEach(n=>{
+      const el=svg.querySelector(`.web-node[data-state="${n.id}"]`);
+      if(el) el.setAttribute("transform", `translate(${n.x.toFixed(1)},${n.y.toFixed(1)})`);
+    });
+    // Position edges
+    edges.forEach((e,i)=>{
+      if(!e.a||!e.b) return;
+      const el=svg.querySelectorAll(".web-edge")[i];
+      if(el){
+        el.setAttribute("x1", e.a.x.toFixed(1));
+        el.setAttribute("y1", e.a.y.toFixed(1));
+        el.setAttribute("x2", e.b.x.toFixed(1));
+        el.setAttribute("y2", e.b.y.toFixed(1));
+      }
+    });
+    // Hover highlight: when hovering a node, dim all edges/nodes not connected
+    const allNodes=svg.querySelectorAll(".web-node");
+    const allEdges=svg.querySelectorAll(".web-edge");
+    allNodes.forEach(node=>{
+      const sid=node.getAttribute("data-state");
+      node.addEventListener("mouseenter",()=>{
+        const connected=new Set([sid]);
+        allEdges.forEach(e=>{
+          const a=e.getAttribute("data-a"), b=e.getAttribute("data-b");
+          if(a===sid||b===sid){
+            e.classList.add("highlight"); e.classList.remove("dim");
+            connected.add(a); connected.add(b);
+          } else {
+            e.classList.add("dim"); e.classList.remove("highlight");
+          }
+        });
+        allNodes.forEach(n=>{
+          if(connected.has(n.getAttribute("data-state"))) n.classList.remove("dim");
+          else n.classList.add("dim");
+        });
+      });
+      node.addEventListener("mouseleave",()=>{
+        allEdges.forEach(e=>{ e.classList.remove("dim","highlight"); });
+        allNodes.forEach(n=>n.classList.remove("dim"));
+      });
+    });
+  }
+
+  // State detail card — shown when a state is selected (click node/header/cell)
+  function renderStateDetail(stateId){
+    if(!stateId) return `<div class="state-detail"><div class="state-detail-empty">// выберите государство чтобы увидеть досье.</div></div>`;
+    const s=STORE.states.find(x=>x.id===stateId);
+    if(!s) return `<div class="state-detail"><div class="state-detail-empty">// государство не найдено.</div></div>`;
+    const idx=buildRelIndex();
+    const myRels=STORE.stateRelations.filter(r=>r.stateAId===stateId||r.stateBId===stateId);
+    const relRows=myRels.length>0 ? myRels.map(r=>{
+      const m=relMeta(r.relationshipType);
+      const other = r.stateAId===stateId ? r.stateB : r.stateA;
+      const dir = r.relationshipType==="vassal"
+        ? (r.stateAId===stateId ? " → вассал: " : " ← сюзерен: ")
+        : " ↔ ";
+      return `<div class="state-detail-rel" style="border-color:${m.color}" data-state="${other.id}">
+        <span class="rt-icon" style="color:${m.color}">${m.icon}</span>
+        <span class="rt-label" style="color:${m.color}">${m.label}</span>
+        <span class="rt-target">${dir}${escapeHtml(other.name)}</span>
+        ${r.description?`<span class="rt-desc">// ${escapeHtml(r.description)}</span>`:""}
+        ${r.treatyDate?`<span class="rt-desc">[${escapeHtml(r.treatyDate)}]</span>`:""}
+      </div>`;
+    }).join("") : `<div class="state-detail-empty">// связей не зафиксировано.</div>`;
+    const color=s.color||"#4af626";
+    return `<div class="state-detail">
+      <div class="state-detail-head">
+        <span class="state-detail-sigil" style="color:${color}">${escapeHtml(s.sigil||"●")}</span>
+        <span class="state-detail-name">${escapeHtml(s.name)}</span>
+        ${s.category?`<span class="state-detail-cat">${escapeHtml(s.category)}</span>`:""}
+      </div>
+      ${s.description?`<div class="state-detail-desc">${escapeHtml(s.description)}</div>`:""}
+      <div class="state-detail-rels">${relRows}</div>
+    </div>`;
+  }
+
+  // Wire up the states panel interactions
+  function wireStatesPanel(){
+    // View toggle
+    $("#statesViewMatrix")?.addEventListener("click",()=>{
+      _statesView="matrix";
+      $("#statesViewMatrix").classList.add("active");
+      $("#statesViewWeb").classList.remove("active");
+      $("#statesViewRoot").innerHTML=renderStatesMatrix();
+      wireMatrixInteractions();
+      Audio.blip(440,0.04,0.08);
+    });
+    $("#statesViewWeb")?.addEventListener("click",()=>{
+      _statesView="web";
+      $("#statesViewMatrix").classList.remove("active");
+      $("#statesViewWeb").classList.add("active");
+      $("#statesViewRoot").innerHTML=renderStatesWeb();
+      runWebSimulation();
+      wireWebInteractions();
+      Audio.blip(520,0.04,0.08);
+    });
+    if(_statesView==="matrix") wireMatrixInteractions();
+    else wireWebInteractions();
+  }
+
+  function wireMatrixInteractions(){
+    const tooltip=$("#matrixTooltip");
+    // Cell hover → tooltip
+    $$("#statesViewRoot .matrix-cell[data-rel]").forEach(cell=>{
+      cell.addEventListener("mouseenter",(e)=>{
+        const relId=cell.getAttribute("data-rel");
+        const rel=STORE.stateRelations.find(r=>r.id===relId);
+        if(!rel||!tooltip) return;
+        const m=relMeta(rel.relationshipType);
+        const aName=rel.stateA.name, bName=rel.stateB.name;
+        tooltip.innerHTML=`<div class="tt-title" style="color:${m.color}">${m.icon} ${m.label}</div>
+          <div class="tt-desc">${escapeHtml(aName)} ↔ ${escapeHtml(bName)}</div>
+          ${rel.description?`<div class="tt-desc">// ${escapeHtml(rel.description)}</div>`:""}
+          ${rel.treatyDate?`<div class="tt-desc">[${escapeHtml(rel.treatyDate)}]</div>`:""}`;
+        tooltip.classList.add("show");
+      });
+      cell.addEventListener("mousemove",(e)=>{
+        if(!tooltip) return;
+        const x=e.clientX+14, y=e.clientY+14;
+        tooltip.style.left=Math.min(x, window.innerWidth-300)+"px";
+        tooltip.style.top=Math.min(y, window.innerHeight-120)+"px";
+      });
+      cell.addEventListener("mouseleave",()=>{ tooltip?.classList.remove("show"); });
+      // Click cell → select the first state
+      cell.addEventListener("click",()=>{
+        const sid=cell.getAttribute("data-state-a");
+        _selectedStateId=sid;
+        $("#stateDetailRoot").innerHTML=renderStateDetail(sid);
+        Audio.blip(520,0.04,0.08);
+      });
+    });
+    // Row/col header click → select state
+    $$("#statesViewRoot th[data-state]").forEach(th=>{
+      th.addEventListener("click",()=>{
+        const sid=th.getAttribute("data-state");
+        _selectedStateId=sid;
+        $("#stateDetailRoot").innerHTML=renderStateDetail(sid);
+        Audio.blip(520,0.04,0.08);
+      });
+    });
+  }
+
+  function wireWebInteractions(){
+    // Node click → select state
+    $$("#statesViewRoot .web-node").forEach(node=>{
+      node.addEventListener("click",()=>{
+        const sid=node.getAttribute("data-state");
+        _selectedStateId=sid;
+        $("#stateDetailRoot").innerHTML=renderStateDetail(sid);
+        Audio.blip(520,0.04,0.08);
+      });
+    });
+    // Edge click → show relation in detail (select state A)
+    $$("#statesViewRoot .web-edge").forEach(edge=>{
+      edge.addEventListener("click",()=>{
+        const sid=edge.getAttribute("data-a");
+        _selectedStateId=sid;
+        $("#stateDetailRoot").innerHTML=renderStateDetail(sid);
+        Audio.blip(440,0.04,0.08);
+      });
+    });
+  }
+
   /* ---------- loader + panel switching ---------- */
   const loader=$("#loader"),content=$("#content");
   let busy=false, currentPanel=null;
@@ -2087,6 +2604,9 @@
       if(name === "achievements"){
         html = renderAchievements();
         $("#crumbCur").textContent = "ДОСТИЖЕНИЯ";
+      } else if(name === "states"){
+        html = renderStatesPanel();
+        $("#crumbCur").textContent = "ГОСУДАРСТВА";
       } else {
         html = renderArchive(name);
         $("#crumbCur").textContent = META[name].crumb;
@@ -2096,7 +2616,12 @@
       loader.style.display = "none";
       content.classList.add("show");
       busy = false;
-      if(name !== "achievements"){
+      if(name === "achievements"){
+        // achievements panel has no extras
+      } else if(name === "states"){
+        wireStatesPanel();
+        if(_statesView === "web") runWebSimulation();
+      } else {
         wirePanel(name);
         initPanelExtras(name);
         renderShardLog();
@@ -2113,6 +2638,29 @@
         {t:"получено " + STORE.achievements.size + " / " + ACHIEVEMENTS.length + " достижений", c: STORE.achievements.size > 0 ? "ok" : "warn"},
         {t:"ведомости готовы.",c:"ok"},
       ];
+      updateTags();
+      return logs;
+    }
+    // States panel — fetch from /api/states (not /api/archive)
+    if(name === "states"){
+      const logs=[
+        {t:"открытие КАРТА_ГОСУДАРСТВ :: СЕКТОР_07 ...",c:"ok"},
+        {t:"запрос PRISMA хранилища ............ /api/states",c:"ok"},
+      ];
+      if(STORE.states.length===0){
+        const [states, rels] = await Promise.all([fetchStates(), fetchStateRelations()]);
+        STORE.states = states;
+        STORE.stateRelations = rels;
+      }
+      if(STORE.states.length===0){
+        logs.push({t:"хранилище вернуло 0 государств ... [ВНИМАНИЕ]",c:"warn"});
+        logs.push({t:"создайте государства в админ-панели.",c:"err"});
+      } else {
+        logs.push({t:"получено "+STORE.states.length+" государств ...... [ OK ]",c:"ok"});
+        logs.push({t:"получено "+STORE.stateRelations.length+" связей ......... [ OK ]",c:"ok"});
+        logs.push({t:"расчёт матрицы дипломатии ......... [ OK ]",c:"ok"});
+      }
+      logs.push({t:"карта готова.",c:"ok"});
       updateTags();
       return logs;
     }
@@ -3542,7 +4090,13 @@
     if(isLocked){
       subj = `<svg><use href="#i-err"/></svg>`;
     } else if(record.image_url && /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(record.image_url)){
-      subj = `<img src="${escapeAttr(record.image_url)}" alt="${escapeAttr(record.name || "")}" onerror="this.outerHTML='<svg><use href=\\'#${sigil}\\'/></svg>'" />`;
+      // referrerpolicy=no-referrer bypasses hotlink protection (ImgBB etc.)
+      // onerror → sigil SVG fallback so the projection is never empty.
+      subj = `<img src="${escapeAttr(record.image_url)}" alt="${escapeAttr(record.name || "")}"
+        referrerpolicy="no-referrer"
+        loading="eager"
+        decoding="async"
+        onerror="this.outerHTML='<svg><use href=\\'#${sigil}\\'/></svg>'" />`;
     } else {
       subj = `<svg><use href="#${sigil}"/></svg>`;
     }
@@ -3566,14 +4120,28 @@
     setTimeout(()=>Audio.beep(330, 0.15, 0.14), 150);
   }
 
-  // Witching icon: click to toggle popup
+  // Witching icon (statusbar): click to toggle popup open (no auto-hide on manual open)
   $("#witchingIcon")?.addEventListener("click", () => {
-    $("#witchingPopup")?.classList.toggle("show");
+    if($("#witchingPopup")?.classList.contains("show")){
+      closeWitchingPopup();
+    } else {
+      openWitchingPopup(false);
+    }
     Audio.blip(440, 0.04, 0.08);
+  });
+  // Witching banner (top of screen): click to open popup (no auto-hide)
+  $("#witchingBanner")?.addEventListener("click", (e) => {
+    if($("#witchingPopup")?.classList.contains("show")){
+      closeWitchingPopup();
+    } else {
+      openWitchingPopup(false);
+    }
+    Audio.blip(440, 0.04, 0.08);
+    e.stopPropagation();
   });
   $("#witchingPopupClose")?.addEventListener("click", (e) => {
     e.stopPropagation();
-    $("#witchingPopup")?.classList.remove("show");
+    closeWitchingPopup();
     Audio.blip(330, 0.04, 0.08);
   });
 
@@ -3726,6 +4294,15 @@
 
   /* =========================================================
      WITCHING HOUR — time-based event + admin command bridge
+     =========================================================
+     REDESIGN (fixes "only shows after refresh" bug):
+     - Persistent top banner always visible while Witching Hour is active
+       (no refresh needed — the banner IS the always-on indicator).
+     - State machine tracks inactive→active transitions; popup fires
+       once per transition (not once per page load).
+     - Popup auto-hides after 10s; user can reopen by clicking banner/icon.
+     - Fixed timezone calculation (was double-counting browser offset).
+     - 5-second polling + focus/visibility/storage listeners for snappy detection.
      ========================================================= */
   const DEFAULT_EVT = {
     witching_hour: {
@@ -3746,62 +4323,126 @@
       return { witching_hour: Object.assign({}, DEFAULT_EVT.witching_hour, w) };
     }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_EVT)); }
   }
-  let _witchManual = false, _witchTriggered = false;
 
-  function checkWitching(){
-    const cfg = loadEvtCfg().witching_hour;
-    const manual = _witchManual || localStorage.getItem("ashen_witching_manual") === "true";
-    // Allow admin to turn it off via "false"
+  // State machine: tracks whether Witching Hour is currently active,
+  // and whether we've already fired the popup/gaze/achievement for the current active period.
+  let _witchActive = false;          // true while Witching Hour is currently active
+  let _witchFiredThisPeriod = false; // true after we've shown popup + granted gaze + achievement for current active period
+  let _witchHideTimer = null;        // auto-hide timer for the popup
+
+  function _witchFmt(n){ return String(n).padStart(2,'0'); }
+
+  // Compute whether Witching Hour is currently active based on config + manual override.
+  function isWitchingActive(cfg){
+    // "false" means admin explicitly turned it off — clear the flag.
     if(localStorage.getItem("ashen_witching_manual") === "false"){
       localStorage.removeItem("ashen_witching_manual");
     }
-    if(!cfg.enabled && !manual){
-      $("#witchingIcon")?.classList.remove("show");
-      $("#witchingPopup")?.classList.remove("show");
-      _witchTriggered = false;
-      return;
-    }
+    const manual = localStorage.getItem("ashen_witching_manual") === "true";
+    if(!cfg.enabled && !manual) return false;
+
+    // Correct timezone calculation:
+    //   now.getTime() is absolute UTC ms. Adding cfg.timezone * 3600000 ms shifts
+    //   to the target zone. Reading getUTCHours() on the shifted Date gives the
+    //   hour in the target zone (NOT the browser's local zone).
+    //   The previous code did `now.getTime() + now.getTimezoneOffset()*60000 + cfg.timezone*3600000`
+    //   which double-counted the browser offset and gave wrong hours for non-UTC users.
     const now = new Date();
-    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-    const tzMs = utcMs + (cfg.timezone || 0) * 3600000;
+    const tzMs = now.getTime() + (cfg.timezone || 0) * 3600000;
     const tzDate = new Date(tzMs);
-    // BUGFIX: use getUTCHours/getUTCMinutes instead of getHours/getMinutes.
-    // getHours() returns hour in browser's local timezone, not the target timezone.
-    // This caused witching to not trigger on phones in different timezones.
     const h = tzDate.getUTCHours(), m = tzDate.getUTCMinutes();
     const curMin = h * 60 + m;
     const startMin = (cfg.startHour || 0) * 60 + (cfg.startMinute || 0);
     const endMin = (cfg.endHour || 0) * 60 + (cfg.endMinute || 0);
-    const inRange = manual ? true
+    return manual ? true
       : (startMin <= endMin
           ? (curMin >= startMin && curMin < endMin)
           : (curMin >= startMin || curMin < endMin));
-    if(inRange){
-      const wt = $("#witchingPopupTitle");
-      const wm = $("#witchingPopupMsg");
-      if(wt) wt.textContent = cfg.title || "ЧАС ВЕДЬМЫ";
-      if(wm) wm.textContent = cfg.msg || "";
-      $("#witchingIcon")?.classList.add("show");
-      if(!_witchTriggered){
-        _witchTriggered = true;
-        addGaze(cfg.boost || 5);
-        Audio.whisper(0.18);
-        unlockAchievement("WITCHING_HOUR");
-        $("#witchingPopup")?.classList.add("show");
-        setTimeout(()=>{ $("#witchingPopup")?.classList.remove("show"); }, 8000);
-      }
-    } else {
-      $("#witchingIcon")?.classList.remove("show");
-      $("#witchingPopup")?.classList.remove("show");
-      _witchTriggered = false;
+  }
+
+  // Open the Witching Hour popup. If autoHide, closes after 10s.
+  function openWitchingPopup(autoHide){
+    const cfg = loadEvtCfg().witching_hour;
+    const wt = $("#witchingPopupTitle");
+    const wm = $("#witchingPopupMsg");
+    const wi = $("#witchingPopupInfo");
+    if(wt) wt.textContent = cfg.title || "ЧАС ВЕДЬМЫ";
+    if(wm) wm.textContent = cfg.msg || "";
+    if(wi){
+      const sched = `${_witchFmt(cfg.startHour||0)}:${_witchFmt(cfg.startMinute||0)}–${_witchFmt(cfg.endHour||0)}:${_witchFmt(cfg.endMinute||0)} UTC${(cfg.timezone||0)>=0?'+':''}${cfg.timezone||0}`;
+      wi.textContent = `Расписание: ${sched}  ·  Усиление взгляда: +${cfg.boost||5}%`;
+      wi.style.display = 'block';
+    }
+    if(_witchHideTimer){ clearTimeout(_witchHideTimer); _witchHideTimer = null; }
+    $("#witchingPopup")?.classList.add("show");
+    if(autoHide){
+      _witchHideTimer = setTimeout(()=>{
+        $("#witchingPopup")?.classList.remove("show");
+        _witchHideTimer = null;
+      }, 10000);
     }
   }
 
-  // Reliable 10-second interval — lightweight but always works.
-  // Previous smart scheduling (setTimeout) had timezone calculation bugs
-  // that caused witching to not trigger on phones in different timezones.
-  // 10-second polling has negligible CPU impact (one Date + few comparisons).
-  setInterval(checkWitching, 10000);
+  function closeWitchingPopup(){
+    if(_witchHideTimer){ clearTimeout(_witchHideTimer); _witchHideTimer = null; }
+    $("#witchingPopup")?.classList.remove("show");
+  }
+
+  // Update the persistent banner's text content.
+  function _updateBannerText(cfg){
+    const bb = $("#witchingBannerBoost");
+    if(bb) bb.textContent = `+${cfg.boost||5}%`;
+    const bs = $("#witchingBannerSched");
+    if(bs){
+      const manual = localStorage.getItem("ashen_witching_manual") === "true";
+      if(manual){
+        bs.textContent = "· ВКЛЮЧЕНО ВРУЧНУЮ";
+      } else {
+        const sched = `${_witchFmt(cfg.startHour||0)}:${_witchFmt(cfg.startMinute||0)}–${_witchFmt(cfg.endHour||0)}:${_witchFmt(cfg.endMinute||0)} UTC${(cfg.timezone||0)>=0?'+':''}${cfg.timezone||0}`;
+        bs.textContent = `· ${sched}`;
+      }
+    }
+  }
+
+  function checkWitching(){
+    const cfg = loadEvtCfg().witching_hour;
+    const active = isWitchingActive(cfg);
+
+    if(active){
+      _updateBannerText(cfg);
+      // Banner + icon are ALWAYS visible while Witching Hour is active.
+      // This is the fix: the user no longer needs to refresh to see Witching Hour.
+      $("#witchingBanner")?.classList.add("show");
+      $("#witchingIcon")?.classList.add("show");
+
+      if(!_witchActive){
+        // Transition: inactive → active. Reset the "fired" flag so popup fires again.
+        _witchActive = true;
+        _witchFiredThisPeriod = false;
+      }
+
+      if(!_witchFiredThisPeriod){
+        _witchFiredThisPeriod = true;
+        addGaze(cfg.boost || 5);
+        Audio.whisper(0.18);
+        unlockAchievement("WITCHING_HOUR");
+        openWitchingPopup(true); // auto-hide after 10s
+      }
+    } else {
+      // Witching Hour not active — hide everything, reset state for next time.
+      if(_witchActive){
+        _witchActive = false;
+        _witchFiredThisPeriod = false;
+      }
+      $("#witchingBanner")?.classList.remove("show");
+      $("#witchingIcon")?.classList.remove("show");
+      closeWitchingPopup();
+    }
+  }
+
+  // 5-second polling — snappy enough to catch the inactive→active transition
+  // within at most 5 seconds, lightweight enough to have no measurable CPU impact.
+  setInterval(checkWitching, 5000);
 
   // Cross-tab: react instantly if admin changes config in another tab
   window.addEventListener("storage", (e) => {
@@ -3809,6 +4450,11 @@
       checkWitching();
     }
   });
+
+  // Re-check when window regains focus (covers alt-tab, click-into-window, etc.)
+  window.addEventListener("focus", checkWitching);
+  // Re-check when page becomes visible (covers tab switching).
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) checkWitching(); });
 
   checkWitching();
 
