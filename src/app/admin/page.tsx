@@ -448,9 +448,19 @@ function StatesPanel({ flash }: { flash: (m: string) => void }) {
         return;
       }
       if (!sRes.ok || !rRes.ok) {
-        const failed = !sRes.ok ? "государств" : "связей";
-        const code = !sRes.ok ? sRes.status : rRes.status;
-        setErr(`Не удалось загрузить ${failed} — сервер вернул ${code}. Попробуйте обновить страницу или войти снова.`);
+        // Show the actual server error message (helps diagnose DB issues etc.)
+        const failedRes = !sRes.ok ? sRes : rRes;
+        const failedLabel = !sRes.ok ? "государств" : "связей";
+        let serverMsg = "";
+        try {
+          const j = await failedRes.json();
+          serverMsg = j?.error || j?.message || "";
+        } catch {}
+        setErr(
+          `Не удалось загрузить ${failedLabel} (HTTP ${failedRes.status})${
+            serverMsg ? `: ${serverMsg}` : ". Попробуйте обновить страницу или войти снова."
+          }`
+        );
         return;
       }
       const sJ = await sRes.json();

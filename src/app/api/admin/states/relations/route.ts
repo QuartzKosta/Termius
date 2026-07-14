@@ -54,8 +54,13 @@ export async function GET() {
       })),
     });
   } catch (e: any) {
+    console.error("[admin/states/relations GET] error:", e?.message, e?.stack);
+    const msg = e?.message || "internal error";
+    const hint = /can't reach database|does not exist|no such table|P2021|P2023|P2024/i.test(msg)
+      ? " База данных не инициализирована. Выполните: bun run db:push"
+      : "";
     return NextResponse.json(
-      { error: e?.message || "internal error", data: [] },
+      { error: msg + hint, data: [] },
       { status: 500 }
     );
   }
