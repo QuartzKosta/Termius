@@ -25,9 +25,9 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({ ok: true });
     res.cookies.set(COOKIE_NAME, SESSION_TOKEN, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax", // "strict" blocked cookie on some cross-tab navigations; "lax" is safe for same-origin admin
       path: "/",
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: 60 * 60 * 24 * 7, // 7 days (was 24h — caused "session expired" after a day)
     });
     return res;
   } catch (e: any) {

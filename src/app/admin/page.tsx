@@ -441,8 +441,13 @@ function StatesPanel({ flash }: { flash: (m: string) => void }) {
         fetch("/api/admin/states"),
         fetch("/api/admin/states/relations"),
       ]);
+      // 401 = session expired → reload page to show login screen (AdminPage checks session on mount)
+      if (sRes.status === 401 || rRes.status === 401) {
+        if (typeof window !== "undefined") window.location.reload();
+        return;
+      }
       if (!sRes.ok || !rRes.ok) {
-        setErr("Не удалось загрузить государства — сессия могла истечь.");
+        setErr("Не удалось загрузить государства — серверная ошибка.");
         return;
       }
       const sJ = await sRes.json();
