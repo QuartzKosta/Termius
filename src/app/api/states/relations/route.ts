@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, assertStateModelsReady } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
  *  endpoint states are non-locked. */
 export async function GET() {
   try {
+    assertStateModelsReady();
     const relations = await db.stateRelation.findMany({
       include: {
         stateA: { select: { id: true, name: true, sigil: true, color: true, isLocked: true } },

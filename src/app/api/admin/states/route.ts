@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { db, assertStateModelsReady } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,7 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
+    assertStateModelsReady();
     const states = await db.state.findMany({
       orderBy: { createdAt: "asc" },
     });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { db, assertStateModelsReady } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +34,7 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
+    assertStateModelsReady();
     const relations = await db.stateRelation.findMany({
       include: {
         stateA: { select: { id: true, name: true, sigil: true, color: true } },
