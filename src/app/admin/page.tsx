@@ -438,16 +438,19 @@ function StatesPanel({ flash }: { flash: (m: string) => void }) {
     setErr("");
     try {
       const [sRes, rRes] = await Promise.all([
-        fetch("/api/admin/states"),
-        fetch("/api/admin/states/relations"),
+        fetch("/api/admin/states", { credentials: "same-origin" }),
+        fetch("/api/admin/states/relations", { credentials: "same-origin" }),
       ]);
-      // 401 = session expired → reload page to show login screen (AdminPage checks session on mount)
+      // 401 = session expired → clear cookie via logout, then reload to show login screen
       if (sRes.status === 401 || rRes.status === 401) {
+        try { await fetch("/api/admin/login", { method: "DELETE" }); } catch {}
         if (typeof window !== "undefined") window.location.reload();
         return;
       }
       if (!sRes.ok || !rRes.ok) {
-        setErr("Не удалось загрузить государства — серверная ошибка.");
+        const failed = !sRes.ok ? "государств" : "связей";
+        const code = !sRes.ok ? sRes.status : rRes.status;
+        setErr(`Не удалось загрузить ${failed} — сервер вернул ${code}. Попробуйте обновить страницу или войти снова.`);
         return;
       }
       const sJ = await sRes.json();
