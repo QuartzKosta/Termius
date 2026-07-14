@@ -421,6 +421,7 @@ function StatesPanel({ flash }: { flash: (m: string) => void }) {
   const [sLocked, setSLocked] = useState(false);
   const [sSubmitting, setSSubmitting] = useState(false);
   const [sErr, setSErr] = useState("");
+  const [importing, setImporting] = useState(false);
 
   // ===== Relation form state =====
   const [rEditingId, setREditingId] = useState<string | null>(null);
@@ -540,6 +541,34 @@ function StatesPanel({ flash }: { flash: (m: string) => void }) {
     }
   }
 
+  /** Import states from the lore table (category="Государство").
+   *  Pulls lore records via Supabase, upserts into State table by name.
+   *  Existing states keep their color/sigil if already customized. */
+  async function importFromLore() {
+    if (!window.confirm(
+      "Импортировать государства из базы лора?\n\n" +
+      "• Записи лора с категорией «Государство» будут добавлены в таблицу State.\n" +
+      "• Существующие государства (по имени) — обновят описание.\n" +
+      "• Цвет и сигил будут подобраны по титулу (Империя/Королевство/Княжество/Теократия...).\n" +
+      "• Отношения НЕ затрагиваются."
+    )) return;
+    setImporting(true);
+    try {
+      const res = await fetch("/api/admin/states/import-lore", { method: "POST" });
+      const j = await res.json();
+      if (!res.ok || !j.ok) {
+        flash(j.error || "ИМПОРТ НЕ УДАЛСЯ");
+        return;
+      }
+      flash(`ИМПОРТ: +${j.created} создано, ${j.updated} обновлено`);
+      load();
+    } catch {
+      flash("сетевая ошибка");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   function resetRelationForm() {
     setREditingId(null);
     setRAId("");
@@ -631,9 +660,24 @@ function StatesPanel({ flash }: { flash: (m: string) => void }) {
         <span style={{ color: "#5d685c" }}>
           {"ГОСУДАРСТВ: "}{states.length}{" // ОПЕЧАТАНО: "}{states.filter((s) => s.isLocked).length}
         </span>
-        {sEditingId && (
-          <button onClick={resetStateForm} style={styles.uploadToggle}>× ОТМЕНА</button>
-        )}
+        <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+          <button
+            onClick={importFromLore}
+            disabled={importing}
+            style={{
+              ...styles.uploadToggle,
+              ...(importing ? styles.btnDisabled : {}),
+              borderColor: "#3fd6c8",
+              color: "#3fd6c8",
+            }}
+            title="Импортировать государства из базы лора (категория «Государство») в таблицу State"
+          >
+            {importing ? "ИМПОРТ…" : "↺ ИМПОРТ ИЗ ЛОРА"}
+          </button>
+          {sEditingId && (
+            <button onClick={resetStateForm} style={styles.uploadToggle}>× ОТМЕНА</button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={submitState} style={styles.uploadForm}>
