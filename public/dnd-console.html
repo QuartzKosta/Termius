@@ -4302,8 +4302,12 @@
        once per transition (not once per page load).
      - Popup auto-hides after 10s; user can reopen by clicking banner/icon.
      - Fixed timezone calculation (was double-counting browser offset).
-     - 5-second polling + focus/visibility/storage listeners for snappy detection.
+     - 5-second polling + focus/visibility listeners for snappy detection.
+     - SERVER-SIDE CONFIG: fetched from /api/events/witching (shared across
+       ALL users — fixes the bug where config lived only in admin's localStorage
+       and other users had enabled=false default).
      ========================================================= */
+  // Fallback defaults if API is unreachable
   const DEFAULT_EVT = {
     witching_hour: {
       enabled: false,
@@ -4312,16 +4316,34 @@
       timezone: 3, // UTC+3 (Moscow)
       boost: 15,
       title: "ЧАС ВЕДЬМЫ",
-      msg: "бог смотрит пристальнее"
+      msg: "бог смотрит пристальнее",
+      manualOverride: null, // "on" | "off" | null
     }
   };
+  // Live config — updated from server on load + every 30s
+  let _serverCfg = JSON.parse(JSON.stringify(DEFAULT_EVT.witching_hour));
+
+  async function fetchWitchingConfig(){
+    try{
+      const res = await fetch("/api/events/witching", { credentials: "same-origin" });
+      if(!res.ok) return;
+      const j = await res.json();
+      if(j && j.data){
+        _serverCfg = Object.assign({}, DEFAULT_EVT.witching_hour, j.data);
+      }
+    }catch(e){ /* network error — keep last known config */ }
+  }
+
   function loadEvtCfg(){
+    // Use server config (shared across all users). localStorage is only a
+    // fallback for offline mode (e.g. dev server down).
     try{
       const s = JSON.parse(localStorage.getItem("ashen_events_config_v2") || "{}");
-      // Admin writes {witching: {...}}, not {witching_hour: {...}}
-      const w = s.witching || s.witching_hour || {};
-      return { witching_hour: Object.assign({}, DEFAULT_EVT.witching_hour, w) };
-    }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_EVT)); }
+      const local = s.witching || s.witching_hour || {};
+      // Server config takes priority; local is fallback only if server hasn't loaded yet
+      const merged = Object.assign({}, DEFAULT_EVT.witching_hour, local, _serverCfg);
+      return { witching_hour: merged };
+    }catch(e){ return { witching_hour: _serverCfg }; }
   }
 
   // State machine: tracks whether Witching Hour is currently active,
@@ -4334,12 +4356,19 @@
 
   // Compute whether Witching Hour is currently active based on config + manual override.
   function isWitchingActive(cfg){
-    // "false" means admin explicitly turned it off — clear the flag.
+    // manualOverride from SERVER config: "on" | "off" | null
+    // (replaces the old localStorage-based manual flag which was per-browser)
+    const serverOverride = cfg.manualOverride || null;
+    // Legacy localStorage flag still supported for backward compat (admin's old commands)
+    const legacyManual = localStorage.getItem("ashen_witching_manual") === "true";
     if(localStorage.getItem("ashen_witching_manual") === "false"){
       localStorage.removeItem("ashen_witching_manual");
     }
-    const manual = localStorage.getItem("ashen_witching_manual") === "true";
-    if(!cfg.enabled && !manual) return false;
+    // Server "off" forces inactive; server "on" or legacy manual forces active
+    const forcedActive = serverOverride === "on" || (serverOverride !== "off" && legacyManual);
+    if(serverOverride === "off") return false;
+    if(forcedActive) return true;
+    if(!cfg.enabled) return false;
 
     // Correct timezone calculation:
     //   now.getTime() is absolute UTC ms. Adding cfg.timezone * 3600000 ms shifts
@@ -4354,10 +4383,9 @@
     const curMin = h * 60 + m;
     const startMin = (cfg.startHour || 0) * 60 + (cfg.startMinute || 0);
     const endMin = (cfg.endHour || 0) * 60 + (cfg.endMinute || 0);
-    return manual ? true
-      : (startMin <= endMin
-          ? (curMin >= startMin && curMin < endMin)
-          : (curMin >= startMin || curMin < endMin));
+    return (startMin <= endMin
+        ? (curMin >= startMin && curMin < endMin)
+        : (curMin >= startMin || curMin < endMin));
   }
 
   // Open the Witching Hour popup. If autoHide, closes after 10s.
@@ -4444,7 +4472,12 @@
   // within at most 5 seconds, lightweight enough to have no measurable CPU impact.
   setInterval(checkWitching, 5000);
 
-  // Cross-tab: react instantly if admin changes config in another tab
+  // Poll server config every 30s — catches admin config changes for ALL users
+  // (not just the admin's browser). This is the fix: other users now see
+  // config updates without needing to refresh.
+  setInterval(fetchWitchingConfig, 30000);
+
+  // Cross-tab: react instantly if admin changes config in another tab (legacy localStorage)
   window.addEventListener("storage", (e) => {
     if(e.key === "ashen_events_config_v2" || e.key === "ashen_witching_manual"){
       checkWitching();
@@ -4452,11 +4485,17 @@
   });
 
   // Re-check when window regains focus (covers alt-tab, click-into-window, etc.)
-  window.addEventListener("focus", checkWitching);
+  // Also re-fetch server config (admin might have changed it while user was away).
+  window.addEventListener("focus", () => {
+    fetchWitchingConfig().then(checkWitching);
+  });
   // Re-check when page becomes visible (covers tab switching).
-  document.addEventListener("visibilitychange", () => { if(!document.hidden) checkWitching(); });
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) {
+    fetchWitchingConfig().then(checkWitching);
+  }});
 
-  checkWitching();
+  // Initial load: fetch server config FIRST, then run first checkWitching.
+  fetchWitchingConfig().then(() => checkWitching());
 
   // God's Gaze command bridge — admin (stage 12 EventsPanel) writes commands to localStorage.
   // This polling loop picks them up and applies the effect.

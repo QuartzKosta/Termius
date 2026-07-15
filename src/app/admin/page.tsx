@@ -1573,6 +1573,7 @@ interface WitchingConfig {
   boost: number;    // gaze % added when witching triggers. Frontend does addGaze(cfg.boost||5).
   title: string;
   msg: string;
+  manualOverride?: string | null; // "on" | "off" | null — server-side manual override
 }
 
 const DEFAULT_WITCHING: WitchingConfig = {
@@ -1591,27 +1592,63 @@ const EVENTS_KEY = "ashen_events_config_v2";
 
 function EventsPanel({ flash }: { flash: (m: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [cfg, setCfg] = useState<WitchingConfig>(() => {
-    if (typeof window === "undefined") return DEFAULT_WITCHING;
-    try {
-      const raw = window.localStorage.getItem(EVENTS_KEY);
-      if (!raw) return DEFAULT_WITCHING;
-      const parsed = JSON.parse(raw) as { witching?: Partial<WitchingConfig> } | Partial<WitchingConfig>;
-      const witching = ("witching" in parsed && parsed.witching ? parsed.witching : parsed) as Partial<WitchingConfig>;
-      return { ...DEFAULT_WITCHING, ...witching };
-    } catch {
-      return DEFAULT_WITCHING;
-    }
-  });
+  const [cfg, setCfg] = useState<WitchingConfig>(DEFAULT_WITCHING);
+  const [saving, setSaving] = useState(false);
 
+  // Load config from SERVER on mount (shared across all users).
+  // Falls back to localStorage for backward compat, then to defaults.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/events/witching", { credentials: "same-origin" });
+        if (!res.ok) {
+          // Fallback to localStorage if API fails (e.g. not logged in)
+          const raw = window.localStorage.getItem(EVENTS_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw) as { witching?: Partial<WitchingConfig> } | Partial<WitchingConfig>;
+            const witching = ("witching" in parsed && parsed.witching ? parsed.witching : parsed) as Partial<WitchingConfig>;
+            if (!cancelled) setCfg({ ...DEFAULT_WITCHING, ...witching });
+          }
+          return;
+        }
+        const j = await res.json();
+        if (j?.data && !cancelled) {
+          setCfg({
+            enabled: !!j.data.enabled,
+            startHour: j.data.startHour ?? 3,
+            startMinute: j.data.startMinute ?? 0,
+            endHour: j.data.endHour ?? 4,
+            endMinute: j.data.endMinute ?? 0,
+            timezone: j.data.timezone ?? 3,
+            boost: j.data.boost ?? 15,
+            title: j.data.title || "ЧАС ВЕДЬМЫ",
+            msg: j.data.msg || "бог смотрит пристальнее",
+            manualOverride: j.data.manualOverride ?? null,
+          });
+        }
+      } catch {
+        /* network error — keep defaults */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Save config to SERVER (shared across all users) + localStorage (backward compat).
   function update(patch: Partial<WitchingConfig>) {
     setCfg((prev) => {
       const next: WitchingConfig = { ...prev, ...patch };
+      // Save to localStorage (legacy, for same-browser instant update)
       try {
         localStorage.setItem(EVENTS_KEY, JSON.stringify({ witching: next }));
-      } catch {
-        /* ignore */
-      }
+      } catch { /* ignore */ }
+      // Save to SERVER (shared across all users — the real fix)
+      setSaving(true);
+      fetch("/api/admin/events/witching", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      }).then(() => setSaving(false)).catch(() => setSaving(false));
       return next;
     });
   }
@@ -1619,21 +1656,33 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
   function godCommand(cmd: "wh_on" | "wh_off" | "gaze_25" | "gaze_50" | "gaze_reset") {
     try {
       if (cmd === "wh_on") {
+        // Save manual override to SERVER (shared across all users)
+        fetch("/api/admin/events/witching", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ manualOverride: "on" }),
+        }).catch(() => {});
+        // Legacy localStorage for same-browser instant update
         localStorage.setItem("ashen_witching_manual", "true");
-        flash("🌙 ЧАС ВЕДЬМЫ ВКЛЮЧЁН (ручной режим)");
+        flash("🌙 ЧАС ВЕДЬМЫ ВКЛЮЧЁН (ручной режим) — для всех пользователей");
       } else if (cmd === "wh_off") {
         // Frontend checks === "false" and then removes the key.
+        fetch("/api/admin/events/witching", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ manualOverride: "off" }),
+        }).catch(() => {});
         localStorage.setItem("ashen_witching_manual", "false");
-        flash("ЧАС ВЕДЬМЫ ВЫКЛЮЧЕН");
+        flash("ЧАС ВЕДЬМЫ ВЫКЛЮЧЕН — для всех пользователей");
       } else if (cmd === "gaze_25") {
         localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "open_eye", amount: 25 }));
-        flash("ВЗГЛЯД УСИЛЕН +25%");
+        flash("ВЗГЛЯД УСИЛЕН +25% (только для этого браузера)");
       } else if (cmd === "gaze_50") {
         localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "open_eye", amount: 50 }));
-        flash("ВЗГЛЯД УСИЛЕН +50%");
+        flash("ВЗГЛЯД УСИЛЕН +50% (только для этого браузера)");
       } else if (cmd === "gaze_reset") {
         localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "close_eye" }));
-        flash("ВЗГЛЯД СБРОШЕН ДО 0%");
+        flash("ВЗГЛЯД СБРОШЕН ДО 0% (только для этого браузера)");
       }
     } catch {
       /* ignore */

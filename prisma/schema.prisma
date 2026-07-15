@@ -59,3 +59,22 @@ model StateRelation {
 
   @@unique([stateAId, stateBId])
 }
+
+/// Server-side event configuration — shared across ALL users (not per-browser).
+/// Singleton row (id="witching_hour"). Admin updates via /api/admin/events/witching.
+/// Public reads via /api/events/witching. This fixes the bug where Witching Hour
+/// config lived only in localStorage and was different for each browser.
+model EventConfig {
+  id              String   @id           // "witching_hour" (singleton)
+  enabled         Boolean  @default(false)
+  startHour       Int      @default(3)
+  startMinute     Int      @default(0)
+  endHour         Int      @default(4)
+  endMinute       Int      @default(0)
+  timezone        Int      @default(3)   // UTC offset in hours (3 = Moscow)
+  boost           Int      @default(15)  // God's Gaze % granted when active
+  title           String   @default("ЧАС ВЕДЬМЫ")
+  msg             String   @default("бог смотрит пристальнее")
+  manualOverride  String?  // null | "on" | "off" — admin can force on/off
+  updatedAt       DateTime @updatedAt
+}
