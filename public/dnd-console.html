@@ -4335,15 +4335,11 @@
   }
 
   function loadEvtCfg(){
-    // Use server config (shared across all users). localStorage is only a
-    // fallback for offline mode (e.g. dev server down).
-    try{
-      const s = JSON.parse(localStorage.getItem("ashen_events_config_v2") || "{}");
-      const local = s.witching || s.witching_hour || {};
-      // Server config takes priority; local is fallback only if server hasn't loaded yet
-      const merged = Object.assign({}, DEFAULT_EVT.witching_hour, local, _serverCfg);
-      return { witching_hour: merged };
-    }catch(e){ return { witching_hour: _serverCfg }; }
+    // Use ONLY server config (shared across all users).
+    // localStorage is NO longer used for reading — it caused stale data to
+    // override server config on devices that had old settings saved.
+    // The only fallback is DEFAULT_EVT if server hasn't responded yet.
+    return { witching_hour: _serverCfg };
   }
 
   // State machine: tracks whether Witching Hour is currently active,
@@ -4477,9 +4473,9 @@
   // config updates without needing to refresh.
   setInterval(fetchWitchingConfig, 30000);
 
-  // Cross-tab: react instantly if admin changes config in another tab (legacy localStorage)
+  // Cross-tab: react instantly if admin changes manual flag in another tab (legacy localStorage)
   window.addEventListener("storage", (e) => {
-    if(e.key === "ashen_events_config_v2" || e.key === "ashen_witching_manual"){
+    if(e.key === "ashen_witching_manual"){
       checkWitching();
     }
   });

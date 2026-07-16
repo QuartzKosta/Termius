@@ -1594,22 +1594,19 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
   const [open, setOpen] = useState(false);
   const [cfg, setCfg] = useState<WitchingConfig>(DEFAULT_WITCHING);
   const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false); // false until server config is fetched
 
   // Load config from SERVER on mount (shared across all users).
-  // Falls back to localStorage for backward compat, then to defaults.
+  // This is the ONLY source of truth — localStorage is no longer used for reading.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch("/api/admin/events/witching", { credentials: "same-origin" });
         if (!res.ok) {
-          // Fallback to localStorage if API fails (e.g. not logged in)
-          const raw = window.localStorage.getItem(EVENTS_KEY);
-          if (raw) {
-            const parsed = JSON.parse(raw) as { witching?: Partial<WitchingConfig> } | Partial<WitchingConfig>;
-            const witching = ("witching" in parsed && parsed.witching ? parsed.witching : parsed) as Partial<WitchingConfig>;
-            if (!cancelled) setCfg({ ...DEFAULT_WITCHING, ...witching });
-          }
+          // Not logged in or server error — keep defaults, but mark as loaded
+          // so the form is usable (though changes won't save without auth)
+          if (!cancelled) setLoaded(true);
           return;
         }
         const j = await res.json();
@@ -1626,23 +1623,27 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
             msg: j.data.msg || "бог смотрит пристальнее",
             manualOverride: j.data.manualOverride ?? null,
           });
+          setLoaded(true);
+          // Clean up old localStorage key — server is now the only source of truth.
+          // This prevents stale localStorage data from confusing the console frontend.
+          try { window.localStorage.removeItem(EVENTS_KEY); } catch { /* ignore */ }
         }
       } catch {
-        /* network error — keep defaults */
+        // Network error — keep defaults, mark loaded so form is usable
+        if (!cancelled) setLoaded(true);
       }
     })();
     return () => { cancelled = true; };
   }, []);
 
-  // Save config to SERVER (shared across all users) + localStorage (backward compat).
+  // Save config to SERVER ONLY (shared across all users).
+  // Guards against race condition: if `loaded` is false, ignore updates
+  // (prevents DEFAULT values from overwriting real server config before fetch completes).
   function update(patch: Partial<WitchingConfig>) {
+    if (!loaded) return; // ← CRITICAL: don't save until server config is loaded
     setCfg((prev) => {
       const next: WitchingConfig = { ...prev, ...patch };
-      // Save to localStorage (legacy, for same-browser instant update)
-      try {
-        localStorage.setItem(EVENTS_KEY, JSON.stringify({ witching: next }));
-      } catch { /* ignore */ }
-      // Save to SERVER (shared across all users — the real fix)
+      // Save to SERVER (the ONLY source of truth — no more localStorage)
       setSaving(true);
       fetch("/api/admin/events/witching", {
         method: "POST",
@@ -1696,8 +1697,18 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
       </button>
       {open && (
         <div style={styles.eventsBody}>
+          {!loaded && (
+            <div style={{ ...styles.empty, padding: "20px", textAlign: "center" }}>
+              ЗАГРУЗКА КОНФИГУРАЦИИ С СЕРВЕРА…
+            </div>
+          )}
+          {loaded && (
+            <>
           {/* ===== ЧАС ВЕДЬМЫ — Schedule configuration ===== */}
-          <div style={styles.eventsSectionTitle}>🌙 ЧАС ВЕДЬМЫ — НАСТРОЙКА РАСПИСАНИЯ</div>
+          <div style={styles.eventsSectionTitle}>
+            🌙 ЧАС ВЕДЬМЫ — НАСТРОЙКА РАСПИСАНИЯ
+            {saving && <span style={{ color: "#3fd6c8", fontSize: "11px", marginLeft: "8px" }}>⟳ СОХРАНЕНИЕ…</span>}
+          </div>
           <div style={styles.eventsDesc}>
             {"// Час Ведьмы — периодическое событие. В заданное время у игрока"}
             <br />
@@ -1780,6 +1791,8 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
           <div style={styles.hint}>
             {"// команды пишутся в localStorage и подхватываются консолью (опрос 1с / 30с)"}
           </div>
+            </>
+          )}
         </div>
       )}
     </div>
