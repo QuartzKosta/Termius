@@ -926,6 +926,66 @@
   .meter .lbl:hover .meter-tooltip{opacity:1;visibility:visible}
   .meter-tooltip{position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:#0a0805;border:1px solid var(--green-dim);padding:6px 10px;font-size:10px;color:var(--text);line-height:1.4;opacity:0;visibility:hidden;transition:opacity .2s;z-index:100;text-align:left;font-family:'Share Tech Mono',monospace;box-shadow:0 0 12px rgba(0,0,0,.8);clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));white-space:normal}
 
+  /* ============ PUZZLES: oracle (Mastermind) ============ */
+  .oracle-board{display:flex;flex-direction:column;gap:6px;max-width:360px;margin:0 auto;padding:12px}
+  .oracle-row{display:flex;gap:6px;align-items:center;justify-content:center;padding:4px;border:1px solid rgba(74,246,38,.15);border-radius:3px;background:rgba(0,0,0,.3)}
+  .oracle-row.current{border-color:var(--amber);background:rgba(232,161,58,.06);animation:oraclePulse 2s ease-in-out infinite}
+  @keyframes oraclePulse{0%,100%{box-shadow:0 0 0 rgba(232,161,58,0)}50%{box-shadow:0 0 12px rgba(232,161,58,.3)}}
+  .oracle-slot{width:36px;height:36px;border-radius:50%;border:2px solid var(--green-deep);background:#0a0805;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all .15s}
+  .oracle-slot:hover{border-color:var(--green);transform:scale(1.08)}
+  .oracle-slot.set{border-style:solid}
+  .oracle-feedback{display:flex;gap:3px;align-items:center;min-width:50px;justify-content:center}
+  .oracle-fb-dot{width:10px;height:10px;border-radius:50%}
+  .oracle-fb-dot.black{background:var(--green);box-shadow:0 0 4px var(--green)}
+  .oracle-fb-dot.white{background:#888;border:1px solid #aaa}
+  .oracle-fb-dot.none{background:#222;border:1px solid #333}
+  .oracle-pegs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+  .oracle-peg{width:40px;height:40px;border-radius:50%;border:2px solid var(--green-deep);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .oracle-peg:hover{transform:scale(1.1);border-color:var(--green)}
+  .oracle-peg.sel{border-color:var(--amber);box-shadow:0 0 8px rgba(232,161,58,.4)}
+  .oracle-info{text-align:center;font-family:'VT323',monospace;font-size:13px;color:var(--text-dim);letter-spacing:1px;margin-top:6px}
+  .oracle-info b{color:var(--green)}
+
+  /* ============ PUZZLES: lights out ============ */
+  .lights-grid{display:grid;gap:3px;max-width:280px;margin:0 auto;padding:8px;background:#000;border:1px solid var(--green-deep);border-radius:3px}
+  .lights-cell{aspect-ratio:1/1;border:1px solid var(--green-deep);background:#0a0d0a;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:2px}
+  .lights-cell:hover{border-color:var(--green);transform:scale(1.05)}
+  .lights-cell.on{background:radial-gradient(circle,rgba(74,246,38,.5),rgba(74,246,38,.15));border-color:var(--green);box-shadow:0 0 12px rgba(74,246,38,.4),inset 0 0 8px rgba(74,246,38,.3);color:var(--green);text-shadow:0 0 6px var(--green)}
+  .lights-cell.flash{animation:lightsFlash .3s}
+  @keyframes lightsFlash{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .lights-info{text-align:center;font-family:'VT323',monospace;font-size:13px;color:var(--text-dim);letter-spacing:1px;margin-top:8px}
+  .lights-info b{color:var(--green)}
+
+  /* ============ PUZZLES: mosaic (Nonogram) ============ */
+  .mosaic-wrap{display:flex;justify-content:center;overflow-x:auto;max-width:100%;padding:8px}
+  .mosaic-grid{display:grid;border:1px solid var(--green-deep);background:#0a0805}
+  .mosaic-cell{width:22px;height:22px;border:1px solid rgba(74,246,38,.1);background:#0a0d0a;cursor:pointer;transition:background .1s;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-dim)}
+  .mosaic-cell:hover{border-color:var(--green)}
+  .mosaic-cell.filled{background:var(--green);border-color:var(--green);box-shadow:inset 0 0 4px rgba(0,0,0,.3)}
+  .mosaic-cell.marked{background:#1a1a1a;color:var(--red);font-size:14px}
+  .mosaic-cell.clue{background:rgba(74,246,38,.05);cursor:default;font-family:'VT323',monospace;font-size:11px;color:var(--green-dim);letter-spacing:1px}
+  .mosaic-cell.clue:hover{border-color:rgba(74,246,38,.1)}
+  .mosaic-info{text-align:center;font-family:'VT323',monospace;font-size:13px;color:var(--text-dim);letter-spacing:1px;margin-top:8px}
+  .mosaic-info b{color:var(--green)}
+  .mosaic-legend{display:flex;gap:14px;justify-content:center;margin-top:6px;font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace}
+
+  /* ============ PUZZLES: sokoban ============ */
+  .soko-grid{display:grid;gap:0;max-width:340px;margin:0 auto;border:1px solid var(--green-deep);background:#000;padding:2px}
+  .soko-cell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .1s}
+  .soko-cell.wall{background:#1a1a1a;border:1px solid #2a2a2a}
+  .soko-cell.floor{background:#0a0d0a;border:1px solid rgba(74,246,38,.05)}
+  .soko-cell.target{background:rgba(232,161,58,.08);border:1px dashed var(--amber)}
+  .soko-cell.target::after{content:"◯";color:var(--amber);font-size:14px;opacity:.5}
+  .soko-cell.box{background:rgba(74,246,38,.1);border:1px solid var(--green-dim)}
+  .soko-cell.box-on-target{background:rgba(74,246,38,.3);border:1px solid var(--green);box-shadow:inset 0 0 8px rgba(74,246,38,.4)}
+  .soko-cell.player{background:var(--green);color:#000;font-weight:bold;box-shadow:0 0 10px var(--green);z-index:2;animation:sokoPulse 1.5s ease-in-out infinite}
+  @keyframes sokoPulse{0%,100%{box-shadow:0 0 8px var(--green)}50%{box-shadow:0 0 16px var(--green)}}
+  .soko-info{text-align:center;font-family:'VT323',monospace;font-size:13px;color:var(--text-dim);letter-spacing:1px;margin-top:8px}
+  .soko-info b{color:var(--green)}
+  .soko-controls{display:flex;gap:4px;justify-content:center;margin-top:8px}
+  .soko-controls button{background:none;border:1px solid var(--green-dim);color:var(--green-dim);font-family:'VT323',monospace;font-size:16px;padding:4px 12px;cursor:pointer;clip-path:polygon(0 0,calc(100% - 4px) 0,100% 4px,100% 100%,4px 100%,0 calc(100% - 4px))}
+  .soko-controls button:hover{border-color:var(--green);color:var(--green)}
+
   /* ============ WITCHING HOUR — floating side panel ============ */
   /* Compact elegant panel (replaces old banner + popup).
      Always visible during Witching Hour as a small floating card in the
@@ -3168,6 +3228,10 @@
     else if(ptype === "g2048") render2048(slot, pd);
     else if(ptype === "memory") renderMemory(slot, pd);
     else if(ptype === "maze") renderMaze(slot, pd);
+    else if(ptype === "oracle") renderOracle(slot, pd);
+    else if(ptype === "lights") renderLightsOut(slot, pd);
+    else if(ptype === "mosaic") renderMosaic(slot, pd);
+    else if(ptype === "sokoban") renderSokoban(slot, pd);
     else if(ptype === "meta") renderMeta(slot, pd);
     else if(ptype === "fragment") slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// эта запись содержит осколок памяти.<br>закройте это окно и прочтите запись — осколок соберётся автоматически.</div>`;
     else slot.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:20px">// печать без головоломки — запись нельзя открыть.</div>`;
@@ -4041,6 +4105,406 @@
       touchStart = null;
     }, {passive: true});
 
+    render();
+  }
+
+  /* =========================================================
+     PUZZLE: Oracle (Mastermind) — deduction by feedback
+     ========================================================= */
+  function renderOracle(slot, pd){
+    const NUM_SLOTS = pd.slots || 4;
+    const MAX_ATTEMPTS = pd.attempts || 8;
+    const PEGS = pd.pegs || [
+      {id:0, color:"#4af626", icon:"🔥"},
+      {id:1, color:"#3fd6c8", icon:"💧"},
+      {id:2, color:"#e8a13a", icon:"☀️"},
+      {id:3, color:"#a78bfa", icon:"🌙"},
+      {id:4, color:"#ff2424", icon:"🩸"},
+      {id:5, color:"#fbbf24", icon:"⭐"},
+    ];
+    const secret = [];
+    for(let i = 0; i < NUM_SLOTS; i++) secret.push(Math.floor(Math.random() * PEGS.length));
+    let currentGuess = new Array(NUM_SLOTS).fill(null);
+    let activeSlot = 0;
+    let attempts = 0;
+    const history = [];
+
+    function render(){
+      let html = `<div class="oracle-board">`;
+      history.forEach(h => {
+        html += `<div class="oracle-row">`;
+        h.guess.forEach(g => {
+          const p = PEGS[g];
+          html += `<div class="oracle-slot set" style="background:${p.color}33;border-color:${p.color}">${p.icon}</div>`;
+        });
+        html += `<div class="oracle-feedback">`;
+        for(let i = 0; i < h.feedback.black; i++) html += `<div class="oracle-fb-dot black"></div>`;
+        for(let i = 0; i < h.feedback.white; i++) html += `<div class="oracle-fb-dot white"></div>`;
+        for(let i = 0; i < NUM_SLOTS - h.feedback.black - h.feedback.white; i++) html += `<div class="oracle-fb-dot none"></div>`;
+        html += `</div></div>`;
+      });
+      if(attempts < MAX_ATTEMPTS){
+        html += `<div class="oracle-row current">`;
+        for(let i = 0; i < NUM_SLOTS; i++){
+          const g = currentGuess[i];
+          if(g !== null){
+            const p = PEGS[g];
+            html += `<div class="oracle-slot set" data-slot="${i}" style="background:${p.color}33;border-color:${p.color}">${p.icon}</div>`;
+          } else {
+            html += `<div class="oracle-slot" data-slot="${i}">${i === activeSlot ? "▸" : ""}</div>`;
+          }
+        }
+        html += `<button class="seal-btn" id="oracleSubmit" style="width:auto;padding:6px 14px;font-size:12px;margin-left:6px">ПРОВЕРИТЬ</button>`;
+        html += `</div>`;
+      }
+      for(let i = history.length + (attempts < MAX_ATTEMPTS ? 1 : 0); i < MAX_ATTEMPTS; i++){
+        html += `<div class="oracle-row" style="opacity:.3">`;
+        for(let j = 0; j < NUM_SLOTS; j++) html += `<div class="oracle-slot" style="cursor:default">·</div>`;
+        html += `<div class="oracle-feedback" style="color:var(--text-dim);font-size:10px">${NUM_SLOTS} пусто</div></div>`;
+      }
+      html += `<div class="oracle-pegs">`;
+      PEGS.forEach(p => {
+        html += `<div class="oracle-peg" data-peg="${p.id}" style="background:${p.color}22;border-color:${p.color}">${p.icon}</div>`;
+      });
+      html += `</div>`;
+      html += `<div class="oracle-info">попытка <b>${attempts}/${MAX_ATTEMPTS}</b> · ⚫на месте · ⚪не на месте</div>`;
+      html += `</div>`;
+      slot.innerHTML = html;
+
+      slot.querySelectorAll(".oracle-peg").forEach(el => {
+        el.addEventListener("click", () => {
+          if(_puzzleLocked || attempts >= MAX_ATTEMPTS) return;
+          const pegId = parseInt(el.dataset.peg);
+          currentGuess[activeSlot] = pegId;
+          activeSlot = (activeSlot + 1) % NUM_SLOTS;
+          Audio.blip(440 + pegId * 30, 0.04, 0.08);
+          render();
+        });
+      });
+      slot.querySelectorAll(".oracle-slot[data-slot]").forEach(el => {
+        el.addEventListener("click", () => {
+          if(_puzzleLocked || attempts >= MAX_ATTEMPTS) return;
+          const s = parseInt(el.dataset.slot);
+          if(currentGuess[s] !== null && s === activeSlot){
+            currentGuess[s] = null;
+          } else {
+            activeSlot = s;
+          }
+          Audio.blip(330, 0.03, 0.06);
+          render();
+        });
+      });
+      const submit = slot.querySelector("#oracleSubmit");
+      if(submit){
+        submit.addEventListener("click", () => {
+          if(_puzzleLocked || attempts >= MAX_ATTEMPTS) return;
+          if(currentGuess.includes(null)){ Audio.glitch(0.1); return; }
+          const guess = [...currentGuess];
+          let black = 0, white = 0;
+          const secretUsed = new Array(NUM_SLOTS).fill(false);
+          const guessUsed = new Array(NUM_SLOTS).fill(false);
+          for(let i = 0; i < NUM_SLOTS; i++){
+            if(guess[i] === secret[i]){ black++; secretUsed[i] = true; guessUsed[i] = true; }
+          }
+          for(let i = 0; i < NUM_SLOTS; i++){
+            if(guessUsed[i]) continue;
+            for(let j = 0; j < NUM_SLOTS; j++){
+              if(!secretUsed[j] && guess[i] === secret[j]){ white++; secretUsed[j] = true; break; }
+            }
+          }
+          history.push({guess: [...guess], feedback: {black, white}});
+          attempts++;
+          Audio.blip(560, 0.06, 0.1);
+          if(black === NUM_SLOTS){ setTimeout(()=>bypassSuccess(), 400); return; }
+          if(attempts >= MAX_ATTEMPTS){ setTimeout(()=>bypassFail("оракул не покорился"), 400); return; }
+          currentGuess = new Array(NUM_SLOTS).fill(null);
+          activeSlot = 0;
+          render();
+        });
+      }
+    }
+    render();
+  }
+
+  /* =========================================================
+     PUZZLE: Lights Out — cascade toggle
+     ========================================================= */
+  function renderLightsOut(slot, pd){
+    const SIZE = pd.size || 5;
+    const grid = new Array(SIZE * SIZE).fill(false);
+    const scrambleClicks = pd.scramble || Math.floor(SIZE * SIZE * 0.6);
+
+    function toggleCell(idx){
+      const r = Math.floor(idx / SIZE), c = idx % SIZE;
+      const indices = [idx];
+      if(r > 0) indices.push((r-1) * SIZE + c);
+      if(r < SIZE - 1) indices.push((r+1) * SIZE + c);
+      if(c > 0) indices.push(r * SIZE + (c-1));
+      if(c < SIZE - 1) indices.push(r * SIZE + (c+1));
+      indices.forEach(i => grid[i] = !grid[i]);
+    }
+    for(let i = 0; i < scrambleClicks; i++){
+      toggleCell(Math.floor(Math.random() * SIZE * SIZE));
+    }
+    if(grid.every(v => !v)) toggleCell(Math.floor(Math.random() * SIZE * SIZE));
+
+    function render(){
+      let html = `<div class="lights-grid" style="grid-template-columns:repeat(${SIZE},1fr)">`;
+      for(let i = 0; i < SIZE * SIZE; i++){
+        html += `<div class="lights-cell${grid[i] ? " on" : ""}" data-idx="${i}">${grid[i] ? "✦" : ""}</div>`;
+      }
+      html += `</div>`;
+      const onCount = grid.filter(v => v).length;
+      html += `<div class="lights-info">горит: <b>${onCount}</b> · цель: все погашены · клик toggles крест</div>`;
+      slot.innerHTML = html;
+      slot.querySelectorAll(".lights-cell").forEach(el => {
+        el.addEventListener("click", () => {
+          if(_puzzleLocked) return;
+          const idx = parseInt(el.dataset.idx);
+          toggleCell(idx);
+          el.classList.add("flash");
+          setTimeout(()=>el.classList.remove("flash"), 300);
+          Audio.blip(grid[idx] ? 440 : 330, 0.04, 0.08);
+          if(grid.every(v => !v)){ setTimeout(()=>bypassSuccess(), 300); return; }
+          render();
+        });
+      });
+    }
+    render();
+  }
+
+  /* =========================================================
+     PUZZLE: Mosaic (Nonogram) — picture deduction
+     ========================================================= */
+  function renderMosaic(slot, pd){
+    let solution = pd.solution;
+    if(!solution){
+      const patterns = [
+        [[0,1,0],[1,1,1],[0,1,0]],
+        [[0,1,0],[1,0,1],[0,1,0]],
+        [[0,1,0,1,0],[1,1,1,1,1],[1,1,1,1,1],[0,1,1,1,0],[0,0,1,0,0]],
+        [[0,1,1,1,0],[1,0,1,0,1],[1,1,1,1,1],[0,1,0,1,0],[0,1,0,1,0]],
+        [[0,0,1,0,0],[0,1,1,1,0],[1,1,1,1,1],[0,1,0,1,0],[1,0,0,0,1]],
+      ];
+      solution = patterns[Math.floor(Math.random() * patterns.length)];
+    }
+    const ROWS = solution.length;
+    const COLS = solution[0].length;
+    const playerGrid = new Array(ROWS * COLS).fill(0);
+
+    function rowClue(r){
+      const clues = []; let count = 0;
+      for(let c = 0; c < COLS; c++){
+        if(solution[r][c]){ count++; }
+        else if(count > 0){ clues.push(count); count = 0; }
+      }
+      if(count > 0) clues.push(count);
+      return clues.length ? clues : [0];
+    }
+    function colClue(c){
+      const clues = []; let count = 0;
+      for(let r = 0; r < ROWS; r++){
+        if(solution[r][c]){ count++; }
+        else if(count > 0){ clues.push(count); count = 0; }
+      }
+      if(count > 0) clues.push(count);
+      return clues.length ? clues : [0];
+    }
+
+    function render(){
+      let html = `<div class="mosaic-wrap"><div class="mosaic-grid" style="grid-template-columns:auto repeat(${COLS},1fr)">`;
+      html += `<div class="mosaic-cell clue"></div>`;
+      for(let c = 0; c < COLS; c++){
+        html += `<div class="mosaic-cell clue">${colClue(c).join("<br>")}</div>`;
+      }
+      for(let r = 0; r < ROWS; r++){
+        html += `<div class="mosaic-cell clue">${rowClue(r).join(" ")}</div>`;
+        for(let c = 0; c < COLS; c++){
+          const idx = r * COLS + c;
+          const state = playerGrid[idx];
+          const cls = state === 1 ? "filled" : state === 2 ? "marked" : "";
+          html += `<div class="mosaic-cell ${cls}" data-idx="${idx}">${state === 2 ? "✕" : ""}</div>`;
+        }
+      }
+      html += `</div></div>`;
+      html += `<div class="mosaic-legend"><span>ЛКМ — заполнить</span><span>ПКМ — отметить пусто (✕)</span></div>`;
+      const filled = playerGrid.filter(v => v === 1).length;
+      const total = solution.flat().filter(v => v).length;
+      html += `<div class="mosaic-info">заполнено: <b>${filled}/${total}</b></div>`;
+      slot.innerHTML = html;
+
+      slot.querySelectorAll(".mosaic-cell[data-idx]").forEach(el => {
+        el.addEventListener("click", (e) => {
+          if(_puzzleLocked) return;
+          e.preventDefault();
+          const idx = parseInt(el.dataset.idx);
+          playerGrid[idx] = (playerGrid[idx] === 1) ? 0 : 1;
+          Audio.blip(440, 0.03, 0.06);
+          checkWin();
+          render();
+        });
+        el.addEventListener("contextmenu", (e) => {
+          if(_puzzleLocked) return;
+          e.preventDefault();
+          const idx = parseInt(el.dataset.idx);
+          playerGrid[idx] = (playerGrid[idx] === 2) ? 0 : 2;
+          Audio.blip(330, 0.03, 0.06);
+          render();
+        });
+      });
+    }
+
+    function checkWin(){
+      for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
+          const idx = r * COLS + c;
+          if((playerGrid[idx] === 1) !== (solution[r][c] === 1)) return false;
+        }
+      }
+      setTimeout(()=>bypassSuccess(), 300);
+      return true;
+    }
+    render();
+  }
+
+  /* =========================================================
+     PUZZLE: Sokoban — push blocks to targets
+     ========================================================= */
+  function renderSokoban(slot, pd){
+    let level = pd.level;
+    if(!level){
+      const levels = [
+        ["#######","#.....#","#.@$T.#","#.....#","#######"],
+        ["########","#......#","#.@....#","#.$.$..#","#.T.T..#","#......#","########"],
+        ["#######","#.....#","#.T...#","#.$...#","#.@...#","#.....#","#######"],
+      ];
+      level = levels[Math.floor(Math.random() * levels.length)];
+    }
+    let grid = [];
+    let player = {r: 0, c: 0};
+    let boxes = [];
+    const ROWS = level.length;
+    const COLS = Math.max(...level.map(r => r.length));
+
+    for(let r = 0; r < ROWS; r++){
+      const row = [];
+      for(let c = 0; c < COLS; c++){
+        const ch = level[r][c] || ".";
+        if(ch === "#") row.push("#");
+        else if(ch === "T") row.push("T");
+        else if(ch === "@"){ row.push("."); player = {r, c}; }
+        else if(ch === "+"){ row.push("T"); player = {r, c}; }
+        else if(ch === "$"){ row.push("."); boxes.push({r, c}); }
+        else if(ch === "*"){ row.push("T"); boxes.push({r, c}); }
+        else row.push(".");
+      }
+      grid.push(row);
+    }
+    const targets = [];
+    for(let r = 0; r < ROWS; r++){
+      for(let c = 0; c < COLS; c++){
+        if(grid[r][c] === "T") targets.push({r, c});
+      }
+    }
+
+    function isBox(r, c){ return boxes.some(b => b.r === r && b.c === c); }
+    function isTarget(r, c){ return grid[r] && grid[r][c] === "T"; }
+    function isWall(r, c){ return !grid[r] || grid[r][c] === undefined || grid[r][c] === "#"; }
+
+    function move(dr, dc){
+      if(_puzzleLocked) return;
+      const nr = player.r + dr, nc = player.c + dc;
+      if(isWall(nr, nc)) return;
+      if(isBox(nr, nc)){
+        const br = nr + dr, bc = nc + dc;
+        if(isWall(br, bc) || isBox(br, bc)){ Audio.glitch(0.05); return; }
+        const box = boxes.find(b => b.r === nr && b.c === nc);
+        box.r = br; box.c = bc;
+        Audio.blip(220, 0.05, 0.1);
+      } else {
+        Audio.blip(440, 0.03, 0.06);
+      }
+      player.r = nr; player.c = nc;
+      checkWin();
+      render();
+    }
+
+    function checkWin(){
+      if(targets.every(t => isBox(t.r, t.c))){
+        setTimeout(()=>bypassSuccess(), 300);
+      }
+    }
+
+    function render(){
+      let html = `<div class="soko-grid" style="grid-template-columns:repeat(${COLS},1fr)">`;
+      for(let r = 0; r < ROWS; r++){
+        for(let c = 0; c < COLS; c++){
+          let cls = "soko-cell ";
+          if(grid[r][c] === "#") cls += "wall";
+          else if(grid[r][c] === "T") cls += "target";
+          else cls += "floor";
+          if(isBox(r, c)){
+            cls = "soko-cell " + (isTarget(r, c) ? "box-on-target" : "box");
+          }
+          if(player.r === r && player.c === c){
+            cls = "soko-cell player";
+          }
+          html += `<div class="${cls}">${player.r === r && player.c === c ? "@" : isBox(r, c) ? "▢" : ""}</div>`;
+        }
+      }
+      html += `</div>`;
+      const onTarget = targets.filter(t => isBox(t.r, t.c)).length;
+      html += `<div class="soko-info">ящики на целях: <b>${onTarget}/${targets.length}</b> · @=вы · ▢=ящик · ◯=цель</div>`;
+      html += `<div class="soko-controls">
+        <button data-dir="up">▲</button>
+        <button data-dir="left">◄</button>
+        <button data-dir="down">▼</button>
+        <button data-dir="right">►</button>
+      </div>`;
+      slot.innerHTML = html;
+
+      slot.querySelectorAll(".soko-controls button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const d = btn.dataset.dir;
+          if(d === "up") move(-1, 0);
+          else if(d === "down") move(1, 0);
+          else if(d === "left") move(0, -1);
+          else if(d === "right") move(0, 1);
+        });
+      });
+
+      const keyHandler = (e) => {
+        if(_puzzleLocked) return;
+        if(e.key === "ArrowUp" || e.key === "w"){ e.preventDefault(); move(-1, 0); }
+        else if(e.key === "ArrowDown" || e.key === "s"){ e.preventDefault(); move(1, 0); }
+        else if(e.key === "ArrowLeft" || e.key === "a"){ e.preventDefault(); move(0, -1); }
+        else if(e.key === "ArrowRight" || e.key === "d"){ e.preventDefault(); move(0, 1); }
+      };
+      document.addEventListener("keydown", keyHandler);
+      const obs = new MutationObserver(() => {
+        if(!document.body.contains(slot) || !slot.children.length){
+          document.removeEventListener("keydown", keyHandler);
+          obs.disconnect();
+        }
+      });
+      obs.observe(document.body, {childList: true, subtree: true});
+
+      let touchStart = null;
+      slot.addEventListener("touchstart", (e) => {
+        touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+      }, {passive: true});
+      slot.addEventListener("touchend", (e) => {
+        if(!touchStart) return;
+        const dx = e.changedTouches[0].clientX - touchStart.x;
+        const dy = e.changedTouches[0].clientY - touchStart.y;
+        if(Math.abs(dx) > Math.abs(dy)){
+          if(Math.abs(dx) > 30) move(0, dx > 0 ? 1 : -1);
+        } else {
+          if(Math.abs(dy) > 30) move(dy > 0 ? 1 : -1, 0);
+        }
+        touchStart = null;
+      }, {passive: true});
+    }
     render();
   }
 
