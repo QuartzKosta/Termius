@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1a2a1a"/>
+      <stop offset="100%" stop-color="#050805"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="0.8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="32" height="32" rx="4" fill="url(#bg)" stroke="#4af626" stroke-width="0.5" stroke-opacity="0.4"/>
+  <!-- Skull sigil -->
+  <g filter="url(#glow)" fill="none" stroke="#4af626" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Skull outline -->
+    <path d="M16 5 C12 5 9 8 9 12 C9 14 10 16 11 17 L11 20 C11 21 12 22 13 22 L13 24 C13 25 14 26 16 26 C18 26 19 25 19 24 L19 22 C20 22 21 21 21 20 L21 17 C22 16 23 14 23 12 C23 8 20 5 16 5 Z"/>
+    <!-- Eye sockets -->
+    <circle cx="13" cy="13" r="1.8" fill="#4af626" fill-opacity="0.7"/>
+    <circle cx="19" cy="13" r="1.8" fill="#4af626" fill-opacity="0.7"/>
+    <!-- Nose -->
+    <path d="M16 15 L15 18 L16 19 L17 18 Z" fill="#4af626" fill-opacity="0.5"/>
+    <!-- Teeth -->
+    <line x1="14" y1="22" x2="14" y2="24"/>
+    <line x1="16" y1="22" x2="16" y2="24.5"/>
+    <line x1="18" y1="22" x2="18" y2="24"/>
+  </g>
+  <!-- Scan line -->
+  <line x1="8" y1="16" x2="24" y2="16" stroke="#4af626" stroke-width="0.3" stroke-opacity="0.3"/>
+</svg>

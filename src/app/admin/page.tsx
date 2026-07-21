@@ -270,7 +270,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 ? (wardenCount === null ? "—" : wardenCount)
                 : t.key === "states"
                 ? "◆"
-                : data[t.key as RecordType].length}
+                : (data[t.key as RecordType] || []).length}
             </span>
           </button>
         ))}
@@ -1602,10 +1602,11 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
   const [loaded, setLoaded] = useState(false);
 
   // Load ALL alarms from SERVER on mount.
-  const loadAlarms = useCallback(async () => {
+  // Always returns an array (never undefined) to prevent .map() crash.
+  const loadAlarms = useCallback(async (): Promise<WitchingConfig[]> => {
     try {
       const res = await fetch("/api/admin/events/witching", { credentials: "same-origin" });
-      if (!res.ok) return;
+      if (!res.ok) return [];
       const j = await res.json();
       if (Array.isArray(j?.data)) {
         return j.data.map((d: any) => ({
@@ -1617,8 +1618,8 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
           manualOverride: d.manualOverride ?? null,
         })) as WitchingConfig[];
       }
-    } catch { /* ignore */ }
-    return [] as WitchingConfig[];
+    } catch { /* ignore — return empty array */ }
+    return [];
   }, []);
 
   useEffect(() => {
@@ -1692,7 +1693,8 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
     } catch { /* ignore */ }
   }
 
-  const activeCount = alarms.filter(a => a.enabled || a.manualOverride === "on").length;
+  const safeAlarms = Array.isArray(alarms) ? alarms : [];
+  const activeCount = safeAlarms.filter(a => a.enabled || a.manualOverride === "on").length;
 
   return (
     <div style={styles.eventsWrap}>
@@ -1700,7 +1702,7 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
         <span style={{ display: "inline-block", transition: "transform .2s", transform: open ? "rotate(90deg)" : "none" }}>▶</span>
         <span style={{ marginLeft: "8px" }}>⚙ ПАНЕЛЬ СОБЫТИЙ</span>
         <span style={{ marginLeft: "auto", fontSize: "11px", color: "#5d685c" }}>
-          {loaded ? `🌙 ${alarms.length} будильник(ов) · ${activeCount} активн.` : "…"}
+          {loaded ? `🌙 ${safeAlarms.length} будильник(ов) · ${activeCount} активн.` : "…"}
         </span>
       </button>
       {open && (
@@ -1718,15 +1720,15 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
               <span style={{ fontSize: "20px" }}>🌙</span>
               <div style={{ flex: 1 }}>
                 <div style={styles.eventCardTitle}>БУДИЛЬНИКИ ЧАСА ВЕДЬМЫ</div>
-                <div style={styles.eventCardSub}>{alarms.length} настроено · {activeCount} активно</div>
+                <div style={styles.eventCardSub}>{safeAlarms.length} настроено · {activeCount} активно</div>
               </div>
               <button onClick={() => setEditing({ ...DEFAULT_WITCHING })} style={{ ...styles.miniBtn, ...styles.miniAmber, flex: "none", padding: "6px 12px" }}>+ ДОБАВИТЬ</button>
             </div>
             <div style={styles.eventCardForm}>
-              {alarms.length === 0 && (
+              {safeAlarms.length === 0 && (
                 <div style={{ ...styles.empty, padding: "16px", textAlign: "center" }}>{"// нет будильников. Нажмите + ДОБАВИТЬ."}</div>
               )}
-              {alarms.map((a) => (
+              {safeAlarms.map((a) => (
                 <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", background: "rgba(0,0,0,.3)", border: "1px solid rgba(167,139,250,.2)", borderRadius: "2px", flexWrap: "wrap" }}>
                   <span style={{ fontSize: "16px" }}>{a.enabled ? "🟢" : "⚫"}</span>
                   <div style={{ flex: 1, minWidth: "120px" }}>
