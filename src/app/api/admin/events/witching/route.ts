@@ -24,11 +24,29 @@ const str = (v: unknown, max: number, fallback: string): string => {
   return fallback;
 };
 
-/** POST /api/admin/events/witching
- *  Body: { enabled?, startHour?, startMinute?, endHour?, endMinute?,
- *          timezone?, boost?, title?, msg?, manualOverride? }
- *  Updates the singleton Witching Hour config. All fields optional — only
- *  provided fields are updated. Returns the full updated config.
+/** GET /api/admin/events/witching — returns ALL alarms (for admin panel). */
+export async function GET() {
+  if (!(await checkAuth())) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  try {
+    const configs = await db.eventConfig.findMany({
+      orderBy: { createdAt: "asc" },
+    });
+    return NextResponse.json({ data: configs });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || "internal error" },
+      { status: 500 }
+    );
+  }
+}
+
+/** POST /api/admin/events/witching — create OR update an alarm.
+ *  Body: { id?, name?, enabled?, startHour?, ..., manualOverride? }
+ *  If `id` present → update existing alarm.
+ *  If no `id` → create new alarm.
+ *  Returns { ok: true, data: alarm }
  */
 export async function POST(req: NextRequest) {
   if (!(await checkAuth())) {
@@ -37,14 +55,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Ensure the config row exists
-    let cfg = await db.eventConfig.findUnique({ where: { id: "witching_hour" } });
-    if (!cfg) {
-      cfg = await db.eventConfig.create({ data: { id: "witching_hour" } });
-    }
-
-    // Build update object from provided fields
     const update: Record<string, unknown> = {};
+    if (body.name !== undefined) update.name = str(body.name, 100, "Час Ведьмы");
     if (typeof body.enabled === "boolean") update.enabled = body.enabled;
     if (body.startHour !== undefined) update.startHour = Math.max(0, Math.min(23, num(body.startHour, 3)));
     if (body.startMinute !== undefined) update.startMinute = Math.max(0, Math.min(59, num(body.startMinute, 0)));
@@ -55,23 +67,38 @@ export async function POST(req: NextRequest) {
     if (body.title !== undefined) update.title = str(body.title, 100, "ЧАС ВЕДЬМЫ");
     if (body.msg !== undefined) update.msg = str(body.msg, 500, "бог смотрит пристальнее");
     if (body.manualOverride !== undefined) {
-      // null | "on" | "off"
       if (body.manualOverride === null) update.manualOverride = null;
       else if (body.manualOverride === "on" || body.manualOverride === "off") {
         update.manualOverride = body.manualOverride;
       }
     }
 
-    if (Object.keys(update).length === 0) {
-      return NextResponse.json({ ok: true, data: cfg, note: "no fields to update" });
+    // If id provided → update
+    if (typeof body.id === "string" && body.id.trim()) {
+      const updated = await db.eventConfig.update({
+        where: { id: body.id },
+        data: update,
+      });
+      return NextResponse.json({ ok: true, data: updated });
     }
 
-    const updated = await db.eventConfig.update({
-      where: { id: "witching_hour" },
-      data: update,
+    // No id → create new alarm
+    const created = await db.eventConfig.create({
+      data: {
+        name: str(body.name, 100, "Новый будильник"),
+        enabled: typeof body.enabled === "boolean" ? body.enabled : false,
+        startHour: num(body.startHour, 3),
+        startMinute: num(body.startMinute, 0),
+        endHour: num(body.endHour, 4),
+        endMinute: num(body.endMinute, 0),
+        timezone: num(body.timezone, 3),
+        boost: num(body.boost, 15),
+        title: str(body.title, 100, "ЧАС ВЕДЬМЫ"),
+        msg: str(body.msg, 500, "бог смотрит пристальнее"),
+        manualOverride: body.manualOverride === "on" || body.manualOverride === "off" ? body.manualOverride : null,
+      },
     });
-
-    return NextResponse.json({ ok: true, data: updated });
+    return NextResponse.json({ ok: true, data: created });
   } catch (e: any) {
     console.error("[admin/events/witching POST] error:", e?.message, e?.stack);
     return NextResponse.json(
@@ -81,17 +108,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** GET /api/admin/events/witching — same as public but includes manualOverride (already public). */
-export async function GET() {
+/** DELETE /api/admin/events/witching — delete an alarm.
+ *  Body: { id }
+ */
+export async function DELETE(req: NextRequest) {
   if (!(await checkAuth())) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
-    let cfg = await db.eventConfig.findUnique({ where: { id: "witching_hour" } });
-    if (!cfg) {
-      cfg = await db.eventConfig.create({ data: { id: "witching_hour" } });
+    const body = await req.json();
+    const id = str(body.id, 64, "");
+    if (!id) {
+      return NextResponse.json({ error: "id required" }, { status: 400 });
     }
-    return NextResponse.json({ data: cfg });
+    await db.eventConfig.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || "internal error" },

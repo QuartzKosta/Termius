@@ -61,11 +61,13 @@ model StateRelation {
 }
 
 /// Server-side event configuration — shared across ALL users (not per-browser).
-/// Singleton row (id="witching_hour"). Admin updates via /api/admin/events/witching.
-/// Public reads via /api/events/witching. This fixes the bug where Witching Hour
-/// config lived only in localStorage and was different for each browser.
+/// Supports MULTIPLE witching hour alarms (like alarm clock reminders).
+/// Each row = one alarm with its own schedule, boost, title, message.
+/// Public reads via /api/events/witching (returns ALL alarms).
+/// Admin manages via /api/admin/events/witching (CRUD).
 model EventConfig {
-  id              String   @id           // "witching_hour" (singleton)
+  id              String   @id @default(cuid())
+  name            String   @default("Час Ведьмы")  // user-friendly label
   enabled         Boolean  @default(false)
   startHour       Int      @default(3)
   startMinute     Int      @default(0)
@@ -76,5 +78,6 @@ model EventConfig {
   title           String   @default("ЧАС ВЕДЬМЫ")
   msg             String   @default("бог смотрит пристальнее")
   manualOverride  String?  // null | "on" | "off" — admin can force on/off
+  createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

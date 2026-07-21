@@ -4807,71 +4807,57 @@
        ALL users — fixes the bug where config lived only in admin's localStorage
        and other users had enabled=false default).
      ========================================================= */
-  // Fallback defaults if API is unreachable
+  // Fallback default if API is unreachable and no alarms exist
   const DEFAULT_EVT = {
     witching_hour: {
       enabled: false,
       startHour: 3, startMinute: 0,
       endHour: 4, endMinute: 0,
-      timezone: 3, // UTC+3 (Moscow)
+      timezone: 3,
       boost: 15,
       title: "ЧАС ВЕДЬМЫ",
       msg: "бог смотрит пристальнее",
-      manualOverride: null, // "on" | "off" | null
+      manualOverride: null,
     }
   };
-  // Live config — updated from server on load + every 30s
-  let _serverCfg = JSON.parse(JSON.stringify(DEFAULT_EVT.witching_hour));
+  // Live config — ARRAY of alarms from server (was: single object)
+  let _serverAlarms = [];
 
   async function fetchWitchingConfig(){
     try{
       const res = await fetch("/api/events/witching", { credentials: "same-origin" });
       if(!res.ok) return;
       const j = await res.json();
-      if(j && j.data){
-        _serverCfg = Object.assign({}, DEFAULT_EVT.witching_hour, j.data);
+      if(j && Array.isArray(j.data)){
+        _serverAlarms = j.data;
       }
     }catch(e){ /* network error — keep last known config */ }
   }
 
-  function loadEvtCfg(){
-    // Use ONLY server config (shared across all users).
-    // localStorage is NO longer used for reading — it caused stale data to
-    // override server config on devices that had old settings saved.
-    // The only fallback is DEFAULT_EVT if server hasn't responded yet.
-    return { witching_hour: _serverCfg };
+  // Find the first ACTIVE alarm (for display purposes).
+  // Returns the alarm object if any alarm is active, or null.
+  function getActiveAlarm(){
+    for(const alarm of _serverAlarms){
+      if(isAlarmActive(alarm)) return alarm;
+    }
+    return null;
   }
-
-  // State machine: tracks whether Witching Hour is currently active,
-  // and whether we've already fired the popup/gaze/achievement for the current active period.
-  let _witchActive = false;          // true while Witching Hour is currently active
-  let _witchFiredThisPeriod = false; // true after we've shown popup + granted gaze + achievement for current active period
-  let _witchHideTimer = null;        // auto-hide timer for the popup
 
   function _witchFmt(n){ return String(n).padStart(2,'0'); }
 
-  // Compute whether Witching Hour is currently active based on config + manual override.
-  function isWitchingActive(cfg){
-    // manualOverride from SERVER config: "on" | "off" | null
-    // (replaces the old localStorage-based manual flag which was per-browser)
+  // Check if a SINGLE alarm is currently active.
+  function isAlarmActive(cfg){
+    if(!cfg) return false;
     const serverOverride = cfg.manualOverride || null;
-    // Legacy localStorage flag still supported for backward compat (admin's old commands)
     const legacyManual = localStorage.getItem("ashen_witching_manual") === "true";
     if(localStorage.getItem("ashen_witching_manual") === "false"){
       localStorage.removeItem("ashen_witching_manual");
     }
-    // Server "off" forces inactive; server "on" or legacy manual forces active
     const forcedActive = serverOverride === "on" || (serverOverride !== "off" && legacyManual);
     if(serverOverride === "off") return false;
     if(forcedActive) return true;
     if(!cfg.enabled) return false;
 
-    // Correct timezone calculation:
-    //   now.getTime() is absolute UTC ms. Adding cfg.timezone * 3600000 ms shifts
-    //   to the target zone. Reading getUTCHours() on the shifted Date gives the
-    //   hour in the target zone (NOT the browser's local zone).
-    //   The previous code did `now.getTime() + now.getTimezoneOffset()*60000 + cfg.timezone*3600000`
-    //   which double-counted the browser offset and gave wrong hours for non-UTC users.
     const now = new Date();
     const tzMs = now.getTime() + (cfg.timezone || 0) * 3600000;
     const tzDate = new Date(tzMs);
@@ -4884,9 +4870,15 @@
         : (curMin >= startMin || curMin < endMin));
   }
 
+  // State machine: tracks whether Witching Hour is currently active,
+  // and whether we've already fired the popup/gaze/achievement for the current active period.
+  let _witchActive = false;
+  let _witchFiredThisPeriod = false;
+  let _witchHideTimer = null;
+
   // Show the Witching Hour panel. If firstTime, expand it + auto-collapse after 8s.
-  function showWitchPanel(firstTime){
-    const cfg = loadEvtCfg().witching_hour;
+  function showWitchPanel(firstTime, alarm){
+    const cfg = alarm || getActiveAlarm() || DEFAULT_EVT.witching_hour;
     const panel = $("#witchPanel");
     const titleEl = $("#witchPanelTitle");
     const msgEl = $("#witchPanelMsg");
@@ -4901,12 +4893,14 @@
     if(tzEl) tzEl.textContent = `UTC${(cfg.timezone||0)>=0?'+':''}${cfg.timezone||0}`;
     if(infoEl){
       const manual = cfg.manualOverride === "on";
-      infoEl.textContent = manual ? "Включено вручную" : "Активно — бог наблюдает";
+      const alarmCount = _serverAlarms.length;
+      infoEl.textContent = manual
+        ? `Включено вручную${alarmCount > 1 ? " · " + alarmCount + " будильников" : ""}`
+        : `Активно — бог наблюдает${alarmCount > 1 ? " · " + alarmCount + " будильников" : ""}`;
     }
     if(_witchHideTimer){ clearTimeout(_witchHideTimer); _witchHideTimer = null; }
     panel?.classList.add("show");
     if(firstTime){
-      // Auto-expand on first trigger, then collapse after 8s
       panel?.classList.add("expanded");
       _witchHideTimer = setTimeout(()=>{
         panel?.classList.remove("expanded");
@@ -4921,29 +4915,26 @@
   }
 
   function checkWitching(){
-    const cfg = loadEvtCfg().witching_hour;
-    const active = isWitchingActive(cfg);
+    // Check ALL alarms — if ANY is active, Witching Hour is active
+    const activeAlarm = getActiveAlarm();
+    const active = !!activeAlarm;
 
     if(active){
-      // Panel is ALWAYS visible while Witching Hour is active.
-      showWitchPanel(false);
+      showWitchPanel(false, activeAlarm);
 
       if(!_witchActive){
-        // Transition: inactive → active. Reset the "fired" flag so popup fires again.
         _witchActive = true;
         _witchFiredThisPeriod = false;
       }
 
       if(!_witchFiredThisPeriod){
         _witchFiredThisPeriod = true;
-        addGaze(cfg.boost || 5);
+        addGaze(activeAlarm.boost || 5);
         Audio.whisper(0.18);
         unlockAchievement("WITCHING_HOUR");
-        // First trigger: expand the panel to show details
-        showWitchPanel(true);
+        showWitchPanel(true, activeAlarm);
       }
     } else {
-      // Witching Hour not active — hide panel, reset state for next time.
       if(_witchActive){
         _witchActive = false;
         _witchFiredThisPeriod = false;

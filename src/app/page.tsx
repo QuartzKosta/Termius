@@ -1,7 +1,7 @@
 // Cache-busting: append a version query param so the browser always fetches
 // the latest dnd-console.html instead of serving a stale cached version.
 // Bump this version when you ship changes to dnd-console.html.
-const CONSOLE_VERSION = "2026-07-16-puzzles-v1";
+const CONSOLE_VERSION = "2026-07-17-multi-alarms";
 
 export default function Home() {
   return (

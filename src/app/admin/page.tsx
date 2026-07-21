@@ -1564,131 +1564,135 @@ function WardensPanel({ flash, onChanged }: { flash: (m: string) => void; onChan
      - ashen_gaze_cmd           {action:"open_eye",amount} | {action:"close_eye"}
    ============================================================ */
 interface WitchingConfig {
+  id?: string;
+  name: string;
   enabled: boolean;
   startHour: number;
   startMinute: number;
   endHour: number;
   endMinute: number;
-  timezone: number; // UTC offset in hours (e.g. 3 for Moscow). Frontend does tz*3600000.
-  boost: number;    // gaze % added when witching triggers. Frontend does addGaze(cfg.boost||5).
+  timezone: number;
+  boost: number;
   title: string;
   msg: string;
-  manualOverride?: string | null; // "on" | "off" | null — server-side manual override
+  manualOverride?: string | null;
 }
 
 const DEFAULT_WITCHING: WitchingConfig = {
+  name: "Новый будильник",
   enabled: false,
   startHour: 3,
   startMinute: 0,
   endHour: 4,
   endMinute: 0,
-  timezone: 3, // UTC+3 (Moscow) — matches frontend DEFAULT_EVT
+  timezone: 3,
   boost: 15,
   title: "ЧАС ВЕДЬМЫ",
   msg: "бог смотрит пристальнее",
+  manualOverride: null,
 };
 
 const EVENTS_KEY = "ashen_events_config_v2";
 
 function EventsPanel({ flash }: { flash: (m: string) => void }) {
   const [open, setOpen] = useState(false);
-  const [cfg, setCfg] = useState<WitchingConfig>(DEFAULT_WITCHING);
+  const [alarms, setAlarms] = useState<WitchingConfig[]>([]);
+  const [editing, setEditing] = useState<WitchingConfig | null>(null);
   const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false); // false until server config is fetched
+  const [loaded, setLoaded] = useState(false);
 
-  // Load config from SERVER on mount (shared across all users).
-  // This is the ONLY source of truth — localStorage is no longer used for reading.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/events/witching", { credentials: "same-origin" });
-        if (!res.ok) {
-          // Not logged in or server error — keep defaults, but mark as loaded
-          // so the form is usable (though changes won't save without auth)
-          if (!cancelled) setLoaded(true);
-          return;
-        }
-        const j = await res.json();
-        if (j?.data && !cancelled) {
-          setCfg({
-            enabled: !!j.data.enabled,
-            startHour: j.data.startHour ?? 3,
-            startMinute: j.data.startMinute ?? 0,
-            endHour: j.data.endHour ?? 4,
-            endMinute: j.data.endMinute ?? 0,
-            timezone: j.data.timezone ?? 3,
-            boost: j.data.boost ?? 15,
-            title: j.data.title || "ЧАС ВЕДЬМЫ",
-            msg: j.data.msg || "бог смотрит пристальнее",
-            manualOverride: j.data.manualOverride ?? null,
-          });
-          setLoaded(true);
-          // Clean up old localStorage key — server is now the only source of truth.
-          // This prevents stale localStorage data from confusing the console frontend.
-          try { window.localStorage.removeItem(EVENTS_KEY); } catch { /* ignore */ }
-        }
-      } catch {
-        // Network error — keep defaults, mark loaded so form is usable
-        if (!cancelled) setLoaded(true);
+  // Load ALL alarms from SERVER on mount.
+  const loadAlarms = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/events/witching", { credentials: "same-origin" });
+      if (!res.ok) return;
+      const j = await res.json();
+      if (Array.isArray(j?.data)) {
+        return j.data.map((d: any) => ({
+          id: d.id, name: d.name || "Будильник", enabled: !!d.enabled,
+          startHour: d.startHour ?? 3, startMinute: d.startMinute ?? 0,
+          endHour: d.endHour ?? 4, endMinute: d.endMinute ?? 0,
+          timezone: d.timezone ?? 3, boost: d.boost ?? 15,
+          title: d.title || "ЧАС ВЕДЬМЫ", msg: d.msg || "бог смотрит пристальнее",
+          manualOverride: d.manualOverride ?? null,
+        })) as WitchingConfig[];
       }
-    })();
-    return () => { cancelled = true; };
+    } catch { /* ignore */ }
+    return [] as WitchingConfig[];
   }, []);
 
-  // Save config to SERVER ONLY (shared across all users).
-  // Guards against race condition: if `loaded` is false, ignore updates
-  // (prevents DEFAULT values from overwriting real server config before fetch completes).
-  function update(patch: Partial<WitchingConfig>) {
-    if (!loaded) return; // ← CRITICAL: don't save until server config is loaded
-    setCfg((prev) => {
-      const next: WitchingConfig = { ...prev, ...patch };
-      // Save to SERVER (the ONLY source of truth — no more localStorage)
-      setSaving(true);
-      fetch("/api/admin/events/witching", {
+  useEffect(() => {
+    let cancelled = false;
+    loadAlarms().then((data) => {
+      if (!cancelled) {
+        setAlarms(data);
+        setLoaded(true);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [loadAlarms]);
+
+  // Save alarm to server (create or update)
+  async function saveAlarm(alarm: WitchingConfig) {
+    setSaving(true);
+    try {
+      await fetch("/api/admin/events/witching", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      }).then(() => setSaving(false)).catch(() => setSaving(false));
-      return next;
-    });
+        body: JSON.stringify(alarm),
+      });
+      flash(alarm.id ? "БУДИЛЬНИК ОБНОВЛЁН" : "БУДИЛЬНИК СОЗДАН");
+      await loadAlarms();
+      setEditing(null);
+    } catch { flash("ошибка сохранения"); }
+    setSaving(false);
   }
 
-  function godCommand(cmd: "wh_on" | "wh_off" | "gaze_25" | "gaze_50" | "gaze_reset") {
+  // Delete alarm
+  async function deleteAlarm(id: string) {
+    if (!window.confirm("Удалить этот будильник?")) return;
     try {
-      if (cmd === "wh_on") {
-        // Save manual override to SERVER (shared across all users)
-        fetch("/api/admin/events/witching", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ manualOverride: "on" }),
-        }).catch(() => {});
-        // Legacy localStorage for same-browser instant update
-        localStorage.setItem("ashen_witching_manual", "true");
-        flash("🌙 ЧАС ВЕДЬМЫ ВКЛЮЧЁН (ручной режим) — для всех пользователей");
-      } else if (cmd === "wh_off") {
-        // Frontend checks === "false" and then removes the key.
-        fetch("/api/admin/events/witching", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ manualOverride: "off" }),
-        }).catch(() => {});
-        localStorage.setItem("ashen_witching_manual", "false");
-        flash("ЧАС ВЕДЬМЫ ВЫКЛЮЧЕН — для всех пользователей");
-      } else if (cmd === "gaze_25") {
+      await fetch("/api/admin/events/witching", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      flash("БУДИЛЬНИК УДАЛЁН");
+      await loadAlarms();
+    } catch { flash("ошибка удаления"); }
+  }
+
+  // Quick toggle manual override for a specific alarm
+  async function toggleManual(id: string, mode: "on" | "off" | null) {
+    setSaving(true);
+    try {
+      await fetch("/api/admin/events/witching", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, manualOverride: mode }),
+      });
+      flash(mode === "on" ? "🌙 ВКЛЮЧЕНО ВРУЧНУЮ" : mode === "off" ? "ВЫКЛЮЧЕНО" : "АВТО РЕЖИМ");
+      await loadAlarms();
+    } catch { flash("ошибка"); }
+    setSaving(false);
+  }
+
+  function godCommand(cmd: "gaze_25" | "gaze_50" | "gaze_reset") {
+    try {
+      if (cmd === "gaze_25") {
         localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "open_eye", amount: 25 }));
-        flash("ВЗГЛЯД УСИЛЕН +25% (только для этого браузера)");
+        flash("ВЗГЛЯД УСИЛЕН +25% (этот браузер)");
       } else if (cmd === "gaze_50") {
         localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "open_eye", amount: 50 }));
-        flash("ВЗГЛЯД УСИЛЕН +50% (только для этого браузера)");
+        flash("ВЗГЛЯД УСИЛЕН +50% (этот браузер)");
       } else if (cmd === "gaze_reset") {
         localStorage.setItem("ashen_gaze_cmd", JSON.stringify({ action: "close_eye" }));
-        flash("ВЗГЛЯД СБРОШЕН ДО 0% (только для этого браузера)");
+        flash("ВЗГЛЯД СБРОШЕН (этот браузер)");
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }
+
+  const activeCount = alarms.filter(a => a.enabled || a.manualOverride === "on").length;
 
   return (
     <div style={styles.eventsWrap}>
@@ -1696,98 +1700,123 @@ function EventsPanel({ flash }: { flash: (m: string) => void }) {
         <span style={{ display: "inline-block", transition: "transform .2s", transform: open ? "rotate(90deg)" : "none" }}>▶</span>
         <span style={{ marginLeft: "8px" }}>⚙ ПАНЕЛЬ СОБЫТИЙ</span>
         <span style={{ marginLeft: "auto", fontSize: "11px", color: "#5d685c" }}>
-          {loaded ? `${cfg.enabled ? "🟢" : "⚫"} ЧВ · ${cfg.manualOverride === "on" ? "РУЧН" : cfg.manualOverride === "off" ? "ОТКЛ" : "АВТО"}` : "…"}
+          {loaded ? `🌙 ${alarms.length} будильник(ов) · ${activeCount} активн.` : "…"}
         </span>
       </button>
       {open && (
         <div style={styles.eventsBody}>
           {!loaded && (
             <div style={{ ...styles.empty, padding: "24px", textAlign: "center", color: "#5d685c" }}>
-              ⟳ ЗАГРУЗКА КОНФИГУРАЦИИ С СЕРВЕРА…
+              ⟳ ЗАГРУЗКА…
             </div>
           )}
           {loaded && (
             <>
-          {/* ===== ЧАС ВЕДЬМЫ — Schedule Card ===== */}
+          {/* ===== ALARMS LIST ===== */}
           <div style={styles.eventCard}>
             <div style={styles.eventCardHead}>
-              <span style={{ fontSize: "20px", filter: "drop-shadow(0 0 6px rgba(167,139,250,.6))" }}>🌙</span>
+              <span style={{ fontSize: "20px" }}>🌙</span>
               <div style={{ flex: 1 }}>
-                <div style={styles.eventCardTitle}>ЧАС ВЕДЬМЫ</div>
-                <div style={styles.eventCardSub}>Расписание срабатывания</div>
+                <div style={styles.eventCardTitle}>БУДИЛЬНИКИ ЧАСА ВЕДЬМЫ</div>
+                <div style={styles.eventCardSub}>{alarms.length} настроено · {activeCount} активно</div>
               </div>
-              {saving && <span style={{ color: "#3fd6c8", fontSize: "11px" }}>⟳</span>}
-            </div>
-            <div style={styles.eventCardDesc}>
-              Периодическое событие. В заданное время у игрока растёт Взгляд Бога и появляется индикатор. Можно включить по расписанию или вручную.
+              <button onClick={() => setEditing({ ...DEFAULT_WITCHING })} style={{ ...styles.miniBtn, ...styles.miniAmber, flex: "none", padding: "6px 12px" }}>+ ДОБАВИТЬ</button>
             </div>
             <div style={styles.eventCardForm}>
-              <label style={styles.toggleRow}>
-                <input type="checkbox" checked={cfg.enabled} onChange={(e) => update({ enabled: e.target.checked })} style={styles.checkbox} />
-                <span style={styles.toggleLabel}>Включить по расписанию</span>
-              </label>
-              <div style={styles.fieldRow}>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.fieldLabelMini}>НАЧАЛО</label>
-                  <div style={styles.timeRow}>
-                    <input type="number" min={0} max={23} value={cfg.startHour} onChange={(e) => update({ startHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "70px", textAlign: "center" }} />
-                    <span style={{ color: "#5d685c", fontSize: "16px" }}>:</span>
-                    <input type="number" min={0} max={59} value={cfg.startMinute} onChange={(e) => update({ startMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "70px", textAlign: "center" }} />
+              {alarms.length === 0 && (
+                <div style={{ ...styles.empty, padding: "16px", textAlign: "center" }}>{"// нет будильников. Нажмите + ДОБАВИТЬ."}</div>
+              )}
+              {alarms.map((a) => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", background: "rgba(0,0,0,.3)", border: "1px solid rgba(167,139,250,.2)", borderRadius: "2px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "16px" }}>{a.enabled ? "🟢" : "⚫"}</span>
+                  <div style={{ flex: 1, minWidth: "120px" }}>
+                    <div style={{ fontFamily: "'MedievalSharp', serif", fontSize: "13px", color: "#c4b5fd" }}>{a.name || a.title}</div>
+                    <div style={{ fontSize: "10px", color: "#5d685c", fontFamily: "'Share Tech Mono', monospace" }}>
+                      {String(a.startHour).padStart(2,"0")}:{String(a.startMinute).padStart(2,"0")}–{String(a.endHour).padStart(2,"0")}:{String(a.endMinute).padStart(2,"0")} UTC{a.timezone>=0?"+":""}{a.timezone} · +{a.boost}%
+                      {a.manualOverride === "on" && " · 🔥 РУЧН"}
+                      {a.manualOverride === "off" && " · ⛔ ОТКЛ"}
+                    </div>
                   </div>
+                  <button onClick={() => setEditing({ ...a })} style={{ ...styles.miniBtn, ...styles.miniAmber, flex: "none", padding: "4px 8px", fontSize: "10px" }}>✎</button>
+                  <button onClick={() => toggleManual(a.id!, a.manualOverride === "on" ? null : "on")} style={{ ...styles.miniBtn, ...styles.miniGreen, flex: "none", padding: "4px 8px", fontSize: "10px" }}>{a.manualOverride === "on" ? "АВТО" : "ВКЛ"}</button>
+                  <button onClick={() => deleteAlarm(a.id!)} style={{ ...styles.miniBtn, ...styles.miniRed, flex: "none", padding: "4px 8px", fontSize: "10px" }}>✕</button>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.fieldLabelMini}>КОНЕЦ</label>
-                  <div style={styles.timeRow}>
-                    <input type="number" min={0} max={23} value={cfg.endHour} onChange={(e) => update({ endHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "70px", textAlign: "center" }} />
-                    <span style={{ color: "#5d685c", fontSize: "16px" }}>:</span>
-                    <input type="number" min={0} max={59} value={cfg.endMinute} onChange={(e) => update({ endMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "70px", textAlign: "center" }} />
-                  </div>
-                </div>
-              </div>
-              <div style={styles.fieldRow}>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.fieldLabelMini}>ЧАСОВОЙ ПОЯС (UTC)</label>
-                  <input type="number" step="1" value={cfg.timezone} onChange={(e) => update({ timezone: Number(e.target.value) || 0 })} style={{ ...styles.input, textAlign: "center" }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.fieldLabelMini}>УСИЛЕНИЕ ВЗГЛЯДА (%)</label>
-                  <input type="number" step="1" value={cfg.boost} onChange={(e) => update({ boost: Number(e.target.value) || 0 })} style={{ ...styles.input, textAlign: "center" }} />
-                </div>
-              </div>
-              <label style={styles.fieldLabelMini}>ЗАГОЛОВОК ИНДИКАТОРА</label>
-              <input value={cfg.title} onChange={(e) => update({ title: e.target.value })} placeholder="ЧАС ВЕДЬМЫ" style={styles.input} />
-              <label style={styles.fieldLabelMini}>ТЕКСТ СООБЩЕНИЯ</label>
-              <textarea value={cfg.msg} onChange={(e) => update({ msg: e.target.value })} rows={2} style={{ ...styles.input, resize: "vertical" }} />
+              ))}
             </div>
           </div>
 
-          {/* ===== ВЗГЛЯД БОГА — Quick Controls Card ===== */}
+          {/* ===== EDIT FORM (modal-like inline) ===== */}
+          {editing && (
+            <div style={{ ...styles.eventCard, borderColor: "rgba(232,161,58,.5)" }}>
+              <div style={{ ...styles.eventCardHead, borderBottomColor: "rgba(232,161,58,.3)" }}>
+                <span style={{ fontSize: "20px" }}>{editing.id ? "✎" : "+"}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ ...styles.eventCardTitle, color: "#e8a13a" }}>{editing.id ? "РЕДАКТИРОВАНИЕ" : "НОВЫЙ БУДИЛЬНИК"}</div>
+                </div>
+                <button onClick={() => setEditing(null)} style={{ ...styles.miniBtn, ...styles.miniRed, flex: "none", padding: "4px 10px" }}>×</button>
+              </div>
+              <div style={styles.eventCardForm}>
+                <label style={styles.fieldLabelMini}>НАЗВАНИЕ</label>
+                <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Ночной дозор" style={styles.input} />
+                <label style={styles.toggleRow}>
+                  <input type="checkbox" checked={editing.enabled} onChange={(e) => setEditing({ ...editing, enabled: e.target.checked })} style={styles.checkbox} />
+                  <span style={styles.toggleLabel}>Включить по расписанию</span>
+                </label>
+                <div style={styles.fieldRow}>
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.fieldLabelMini}>НАЧАЛО</label>
+                    <div style={styles.timeRow}>
+                      <input type="number" min={0} max={23} value={editing.startHour} onChange={(e) => setEditing({ ...editing, startHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "70px", textAlign: "center" }} />
+                      <span style={{ color: "#5d685c", fontSize: "16px" }}>:</span>
+                      <input type="number" min={0} max={59} value={editing.startMinute} onChange={(e) => setEditing({ ...editing, startMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "70px", textAlign: "center" }} />
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.fieldLabelMini}>КОНЕЦ</label>
+                    <div style={styles.timeRow}>
+                      <input type="number" min={0} max={23} value={editing.endHour} onChange={(e) => setEditing({ ...editing, endHour: clampNum(e.target.value, 0, 23) })} style={{ ...styles.input, maxWidth: "70px", textAlign: "center" }} />
+                      <span style={{ color: "#5d685c", fontSize: "16px" }}>:</span>
+                      <input type="number" min={0} max={59} value={editing.endMinute} onChange={(e) => setEditing({ ...editing, endMinute: clampNum(e.target.value, 0, 59) })} style={{ ...styles.input, maxWidth: "70px", textAlign: "center" }} />
+                    </div>
+                  </div>
+                </div>
+                <div style={styles.fieldRow}>
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.fieldLabelMini}>ЧАСОВОЙ ПОЯС (UTC)</label>
+                    <input type="number" step="1" value={editing.timezone} onChange={(e) => setEditing({ ...editing, timezone: Number(e.target.value) || 0 })} style={{ ...styles.input, textAlign: "center" }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.fieldLabelMini}>УСИЛЕНИЕ ВЗГЛЯДА (%)</label>
+                    <input type="number" step="1" value={editing.boost} onChange={(e) => setEditing({ ...editing, boost: Number(e.target.value) || 0 })} style={{ ...styles.input, textAlign: "center" }} />
+                  </div>
+                </div>
+                <label style={styles.fieldLabelMini}>ЗАГОЛОВОК ИНДИКАТОРА</label>
+                <input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} placeholder="ЧАС ВЕДЬМЫ" style={styles.input} />
+                <label style={styles.fieldLabelMini}>ТЕКСТ СООБЩЕНИЯ</label>
+                <textarea value={editing.msg} onChange={(e) => setEditing({ ...editing, msg: e.target.value })} rows={2} style={{ ...styles.input, resize: "vertical" }} />
+                <button onClick={() => saveAlarm(editing)} disabled={saving} style={{ ...styles.btn, ...(saving ? styles.btnDisabled : {}), marginTop: "8px" }}>
+                  {saving ? "СОХРАНЕНИЕ…" : editing.id ? "СОХРАНИТЬ" : "СОЗДАТЬ"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ===== ВЗГЛЯД БОГА — Quick Controls ===== */}
           <div style={{ ...styles.eventCard, borderColor: "rgba(232,161,58,.35)" }}>
             <div style={{ ...styles.eventCardHead, borderBottomColor: "rgba(232,161,58,.25)" }}>
-              <span style={{ fontSize: "20px", filter: "drop-shadow(0 0 6px rgba(232,161,58,.6))" }}>👁</span>
+              <span style={{ fontSize: "20px" }}>👁</span>
               <div style={{ flex: 1 }}>
                 <div style={{ ...styles.eventCardTitle, color: "#e8a13a" }}>ВЗГЛЯД БОГА</div>
-                <div style={styles.eventCardSub}>Быстрое управление</div>
+                <div style={styles.eventCardSub}>Быстрое управление (этот браузер)</div>
               </div>
-            </div>
-            <div style={styles.eventCardDesc}>
-              Взгляд Бога — метра 0–100%. Чем больше игрок читает и решает, тем сильнее бог его замечает. Админ может мгновенно изменить значение.
             </div>
             <div style={styles.eventCardForm}>
-              <label style={styles.fieldLabelMini}>ЧАС ВЕДЬМЫ — РУЧНОЙ РЕЖИМ</label>
-              <div style={styles.quickRow}>
-                <button onClick={() => godCommand("wh_on")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>🌙 ВКЛЮЧИТЬ</button>
-                <button onClick={() => godCommand("wh_off")} style={{ ...styles.miniBtn, ...styles.miniGreen }}>ВЫКЛЮЧИТЬ</button>
-              </div>
-              <div style={styles.eventsHintLine}>мгновенно включает/отключает Час Ведьмы для всех пользователей</div>
-
-              <label style={{ ...styles.fieldLabelMini, marginTop: "10px" }}>ВЗГЛЯД — МГНОВЕННОЕ ИЗМЕНЕНИЕ</label>
               <div style={styles.quickRow}>
                 <button onClick={() => godCommand("gaze_25")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>+25%</button>
                 <button onClick={() => godCommand("gaze_50")} style={{ ...styles.miniBtn, ...styles.miniAmber }}>+50%</button>
                 <button onClick={() => godCommand("gaze_reset")} style={{ ...styles.miniBtn, ...styles.miniGreen }}>СБРОС</button>
               </div>
-              <div style={styles.eventsHintLine}>изменяет значение gaze (записывается в ashen_gaze_cmd)</div>
+              <div style={styles.eventsHintLine}>изменяет gaze (только для этого браузера)</div>
             </div>
           </div>
             </>

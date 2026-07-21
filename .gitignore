@@ -64,3 +64,7 @@ server.log
 .zscripts/
 # Upload mount (ephemeral)
 /upload/
+
+# Database (local SQLite — do not commit)
+db/*.db
+db/*.db-journal
